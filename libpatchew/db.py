@@ -100,10 +100,12 @@ class DB(object):
         version = m.get_version()
         prev = self._messages.find({"untagged-subject": name, "is-series": True})
         for p in prev:
-            if max(m.get_version(), p.get("obsoleted-by", 0)) >= version:
+            pm = self._message_from_dict(p)
+            if version <= max(pm.get_status("obsoleted-by-version", 0), pm.get_version()):
                 continue
-            print "obsolete version %d of series '%s' with version %d" % (m.get_version(), name, version)
-            self.set_status(p['message-id'], 'obsoleted-by', m.get_message_id())
+            print "obsolete '%s' %d => %d" % (name, pm.get_version(), version)
+            self.set_statuses(p['message-id'], {'obsoleted-by': m.get_message_id(),
+                                                'obsoleted-by-version': m.get_version()})
 
     def _get_top_message(self, msg_id, check):
         seen = set([msg_id])
