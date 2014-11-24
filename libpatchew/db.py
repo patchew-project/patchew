@@ -231,6 +231,12 @@ class DB(object):
             if series.is_series(m):
                 yield m
 
+    def find_messages(self):
+        for i in self._messages.find():
+            if not i.get('mbox'):
+                continue
+            yield self._message_from_dict(i)
+
     def get_patches(self, s):
         r = [self.get_message(x) for x in s.get_status("patches", [])]
         r.sort(lambda x, y: cmp(x.get_num(), y.get_num()))

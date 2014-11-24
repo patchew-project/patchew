@@ -104,6 +104,14 @@ def import_cmd(db, args):
     for i in a:
         db.process_message(i)
 
+def syncdb_args(parser):
+    pass
+
+def syncdb_cmd(db, args):
+    for s in db.find_messages():
+        db.process_message(s.get_message_id())
+    return True
+
 def add_query_args(parser):
     parser.add_argument("-t", "--tag", type=str, default="",
                         help="Query only those tags, split multiple with comma")
@@ -657,6 +665,11 @@ commands = {
     'import':  {
         'args': import_args,
         'cmd': import_cmd,
+    },
+    'syncdb':  {
+        'args': syncdb_args,
+        'cmd': syncdb_cmd,
+        'help': 'rescan all the messages and update metadata',
     },
     'query':  {
         'args': query_args,
