@@ -381,7 +381,7 @@ def render_message(db, m):
             'body': m.get_body(),
             'preview': m.get_preview(),
             'message-id': m.get_message_id(),
-            'replies': [render_message(db, db.get_message(m)) for m in m.get_status("replies", [])]
+            'replies': [render_message(db, x) for x in db.get_replies(m)],
             }
 
 @app.route("/series/<message_id>")

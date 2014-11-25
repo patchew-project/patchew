@@ -38,6 +38,25 @@ class MessageNotFound(Exception):
 def _list_add(l, *add):
     return l + [x for x in add if x not in l]
 
+def _sensible_cmp(x, y):
+    """Compare two patches by message-id sequence, otherwise date"""
+    if not patch.is_patch(x) or not patch.is_patch(y):
+        return -cmp(x.get_date(), y.get_date())
+    a = x.get_message_id()
+    b = y.get_message_id()
+    while a.startswith(b[0]):
+        a = a[1:]
+        b = b[1:]
+    while a.endswith(b[-1]):
+        a = a[:-1]
+        b = b[:-1]
+    try:
+        an = int(a)
+        bn = int(b)
+        return cmp(an, bn)
+    except:
+        return cmp(a, b)
+
 class DB(object):
     _status_prefix = "s-"
     def __init__(self, server, port, dbname):
@@ -251,7 +270,13 @@ class DB(object):
 
     def get_patches(self, s):
         r = [self.get_message(x) for x in s.get_status("patches", [])]
-        r.sort(lambda x, y: cmp(x.get_num(), y.get_num()))
+        r.sort(_sensible_cmp)
         if not r:
             r = [s]
+        return r
+
+    def get_replies(self, m):
+
+        r = [self.get_message(x) for x in m.get_status("replies", [])]
+        r.sort(_sensible_cmp)
         return r
