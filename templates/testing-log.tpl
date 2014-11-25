@@ -1,13 +1,11 @@
 % include('templates/header.tpl', title='Series')
 
-<ul class="list-group">
-    <li class="list-group-item"><strong>{{series['subject']}}</strong></li>
-    %for i in series['patches']:
-        %if i['message-id'] != series['message-id']:
-            <li class="list-group-item" style="padding-left: 30px">{{i['subject']}}</li>
-        %end
-    %end
+<ul class="nav nav-tabs">
+    <li role="presentation"><a href="/series/{{series['message-id']}}">Thread</a></li>
+    <li role="presentation" class="active"><a href="#">Testing</a></li>
 </ul>
+<br>
+
 
 <h3>
     %if series.get('merged'):

@@ -41,6 +41,12 @@
 }
 </style>
 
+<ul class="nav nav-tabs">
+    <li role="presentation" class="active"><a href="#">Thread</a></li>
+    <li role="presentation"><a href="/testing/log/{{thread['message-id']}}">Testing</a></li>
+</ul>
+<br>
+
 %def put_message(msg, lvl):
     <div class="panel panel-default message reply-lvl-{{min(lvl, 5)}}">
         <div class="panel-heading message-toggler">
