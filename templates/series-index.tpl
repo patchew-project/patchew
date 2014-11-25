@@ -18,9 +18,9 @@
         <tr>
             <td>
                 %if s.get('reviewed'):
-                    <span class="label label-success">Reviewed</span>
+                    <span title="Reviewers: {{", ".join([x for x, y in s['reviewers']])}}" class="label label-success">Reviewed</span>
                 %elif s.get('repliers'):
-                    <span title="Have replies from: {{", ".join(s['repliers'])}}" class="label label-info">Replied</span>
+                    <span title="Have replies from: {{", ".join([x for x, y in s['repliers']])}}" class="label label-info">Replied</span>
                 %end
             </td>
             <td class="series-status">

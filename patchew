@@ -208,6 +208,7 @@ def render_series(db, s, patches=False):
         'merged'               : s.get_status('merged'),
         'repliers'             : s.get_status('repliers'),
         'reviewed'             : len(s.get_status('reviewed-patches', [])) == s.get_patch_num(),
+        'reviewers'            : s.get_status('reviewers'),
         'testing-passed'       : testing.get('passed'),
         'testing-end-time'     : testing.get('end-time'),
         'testing-start-time'   : testing.get('start-time'),

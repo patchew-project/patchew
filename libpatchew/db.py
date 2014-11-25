@@ -85,6 +85,8 @@ class DB(object):
             return self._series_from_dict(r)
 
     def _status_list_add(self, msg_id, field, new):
+        if isinstance(new, tuple):
+            new = list(new)
         l = self.get_status(msg_id, field, [])
         l = _list_add(l, new)
         self.set_status(msg_id, field, l)
@@ -131,24 +133,34 @@ class DB(object):
         m = self.get_message(msg_id)
         assert m
         irt = m.get_in_reply_to()
+        revby = m.get_reviewed_by()
+        p = self._get_top_series_or_patch(msg_id)
+        s = self._get_top_series(msg_id)
         if irt:
             # A reply to some other message
             self._add_reply(irt, msg_id)
             if patch.is_patch(m):
                 self._add_patch(irt, msg_id)
             elif m.is_reply():
-                revby = m.get_reviewed_by()
-                s = self._get_top_series(irt)
                 if s:
-                    self._status_list_add(s.get_message_id(), "repliers", m.get_from(True))
-                if revby:
-                    p = self._get_top_series_or_patch(irt)
-                    if p:
-                        self._status_list_add(p.get_message_id(), "reviewed-by", revby)
-                        if s:
-                            self._status_list_add(s.get_message_id(),
-                                                  "reviewed-patches",
-                                                  p.get_message_id())
+                    self._status_list_add(s.get_message_id(), "repliers", m.get_from())
+        if revby:
+            if p:
+                # Mark the target of review, either a patch or a series, reviewed
+                self._status_list_add(p.get_message_id(), "reviewed-by", revby)
+            if s:
+                self._status_list_add(s.get_message_id(), "reviewers", revby)
+                if patch.is_patch(p):
+                    # This is a review on patch, book it in series
+                    self._status_list_add(s.get_message_id(),
+                                          "reviewed-patches",
+                                          p.get_message_id())
+                else:
+                    # This is a review on series, mark all patches reviewed
+                    for i in self.get_patches(s):
+                        self._status_list_add(s.get_message_id(),
+                                              "reviewed-patches",
+                                              i.get_message_id())
         else:
             # A top message
             if series.is_series(m):
