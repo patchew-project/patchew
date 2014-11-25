@@ -630,52 +630,55 @@ def tester_cmd(args):
     next_url = base_url + "testing/next"
     report_url = base_url + "testing/report"
     while True:
-        tmpdir = tempfile.mkdtemp(dir="/var/tmp")
-        logfile = os.path.join(tmpdir, "log")
-        if logf:
-            logf.close()
-        logf = open(logfile, "w+")
-        test_log("Server: %s\n" % base_url)
-        test_log("Fetching new test... ")
-        r = urllib.urlopen(next_url)
-        resp = r.read()
-        r.close()
         try:
-            spec = json.loads(resp)
+            tmpdir = tempfile.mkdtemp(dir="/var/tmp")
+            logfile = os.path.join(tmpdir, "log")
+            if logf:
+                logf.close()
+            logf = open(logfile, "w+")
+            test_log("Server: %s\n" % base_url)
+            test_log("Fetching new test... ")
+            r = urllib.urlopen(next_url)
+            resp = r.read()
+            r.close()
+            try:
+                spec = json.loads(resp)
+            except Exception, e:
+                test_log("Invalid response from server:\n", resp)
+                raise e
+            if spec['version'] != VERSION:
+                test_log("Unknown server version: ", spec['version'])
+                return False
+
+            test_log("OK\n")
+            if spec['has-data']:
+                dump_test_spec(spec)
+                result, reason = do_test(tmpdir, spec, args)
+                logf.seek(0)
+                postdata = urllib.urlencode({
+                    'message-id': spec['message-id'],
+                    'passed': result,
+                    'failure-step': reason,
+                    'merged': result and reason == "merged",
+                    'log': logf.read(),
+                    'version': VERSION,
+                    })
+                logf.close()
+                try:
+                    r = urllib.urlopen(report_url, postdata)
+                    resp = r.read()
+                    r.close()
+                    resp = json.loads(resp)
+                except Exception, e:
+                    print "Could not submit test result:", e
+                if not args.keep_temp:
+                    shutil.rmtree(tmpdir, True)
+            else:
+                print "Nothing to test, let's have a rest..."
+                time.sleep(60)
         except Exception, e:
             test_log(str(e))
-            test_log("Invalid response from server:\n", resp)
-            return False
-        if spec['version'] != VERSION:
-            test_log("Unknown server version: ", spec['version'])
-            return False
-
-        test_log("OK\n")
-        if spec['has-data']:
-            dump_test_spec(spec)
-            result, reason = do_test(tmpdir, spec, args)
-            logf.seek(0)
-            postdata = urllib.urlencode({
-                'message-id': spec['message-id'],
-                'passed': result,
-                'failure-step': reason,
-                'merged': result and reason == "merged",
-                'log': logf.read(),
-                'version': VERSION,
-                })
-            logf.close()
-            try:
-                r = urllib.urlopen(report_url, postdata)
-                resp = r.read()
-                r.close()
-                resp = json.loads(resp)
-            except Exception, e:
-                print "Could not submit test result:", e
-            if not args.keep_temp:
-                shutil.rmtree(tmpdir, True)
-        else:
-            print "Nothing to test, let's have a rest..."
-            time.sleep(60)
+            pass
         if not args.loop:
             break
 
