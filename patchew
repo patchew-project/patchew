@@ -118,11 +118,15 @@ def import_cmd(db, args):
         db.process_message(i)
 
 def syncdb_args(parser):
-    pass
+    parser.add_argument("-m", "--message-id", type=str, default="",
+                        help="Only process the message with given message-id")
 
 def syncdb_cmd(db, args):
-    for s in db.find_messages():
-        db.process_message(s.get_message_id())
+    if not args.message_id:
+        for s in db.find_messages():
+            db.process_message(s.get_message_id())
+    else:
+        db.process_message(args.message_id)
     return True
 
 def add_query_args(parser):
