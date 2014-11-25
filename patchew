@@ -96,11 +96,24 @@ def import_cmd(db, args):
     if args.reset:
         db.reset()
     a = []
-    for f in args.file:
+
+    def import_one(a, f):
         if is_mbox_file(f):
             a += import_mbox(db, f, args.verbose)
         else:
-            a.append(import_mail(db, f, args.verbose))
+            m = import_mail(db, f, args.verbose)
+            if m:
+                a.append(m)
+
+    def walk_dir(a, dirname, fnames):
+        for i in fnames:
+            import_one(a, os.path.join(dirname, i))
+
+    for f in args.file:
+        if os.path.isdir(f):
+            os.path.walk(f, walk_dir, a)
+        else:
+            import_one(a, f)
     for i in a:
         db.process_message(i)
 
