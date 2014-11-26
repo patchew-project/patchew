@@ -8,11 +8,13 @@
 </style>
 
 <form class="form-horizontal" role="form" method="GET" action="/">
-    <div class="form-group">
-        <div class="col-sm-4">
+    <div class="form-group col-sm-4">
+        <div class="input-group">
             <input type="search" class="form-control" name="search" placeholder="Search" value="{{search}}">
+            <span class="input-group-btn">
+                <input type="submit" class="btn btn-default" value="Search"/>
+            </span>
         </div>
-        <input type="submit" class="btn btn-primary" value="Search"/>
     </div>
 </form>
 
