@@ -7,7 +7,7 @@
 
 </style>
 
-<form class="form-horizontal" role="form" method="GET">
+<form class="form-horizontal" role="form" method="GET" action="/">
     <div class="form-group">
         <div class="col-sm-4">
             <input type="search" class="form-control" name="search" placeholder="Search" value="{{search}}">
@@ -75,7 +75,7 @@
             % show = show or between(i, curpage - 2, curpage + 3)
             % if show:
                 <li class="{{"active" if curpage == i else ""}}">
-                    <a href="/index/{{i * pagesize}}-{{(i + 1) * pagesize}}">{{i + 1}}</a>
+                    <a href="/index/{{i * pagesize}}-{{(i + 1) * pagesize}}{{"?search="+search if search else ""}}">{{i + 1}}</a>
                 </li>
                 %dot = True
             %elif dot:

@@ -241,23 +241,28 @@ class DB(object):
             filter0 = search.Filter(self, query)
         else:
             filter0 = None
-        for i in self._messages.find(q, skip=skip, limit=limit, sort=sort):
+        n = 0
+        for i in self._messages.find(q, sort=sort):
             s = self._series_from_dict(i)
             if not series.is_series(s):
                 continue
             if not query or filter0.match(s):
-                yield s
+                n += 1
+                if n > skip:
+                    yield s
+                if limit and n > limit + skip:
+                    break
 
-    def find_series_count(self, query="", sort_keys=['date']):
+    def find_series_count(self, query=""):
         num = 0
-        for i in self._find_series_iter(query=query, sort_keys=sort_keys):
+        for i in self._find_series_iter(query=query):
             num += 1
         return num
 
     def find_series(self, query="", skip=0, limit=0, sort_keys=['date']):
         """query all the series with tags and status with pagination, but skip
         and limit are applied before tags and status filtering"""
-        for m in self._find_series_iter(query=query, sort_keys=sort_keys):
+        for m in self._find_series_iter(query=query, skip=skip, limit=limit, sort_keys=sort_keys):
                 yield m
 
     def find_messages(self):
