@@ -38,16 +38,20 @@ from libpatchew import DB, Message, MessageDuplicated
 
 VERSION = 1
 
+def dump_headers(m):
+    print "  From:", m.get_from(True)
+    print "  To:", m.get_to(True)
+    print "  Cc:", m.get_cc(True)
+
 def dump_status(db, msg_id):
     def prettify(k, v):
-        if k in ["reviewers", "commenters"]:
+        if k in ["reviewers", "repliers"]:
             return ", ".join("%s <%s>" % (n, a) for n, a in v)
         return v
 
     s = db.get_statuses(msg_id)
-    if s:
-        for k, v in s.iteritems():
-            print "  %-20s = %s" % (k, prettify(k, v))
+    for k, v in s.iteritems():
+        print "  %-20s = %s" % (k, prettify(k, v))
 
 def import_message(db, m, verbose):
     msg = Message(m.as_string())
@@ -130,28 +134,8 @@ def syncdb_cmd(db, args):
     return True
 
 def add_query_args(parser):
-    parser.add_argument("-t", "--tag", type=str, default="",
-                        help="Query only those tags, split multiple with comma")
-    parser.add_argument("-s", "--status", type=str, default="",
-                        help="Query only those status, split multiple with comma, each as NAME or NAME=VALUE")
-
-def parse_query_args(args):
-    tags = []
-    if args.tag:
-        tags = args.tag.split(",")
-    status = {}
-    for e in args.status.split(","):
-        if not e:
-            continue
-        k, v = e, None
-        if "=" in e:
-            k, v = e.split("=", 2)
-            if v.lower() == 'true':
-                v = True
-            elif v.lower() == 'false':
-                v = False
-        status[k] = v
-    return tags, status
+    parser.add_argument("query", type=str, default="", nargs="*",
+                        help="Query string")
 
 def query_args(parser):
     parser.add_argument("-r", "--reverse", action="store_true",
@@ -162,17 +146,11 @@ def query_args(parser):
                         help="Show more information about series")
     add_query_args(parser)
 
-def do_query_series(db, tags=None, status=None, reverse=True):
-    ss = db.find_series(tags=tags, status=status)
-    for s in ss:
-        yield s
-
 def query_cmd(db, args):
-    tags, status = parse_query_args(args)
-
-    for s in do_query_series(db, tags, status, args.reverse):
+    for s in db.find_series(" ".join(args.query), args.reverse):
         print s.get_date(), "", s
         if args.verbose:
+            dump_headers(s)
             dump_status(db, s.get_message_id())
             print
 
@@ -187,9 +165,7 @@ def untest_args(parser):
     add_query_args(parser)
 
 def untest_cmd(db, args):
-    tags, status = parse_query_args(args)
-
-    for s in do_query_series(db, tags, status):
+    for s in db.find_series(" ".join(args.query), args.reverse):
         st = db.get_status(s.get_message_id(), "testing")
         if st:
             db.set_status(s.get_message_id(), "testing", None)
@@ -224,7 +200,7 @@ def render_series(db, s, patches=False):
         'subject'              : s.get_subject(),
         'merged'               : s.get_status('merged'),
         'repliers'             : s.get_status('repliers'),
-        'reviewed'             : len(s.get_status('reviewed-patches', [])) == s.get_patch_num(),
+        'reviewed'             : s.is_reviewed(),
         'reviewers'            : s.get_status('reviewers'),
         'testing-passed'       : testing.get('passed'),
         'testing-end-time'     : testing.get('end-time'),
@@ -401,13 +377,15 @@ def view_index(start=0, end=50):
     end = int(end)
     limit = min(pagesize, end - start)
     curpage = int((start - 1) / pagesize) + 1
-    totalpages = (db.find_series_num() - 1) / pagesize + 1
-    series = [render_series(db, x) for x in db.find_series(skip=start, limit=limit)]
+    query = bottle.request.query.get("search")
+    totalpages = (db.find_series_count(query=query) - 1) / pagesize + 1
+    series = [render_series(db, x) for x in db.find_series(query=query, skip=start, limit=limit)]
     return bottle.template("templates/series-index.tpl",
                            series=series,
                            totalpages=totalpages,
                            curpage=curpage,
-                           pagesize=pagesize)
+                           pagesize=pagesize,
+                           search=query)
 
 @app.route('/favicon.ico')
 @app.route('/static/<filename>')

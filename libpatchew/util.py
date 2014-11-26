@@ -21,32 +21,32 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from message import Message
+def seconds_to_human(sec):
+    unit = 'second'
+    if sec > 60:
+        sec /= 60
+        unit = 'minute'
+        if sec > 60:
+            sec /= 60
+            unit = 'hour'
+            if sec > 24:
+                sec /= 24
+                unit = 'day'
+                if sec > 7:
+                    sec /= 7
+                    unit = 'week'
+    if sec > 1:
+        unit += 's'
+    return sec, unit
 
-class Series(Message):
-    def get_codebase(self):
-        if self.find_tags("qemu-devel"):
-            return "git://git.qemu-project.org/qemu.git", "master"
-        raise Exception(self.find_tags("qemu-devel"))
-
-    def get_patch_num(self):
-        for t in self.get_tags():
-            if not "/" in t:
-                continue
-            x, y = t.split("/", 2)
-            if not x.isdigit() or not y.isdigit():
-                continue
-            return int(y)
-        return 1
-
-    def is_replied(self):
-        return self.get_status("repliers", []) != []
-
-    def is_reviewed(self):
-        return len(self.get_status('reviewed-patches', [])) == self.get_patch_num()
-
-def is_series(m):
-    """Create and return a Series from Message if it is one, otherwise
-    return None"""
-    return True if m.find_tags("PULL", "PATCH", "RFC") and m.get_num() == 0 else False
-
+def human_to_seconds(n, unit):
+    if unit == "d":
+        return n * 86400
+    elif unit == "w":
+        return n * 86400 * 7
+    elif unit == "m":
+        return n * 86400 * 30
+    elif unit == "y":
+        return n * 86400 * 365
+    else:
+        return n * 86400

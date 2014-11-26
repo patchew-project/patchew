@@ -28,6 +28,7 @@ import pymongo
 import datetime
 import pickle
 import bson.binary
+import search
 
 class MessageDuplicated(Exception):
     pass
@@ -232,34 +233,31 @@ class DB(object):
     def set_status(self, msg_id, name, value):
         return self.set_statuses(msg_id, {name: value})
 
-    def _find_series_iter(self, skip=0, limit=0, tags=[], status={}, sort_keys=['date']):
-        query = {'is-series': True}
+    def _find_series_iter(self, query="", skip=0, limit=0, sort_keys=['date']):
+        q = {'is-series': True}
         sort = [(s, pymongo.DESCENDING) for s in sort_keys]
 
-        for i in self._messages.find(query, skip=skip, limit=limit, sort=sort):
-            if tags and not s.find_tags(*tags):
+        if query:
+            filter0 = search.Filter(self, query)
+        else:
+            filter0 = None
+        for i in self._messages.find(q, skip=skip, limit=limit, sort=sort):
+            s = self._series_from_dict(i)
+            if not series.is_series(s):
                 continue
-            match = True
-            if status:
-                for k, v in status.iteritems():
-                    if not k in ss or (v and ss[k] != v):
-                        match = False
-                        break
-            if match:
-                yield i
+            if not query or filter0.match(s):
+                yield s
 
-    def find_series_num(self, tags=[], status={}, sort_keys=['date']):
+    def find_series_count(self, query="", sort_keys=['date']):
         num = 0
-        for i in self._find_series_iter(tags=tags, status=status, sort_keys=sort_keys):
+        for i in self._find_series_iter(query=query, sort_keys=sort_keys):
             num += 1
         return num
 
-    def find_series(self, skip=0, limit=0, tags=[], status={}, sort_keys=['date']):
+    def find_series(self, query="", skip=0, limit=0, sort_keys=['date']):
         """query all the series with tags and status with pagination, but skip
         and limit are applied before tags and status filtering"""
-        for i in self._find_series_iter(tags=tags, status=status, sort_keys=sort_keys):
-            m = self._series_from_dict(i)
-            if series.is_series(m):
+        for m in self._find_series_iter(query=query, sort_keys=sort_keys):
                 yield m
 
     def find_messages(self):

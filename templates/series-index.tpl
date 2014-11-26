@@ -7,6 +7,15 @@
 
 </style>
 
+<form class="form-horizontal" role="form" method="GET">
+    <div class="form-group">
+        <div class="col-sm-4">
+            <input type="search" class="form-control" name="search" placeholder="Search" value="{{search}}">
+        </div>
+        <input type="submit" class="btn btn-primary" value="Search"/>
+    </div>
+</form>
+
 <table class="table table-condensed table-striped">
     <tr>
         <th colspan="2"></th>

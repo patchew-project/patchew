@@ -28,6 +28,7 @@ import email.generator
 import time
 import datetime
 import re
+from util import *
 
 def _parse_header(header):
     r = ''
@@ -36,6 +37,13 @@ def _parse_header(header):
     if '\n' in r:
         r = " ".join([x.strip() for x in r.splitlines()])
     return r
+
+def _addr_fmt_text(name, addr):
+    if name:
+        return "%s <%s>" % (name, addr)
+    else:
+        return addr
+
 
 class Message(object):
     def __init__(self, m):
@@ -70,11 +78,28 @@ class Message(object):
         name, addr = email.utils.parseaddr(_parse_header(self._m['from']))
         name = name or addr
         if text:
-            if name:
-                return "%s <%s>" % (name, addr)
-            else:
-                return addr
+            return _addr_fmt_text(name, addr)
         return name, addr
+
+    def _get_addr_list(self, field, text):
+        ret = []
+        f = self._m.get_all(field, [])
+        addrs = email.utils.getaddresses(f)
+        for name, addr in addrs:
+            name = name or addr
+            if text:
+                ret.append(_addr_fmt_text(name, addr))
+            else:
+                ret.append((name, addr))
+        if text:
+            ret = ", ".join(ret)
+        return ret
+
+    def get_to(self, text=False):
+        return self._get_addr_list("to", text)
+
+    def get_cc(self, text=False):
+        return self._get_addr_list("cc", text)
 
     def get_in_reply_to(self):
         return self._m['in-reply-to']
@@ -193,24 +218,11 @@ class Message(object):
                     pass
         return r
 
-    def get_age(self):
+    def get_age(self, in_sec=False):
         age = int((datetime.datetime.utcnow() - self.get_date()).total_seconds())
-        unit = 'second'
-        if age > 60:
-            age /= 60
-            unit = 'minute'
-            if age > 60:
-                age /= 60
-                unit = 'hour'
-                if age > 24:
-                    age /= 24
-                    unit = 'day'
-                    if age > 7:
-                        age /= 7
-                        unit = 'week'
-        if age > 1:
-            unit += 's'
-        return age, unit
+        if in_sec:
+            return age
+        return seconds_to_human(age)
 
     def is_reply(self):
         return self.get_subject(upper=True, strip_tags=True).startswith("RE:")
