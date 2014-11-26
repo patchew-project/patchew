@@ -409,8 +409,9 @@ def view_index(start=0, end=50):
                            curpage=curpage,
                            pagesize=pagesize)
 
+@app.route('/favicon.ico')
 @app.route('/static/<filename>')
-def server_static(filename):
+def server_static(filename='favicon.ico'):
     return bottle.static_file(filename, root='static')
 
 def server_cmd(db, args):
