@@ -40,8 +40,8 @@
                         <span title="{{s['testing-end-time']}}" class="label label-primary timestamp">Merged</span>
                     </a>
                 %elif s.get('obsoleted-by'):
-                    <a href="#{{s['obsoleted-by']}}">
-                        <span title="There is a new version: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
+                    <a href="/series/{{s['obsoleted-by']}}">
+                        <span title="There is a new version, click to see: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
                     </a>
                 %elif s.get('testing-started'):
                     <a href="/testing/manual/{{s['message-id']}}">
