@@ -29,6 +29,12 @@
         border-bottom-style: solid;
         border-bottom-width: 10px;
     }
+    .title {
+        color: #999;
+    }
+    .title .smiley{
+        color: #008900;
+    }
     </style>
     <div class="container">
-    <h1><a href="/">Patchew</a> <small>Track the patch series</small></h1>
+    <h1><a href="/" class="title"><span class="smiley">:p</span>atchew</a> <small>Track the patch series</small></h1>
