@@ -34,7 +34,7 @@ import subprocess
 import tempfile
 import urllib
 import json
-from libpatchew import DB, Message, MessageDuplicated
+from libpatchew import DB, Message, MessageDuplicated, search_doctext
 
 VERSION = 1
 
@@ -385,7 +385,8 @@ def view_index(start=0, end=50):
                            totalpages=totalpages,
                            curpage=curpage,
                            pagesize=pagesize,
-                           search=query)
+                           search=query,
+                           search_help=search_doctext)
 
 @app.route('/favicon.ico')
 @app.route('/static/<filename>')

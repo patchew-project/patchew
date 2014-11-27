@@ -99,40 +99,38 @@ def build_age_checker(e):
     return c
 
 _checkers = {
-    '': {
-        'name': 'keyword',
+    'subject': {
         'build': build_keyword_checker,
-        'help': 'Search keyword in subject',
+        'desc': 'Search keyword in subject'
     },
     'is': {
-        'name': 'is',
         'build': build_is_checker,
-        'help': 'Search by property, for example is:reviewed or is:replied. Multiple properties can be listed by separating with comma',
+        'desc': '''Search by property, for example is:reviewed or is:replied.
+                Multiple properties can be listed by separating with comma'''
     },
     'not': {
-        'name': 'not',
         'build': build_not_checker,
-        'help': 'Reverse of "is", meaning to search series that has none of the list properties',
+        'desc': '''Reverse of "is", meaning to search series that has none of the
+                list properties'''
     },
     'from': {
-        'name': 'from',
         'build': build_from_checker,
-        'help': 'Search "From:" field, with a list of names or addresses, separated by ",".',
+        'desc': '''Search "From:" field, with a list of names or addresses
+                separated by ",".'''
     },
     'to': {
-        'name': 'to',
         'build': build_to_checker,
-        'help': 'Similar with "from", but search "To:" field',
+        'desc': 'Search "To:" field'
     },
     'cc': {
-        'name': 'cc',
         'build': build_cc_checker,
-        'help': 'Similar with "from", but search *both* "To:" and "Cc:" field',
+        'desc': 'Search *both* "To:" and "Cc:" field',
     },
     'age': {
-        'name': 'age',
         'build': build_age_checker,
-        'help': 'Search by age of series, for example age:>1w or age:1y. If comparison is omitted, it is compare by less than. Supported units are "d", "w", "m", "y".',
+        'desc': '''Search by age of series, for example age:>1w or age:1y. If
+                comparison is omitted, it is compare by less than. Supported units are
+                "d", "w", "m", "y".''',
     },
 }
 
@@ -152,12 +150,58 @@ class Filter(object):
         for e in [x.strip() for x in exp.split(" ")]:
             if not e:
                 continue
-            if ":" in e:
+            elif e[0] in ":+":
+                t, v = "is", e[1:]
+            elif e[0] in "-":
+                t, v = "not", e[1:]
+            elif e[0] in "<>":
+                t, v = "age", e
+            elif ":" in e:
                 t, v = e.split(":", 2)
             else:
-                t, v = '', e
+                t, v = 'subject', e
             if t not in _checkers:
                 continue
             c = _checkers[t]['build'](v)
             if c:
                 self._filters.append(c)
+
+def build_doctext():
+    r = """
+Query = <TERM> <TERM> ...
+
+Each term is <COMP>:<VALUE> or <PREFIX><VALUE> or <VALUE>, Example:
+
+    from:Bob subject:fix cc:George age:>1w
+
+to search all emails from Bob that have the word "fix" in subject, with George
+in Cc list, and are sent before last week. And
+
+    from:Bob subject:fix is:reviewed not:tested
+
+to search all email from Bob that have "fix" in subject, and have been reviewed
+but failed testing. It can be simplified as:
+
+    from:Bob fix :reviewed -tested
+
+The normal syntax, <COMP>:<VALUE> can be one of:
+
+"""
+
+    for k, v in _checkers.iteritems():
+        r += " * %-10s - %s\n" % (k, " ".join([x.strip() for x in v['desc'].splitlines()]))
+    r +="""
+
+As in the examples, there are a few syntax shortcuts as <PREFIX><VALUE>, or
+plain <VALUE>:
+
+ * :VALUE and +VALUE equals to is:VALUE
+ * -VALUE equals to not:VALUE
+ * >VALUE and <VALUE equals to age:>VALUE and age:<VALUE
+ * VALUE (with no prefix) equals to keyword:<value>
+
+"""
+
+    return r
+
+doctext = build_doctext()

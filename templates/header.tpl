@@ -64,6 +64,13 @@
     display: none;
 }
 </style>
+<script language="javascript" type="text/javascript">
+$(function() {
+    $(".btn-search-help").click(function () {
+            $(".search-help-text").toggle();
+    });
+});
+</script>
 <div class="col-lg-12 container">
     <div class="header">
         <div class="title col-lg-2">
@@ -76,10 +83,12 @@
                     <div class="input-group">
                         <input type="search" class="form-control" name="search" placeholder="Search" value="{{locals().get('search', '')}}">
                         <span class="input-group-btn">
-                            <input type="submit" class="btn btn-default" value="Go"/>
+                            <button type="button" class="btn btn-default btn-search-help"><span class="badge">?</span></button>
+                            <input type="submit" class="btn btn-success search-go" value="Go"/>
                         </span>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+    <pre class="search-help-text">{{locals().get('search_help', '')}}</pre>
