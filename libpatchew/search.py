@@ -32,6 +32,12 @@ def build_keyword_checker(e):
         return u in s.get_subject(upper=True)
     return c
 
+def build_id_checker(e):
+    u = e.upper()
+    def c(s):
+        return u in s.get_message_id().upper()
+    return c
+
 def build_is_checker(e, reverse=False):
     def build_subchecker(k):
         if p == "replied":
@@ -102,6 +108,10 @@ _checkers = {
     'subject': {
         'build': build_keyword_checker,
         'desc': 'Search keyword in subject'
+    },
+    'id': {
+        'build': build_id_checker,
+        'desc': 'Search by message-id'
     },
     'is': {
         'build': build_is_checker,
