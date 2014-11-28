@@ -174,7 +174,7 @@ class Message(object):
             for p in payload:
                 if p.get_content_type() == "text/plain":
                     body += str(p.get_payload())
-        return body
+        return body.decode("utf-8", "ignore")
 
     def get_preview(self, maxchar=1000):
         r = ""
