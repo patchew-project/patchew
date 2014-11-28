@@ -33,9 +33,7 @@
                         <span title="There is a new version, click to see: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
                     </a>
                 %elif s.get('testing-started'):
-                    <a href="/testing/manual/{{s['message-id']}}">
-                        <span title="{{s['testing-start-time']}}" class="label label-default timestamp">Testing</span>
-                    </a>
+                    <span title="{{s['testing-start-time']}}" class="label label-default timestamp">Testing</span>
                 %elif s['testing-passed'] == True:
                     %if s['testing-has-warning']:
                     <a href="/testing/log/{{s['message-id']}}">

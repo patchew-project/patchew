@@ -110,12 +110,6 @@ def view_testing_log(message_id):
                            series=render_series(db, s, True),
                            log=s.get_status("testing",{}).get("log"))
 
-@app.route('/testing/manual/<message_id>')
-def view_testing_manual(message_id):
-    db = app.db
-    s = db.get_series(message_id)
-    return bottle.template('templates/manual.tpl', series=render_series(db, s, True))
-
 @app.route('/testing/report', method="POST")
 def view_testing_report():
     db = app.db
