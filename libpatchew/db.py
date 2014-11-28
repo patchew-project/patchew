@@ -45,10 +45,10 @@ def _sensible_cmp(x, y):
         return -cmp(x.get_date(), y.get_date())
     a = x.get_message_id()
     b = y.get_message_id()
-    while a.startswith(b[0]):
+    while b and a.startswith(b[0]):
         a = a[1:]
         b = b[1:]
-    while a.endswith(b[-1]):
+    while b and a.endswith(b[-1]):
         a = a[:-1]
         b = b[:-1]
     try:
@@ -65,6 +65,7 @@ class DB(object):
         self._client = pymongo.MongoClient(server, port)
         self._db = self._client[self._db_name]
         self._messages = self._db.messages
+        self._identities = self._db.identities
 
     def reset(self):
         self._messages.remove()
@@ -283,3 +284,12 @@ class DB(object):
         r = [self.get_message(x) for x in m.get_status("replies", [])]
         r.sort(_sensible_cmp)
         return r
+
+    def save_identity_pair(self, i, key):
+        self._identities.remove({'identity': i})
+        self._identities.insert({'identity': i, 'key': key})
+
+    def get_key(self, i):
+        a = self._identities.find_one({'identity': i})
+        if a:
+            return str(a['key'])

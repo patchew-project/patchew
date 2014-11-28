@@ -22,7 +22,12 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import bottle
+import time
+import hmac
+import json
 from libpatchew import DB, Message, MessageDuplicated, search_doctext
+
+SERVER_VERSION = 1
 
 def render_patch(db, p):
     fr = p.get_from()
@@ -56,6 +61,7 @@ def render_series(db, s, patches=False):
         'testing-start-time'   : testing.get('start-time'),
         'testing-started'      : testing.get('started'),
         'testing-failure-step' : testing.get('failure-step'),
+        'testing-has-warning'  : testing.get('has-warning'),
         }
     if patches:
         r['patches'] = [render_patch(db, x) for x in db.get_patches(s)]
@@ -114,32 +120,32 @@ def view_testing_manual(message_id):
 def view_testing_report():
     db = app.db
     forms = bottle.request.forms
-    files = bottle.request.files
-    message_id = forms.get("message-id")
-    if not message_id:
-        raise bottle.HTTPError(400, 'Data "message_id" is missing')
-    s = db.get_series(message_id)
-    log = forms.get('log') or files.get('log')
-    if not s:
-        raise bottle.HTTPError(400, 'Message not found')
-    if not log:
-        raise bottle.HTTPError(400, 'Missing "log" in requset')
-    if 'passed' not in forms:
-        raise bottle.HTTPError(400, 'Missing "passed" in request')
-    if 'version' not in forms:
-        raise bottle.HTTPError(400, 'Missing "version" in request')
-    if forms.get('version') != str(VERSION):
+    if forms['version'] != str(SERVER_VERSION):
         raise bottle.HTTPError(400, 'Unknown version ' + forms.get('version'))
+    data = forms['data']
+    identity = forms['identity']
+    signature = forms['signature']
+    key = db.get_key(identity)
+    if not key:
+        raise bottle.HTTPError(400, 'Unknown identity ' + identity)
+    hasher = hmac.new(key, data)
+    if hasher.hexdigest() != signature:
+        raise bottle.HTTPError(400, 'Invalid signature')
 
-    test_passed = forms.passed.lower() == 'true'
-    failure_step = forms.get("failure-step")
+    result = json.loads(data)
+    message_id = result["message-id"]
 
+    test_passed = result['passed']
+    failure_step = result["failure-step"]
+
+    s = db.get_series(message_id)
     db.set_status(s.get_message_id(), 'testing', {
         'passed': test_passed,
         'ended': True,
         'end-time': time.time(),
-        'log': log,
-        'merged': test_passed and forms.get("merged").lower() == "true",
+        'log': result['log'],
+        'merged': result['merged'],
+        'has-warning': '<<< WARNING >>>' in result['log'],
         'failure-step': failure_step,
         })
     return {'ok': True}
@@ -171,7 +177,7 @@ def view_testing_next():
     db = app.db
     s, patches = next_series_to_test(db)
     r = {}
-    r['version']                 = VERSION
+    r['version'] = SERVER_VERSION
     if s:
         r['has-data']                = True
         r['message-id']              = s.get_message_id()

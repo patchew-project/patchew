@@ -23,18 +23,17 @@
 
 import sys
 import os
-import shutil
 import argparse
-import time
 import email
 import mailbox
-import subprocess
-import tempfile
-import urllib
 import json
+import shutil
+import hmac
+import urllib
+import tempfile
+import time
+import subprocess
 from libpatchew import *
-
-VERSION = 1
 
 def dump_headers(m):
     print "  From:", m.get_from(True)
@@ -163,7 +162,7 @@ def untest_args(parser):
     add_query_args(parser)
 
 def untest_cmd(db, args):
-    for s in db.find_series(" ".join(args.query), args.reverse):
+    for s in db.find_series(" ".join(args.query)):
         st = db.get_status(s.get_message_id(), "testing")
         if st:
             db.set_status(s.get_message_id(), "testing", None)
@@ -176,250 +175,100 @@ def server_cmd(db, args):
 def tester_args(parser):
     parser.add_argument("-s", "--server", required=True,
                         help="Pathew server's base URL")
-    parser.add_argument("-t", "--test-script", required=True,
+    parser.add_argument("-i", "--identity", required=True,
+                        help="Verification identity to use")
+    parser.add_argument("-p", "--signature-key", required=True,
+                        help="Verification key to use")
+    parser.add_argument("-t", "--test-script",
                         help="Test script to run inside the container")
-    parser.add_argument("-i", "--image", required=True,
+    parser.add_argument("-d", "--docker-image",
                         help="Docker image to use.")
     parser.add_argument("-L", "--loop", action="store_true",
                         help="Loop and repeat.")
-    parser.add_argument("-C", "--quick-repo",
+    parser.add_argument("-C", "--quick-repo", default=None,
                         help="""Clone from a (faster) git repo before pulling
                         from the server returned codebase, in order to speed up
                         the test.""")
     parser.add_argument("-k", "--keep-temp", default=False, action="store_true",
                         help="Don't remove temporary directory before exit")
 
-class CallException(Exception):
-    pass
+def check_docker(args):
+    if args.test_script or args.docker_image:
+        if not args.test_script:
+            print "You need to specify --test-script to run docker test"
+            return False
+        if not args.docker_image:
+            print "You need to specify --docker-image to run docker test"
+            return False
+        try:
+            subprocess.check_output(["docker", "version"])
+        except Exception, e:
+            print "Failed to run docker version:", e
+            return False
+    return True
 
-logf = None
-def test_log(*w):
-    m =  "".join([str(x) for x in w])
-    if logf:
-        logf.write(m)
-    sys.stdout.write(m)
-
-def check_call(args, echo=False, quiet=True, **kwargs):
-    def escape(x):
-        if " " in x and '"' in x:
-            return '"%s"' % x.replace('"', '\\"')
-        return x
-    if echo:
-        test_log(" ".join([escape(x) for x in args]) + "\n")
-    err = tempfile.TemporaryFile()
-    try:
-        devnull = open("/dev/null", "w")
-        if quiet:
-            kwargs["stdin"] = devnull
-            kwargs["stdout"] = devnull
-        kwargs["stderr"] = err
-        return subprocess.check_call(args, **kwargs)
-    except Exception, e:
-        test_log("Failed to run command: \n%s\n" % ' '.join([escape(x) for x in args]))
-        err.seek(0)
-        test_log(err.read(), "\n")
-        raise
-    finally:
-        err.close()
-        devnull.close()
-
-def git(args, **kwargs):
-    return check_call(["git"] + args, echo=True, **kwargs)
-
-def dump_test_spec(spec):
+def dump_test_spec(logger, spec):
     for k_, v in spec.iteritems():
         k = "%-30s :" % k_
         if isinstance(v, list):
-            test_log(k, "[...]\n")
+            logger(k, "[...]\n")
         elif "\n" in str(v):
-            test_log(k)
-            test_log(v, "\n")
+            logger(k)
+            logger(v, "\n")
         else:
-            test_log(k, v, "\n")
-
-def init_git_repo(spec, clone, repo):
-    """ Do git clone, add remote, fetch and checkout """
-    git(["clone", clone, repo])
-    git(["remote", "add", "patchew-base", spec['codebase']], cwd=repo)
-    git(["fetch", "patchew-base"], cwd=repo)
-    git(["clean", "-dfx"], cwd=repo)
-    git(["checkout", "-f", "remotes/patchew-base/%s" % spec['branch']], cwd=repo)
-
-def write_patches(spec, odir):
-    def build_patch_fname(idx, p):
-        r = "%04d-" % idx
-        try:
-            msg = Message(p)
-            p = msg.get_subject(strip_tags=True)
-            for c in p:
-                if c.isalnum() or c in "-_[]":
-                    r += c
-                else:
-                    r += "-"
-        except:
-            r += "unknown"
-        r += ".patch"
-        return r
-
-    os.mkdir(odir)
-    idx = 1
-    patch_list = []
-    for p in spec['patches-mbox-list']:
-        p = p.encode("utf-8", "ignore")
-        fn = build_patch_fname(idx, p)
-        test_log(fn, "\n")
-        fn_full = os.path.join(odir, fn)
-        patch_list.append(fn_full)
-        f = open(fn_full, "w")
-        f.write(p)
-        f.close()
-        idx += 1
-    return patch_list
-
-def apply_patches(gitdir, patches):
-    output = tempfile.TemporaryFile()
-    cmd = ["git", "am"] + patches
-    ap = subprocess.Popen(cmd,
-                          stderr=output,
-                          stdout=output,
-                          stdin=subprocess.PIPE,
-                          cwd=gitdir)
-
-    ap.communicate()
-    output.seek(0)
-    test_log(output.read())
-    output.close()
-    if ap.returncode != 0:
-        test_log("\nFailed to apply patches\n")
-        return False
-    test_log("\nPatches applied.\n")
-    return True
-
-def docker_test(tmpdir, image):
-    output = tempfile.TemporaryFile()
-    tp = subprocess.Popen(["docker", "run",
-                "--net=none",
-                "-v", "%s:/var/tmp/patchew-test" % tmpdir,
-                image,
-                "/var/tmp/patchew-test/run_test", "/var/tmp/patchew-test"], stdout=output, stderr=output)
-    tp.communicate()
-    output.seek(0)
-    test_log(output.read())
-    output.close()
-    step = ""
-    if tp.returncode != 0:
-        try:
-            step_file = open(os.path.join(tmpdir, "step"), "r")
-            step = step_file.read().splitlines()[-1]
-            step_file.close()
-        except:
-            pass
-        return False, step
-    else:
-        return True, ""
-
-def check_merged(gitdir, msg_ids):
-    cmd = ["git", "log", "--oneline"]
-    for i in msg_ids:
-        cmd += ["--grep", "Message-id: " + i]
-    try:
-        out = subprocess.check_output(cmd, cwd=gitdir)
-        if len(out.splitlines()) == len(msg_ids):
-            return True
-    except Exception, e:
-        print e
-        return False
-    return False
-
-def do_test(tmpdir, spec, args):
-    test_log("\n")
-    test_log("=======================\n")
-    test_log("Patchew testing started\n")
-    test_log("=======================\n")
-    test_log("\n")
-    test_log("Test directory: ", tmpdir, "\n")
-    if args.quick_repo:
-        clone = args.quick_repo
-    else:
-        clone = spec['codebase']
-
-    repo = os.path.join(tmpdir, "git")
-
-    test_log("\n=== Initializing code base ===\n")
-    init_git_repo(spec, clone, repo)
-
-    test_log("\n=== Checking if the code is already merged ===\n")
-    if check_merged(repo, spec['patches-message-id-list']):
-        test_log("Yes.\n\n")
-        return True, "merged"
-    else:
-        test_log("No...\n\n")
-
-    test_log("\n=== Writing patches ===\n")
-    patches_dir = os.path.join(tmpdir, "patches")
-    patches = write_patches(spec, patches_dir)
-
-    test_log("\n=== Applying patches ===\n")
-
-    if not apply_patches(repo, patches):
-        return False, "apply"
-
-    test_copy = os.path.join(tmpdir, "run_test")
-
-    test_log('\nCopying test script "%s"\n' % args.test_script)
-    shutil.copy2(args.test_script, test_copy)
-
-    test_log("\n=== Starting docker ===\n")
-    passed, step = docker_test(tmpdir, args.image)
-    if not passed:
-        test_log("\nTest failed.\n")
-        return False, step
-    test_log("\n=== Test finished ===\n")
-    return True, ""
+            logger(k, v, "\n")
 
 def tester_cmd(args):
-    global logf
-    check_call(["docker", "version"])
+    if not check_docker(args):
+        return False
     base_url = args.server
     if not base_url.endswith("/"):
         base_url += "/"
     next_url = base_url + "testing/next"
     report_url = base_url + "testing/report"
+    tmpdir = "/var/tmp/patchew-tester"
+    shutil.rmtree(tmpdir, True)
+    os.mkdir(tmpdir)
     while True:
         try:
-            tmpdir = tempfile.mkdtemp(dir="/var/tmp")
-            logfile = os.path.join(tmpdir, "log")
-            if logf:
-                logf.close()
-            logf = open(logfile, "w+")
-            test_log("Server: %s\n" % base_url)
-            test_log("Fetching new test... ")
+            testdir = tempfile.mkdtemp(dir=tmpdir)
+            logfile = os.path.join(testdir, "log")
+            logger = TestLogger(logfile, "w+")
+            logger("Server: %s\n" % base_url)
+            logger("Fetching new test...")
             r = urllib.urlopen(next_url)
             resp = r.read()
             r.close()
             try:
                 spec = json.loads(resp)
             except Exception, e:
-                test_log("Invalid response from server:\n", resp)
+                logger("\nInvalid response from server:\n", resp)
                 raise e
-            if spec['version'] != VERSION:
-                test_log("Unknown server version: ", spec['version'])
+            if spec['version'] != 1:
+                logger("\nUnknown server version: ", spec['version'], "\n")
                 return False
 
-            test_log("OK\n")
+            logger("OK\n")
             if spec['has-data']:
-                dump_test_spec(spec)
-                result, reason = do_test(tmpdir, spec, args)
-                logf.seek(0)
-                postdata = urllib.urlencode({
+                dump_test_spec(logger, spec)
+                tester = Tester(logger, testdir, spec, args.test_script, args.docker_image, args.quick_repo)
+                result, reason = tester.do_test()
+                logger.seek(0)
+                data = json.dumps({
                     'message-id': spec['message-id'],
                     'passed': result,
                     'failure-step': reason,
                     'merged': result and reason == "merged",
-                    'log': logf.read(),
-                    'version': VERSION,
+                    'log': logger.read(),
                     })
-                logf.close()
+                hasher = hmac.new(args.signature_key, data)
+                signature = hasher.hexdigest()
+                postdata = urllib.urlencode({
+                    'version': tester.VERSION,
+                    'data': data,
+                    'signature': signature,
+                    'identity': args.identity,
+                    })
                 try:
                     r = urllib.urlopen(report_url, postdata)
                     resp = r.read()
@@ -427,16 +276,25 @@ def tester_cmd(args):
                     resp = json.loads(resp)
                 except Exception, e:
                     print "Could not submit test result:", e
+                    print resp
                 if not args.keep_temp:
-                    shutil.rmtree(tmpdir, True)
+                    shutil.rmtree(testdir, True)
             else:
                 print "Nothing to test, let's have a rest..."
                 time.sleep(60)
         except Exception, e:
-            test_log(str(e))
-            pass
+            raise
         if not args.loop:
             break
+
+def newid_args(parser):
+    parser.add_argument("identity")
+
+def newid_cmd(db, args):
+    hasher = hmac.new(str(time.time()), args.identity)
+    key = hasher.hexdigest()
+    db.save_identity_pair(args.identity, key)
+    print key
 
 commands = {
     'import':  {
@@ -459,6 +317,10 @@ commands = {
     },
     'server':  {
         'cmd': server_cmd,
+    },
+    'newid': {
+        'cmd': newid_cmd,
+        'args': newid_args,
     },
     'tester': {
         'cmd': tester_cmd,

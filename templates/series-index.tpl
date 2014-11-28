@@ -34,12 +34,18 @@
                     </a>
                 %elif s.get('testing-started'):
                     <a href="/testing/manual/{{s['message-id']}}">
-                        <span title="{{s['testing-start-time']}}" class="label label-warning timestamp">Testing</span>
+                        <span title="{{s['testing-start-time']}}" class="label label-default timestamp">Testing</span>
                     </a>
                 %elif s['testing-passed'] == True:
+                    %if s['testing-has-warning']:
+                    <a href="/testing/log/{{s['message-id']}}">
+                        <span title="{{s['testing-end-time']}}" class="label label-warning timestamp">Partial pass</span>
+                    </a>
+                    %else:
                     <a href="/testing/log/{{s['message-id']}}">
                         <span title="{{s['testing-end-time']}}" class="label label-success timestamp">Pass</span>
                     </a>
+                    %end
                 %elif s['testing-passed'] == False:
                     <a href="/testing/log/{{s['message-id']}}">
                         <span title="{{s['testing-end-time']}}" class="label label-danger timestamp">Failed {{s['testing-failure-step']}}</span>

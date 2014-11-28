@@ -45,11 +45,21 @@ step()
     echo "$1" >> $stepfile
 }
 
+# run command and if it fails, write a WARNING message
+warn_run()
+{
+    if ! $@ &>/tmp/warn-run-$$; then
+        echo "command failed with exit code $?"
+        echo '$@'
+        cat /tmp/warn-run-$$
+    fi | sed -e 's/^/<<< WARNING >>>/'
+}
+
 cd patches
 step "coding style check"
 for f in *.patch; do
     echo "Checking $f"
-    ../git/scripts/checkpatch.pl $f
+    warn_run ../git/scripts/checkpatch.pl $f
     echo
 done
 cd ..

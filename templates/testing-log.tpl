@@ -11,9 +11,13 @@
     %if series.get('merged'):
         <span class="label label-primary">Merged</span>
     %elif series['testing-start-time']:
-        <span class="label label-warning">Testing</span>
+        <span class="label label-defulat">Testing</span>
     %elif series['testing-passed']:
+        %if series['testing-has-warning']:
+        <span class="label label-warning">Partial pass</span>
+        %else:
         <span class="label label-success">Passed</span>
+        %end
     %elif series['testing-passed'] == False:
         <span class="label label-danger">Failed</span>
     %else:
