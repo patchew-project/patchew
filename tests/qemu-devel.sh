@@ -49,10 +49,14 @@ step()
 warn_run()
 {
     if ! $@ &>/tmp/warn-run-$$; then
+        (
         echo "command failed with exit code $?"
         echo '$@'
         cat /tmp/warn-run-$$
-    fi | sed -e 's/^/<<< WARNING >>>/'
+        ) | sed -e 's/^/<<< WARNING >>>/'
+    else
+        cat /tmp/warn-run-$$
+    fi
 }
 
 cd patches
