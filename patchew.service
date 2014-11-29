@@ -23,7 +23,8 @@
 
 [Unit]
 Description=Patchew Server
-After=network.target
+After=network.target mongod.service
+Requires=mongod.service
 
 [Service]
 ExecStart=/usr/bin/patchew server

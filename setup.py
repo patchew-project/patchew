@@ -31,5 +31,5 @@ setup(name='patchew',
       url="https://github.com/famz/patchew",
       packages=['libpatchew'],
       scripts=['patchew'],
-      data_files=[('usr/lib/systemd/system/', ['patchew.service'])],
+      data_files=[('/usr/lib/systemd/system/', ['patchew.service'])],
       )
