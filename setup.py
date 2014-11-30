@@ -21,6 +21,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+from glob import glob
 from distutils.core import setup
 
 setup(name='patchew',
@@ -31,5 +32,7 @@ setup(name='patchew',
       url="https://github.com/famz/patchew",
       packages=['libpatchew'],
       scripts=['patchew'],
-      data_files=[('/usr/lib/systemd/system/', ['patchew.service'])],
+      data_files=[('/usr/lib/systemd/system/', ['patchew.service']),
+		  ('/usr/share/patchew/static', glob('static/*')),
+		  ('/usr/share/patchew/templates', glob('templates/*'))],
       )

@@ -21,6 +21,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import os
 import bottle
 import time
 import hmac
@@ -240,8 +241,12 @@ def view_index(start=0, end=50):
 @app.route('/favicon.ico')
 @app.route('/static/<filename>')
 def server_static(filename='favicon.ico'):
-    return bottle.static_file(filename, root='static')
+    root = '/usr/share/patchew/static'
+    if os.path.isdir('static'):
+        root = 'static'
+    return bottle.static_file(filename, root=root)
 
 def start_server(db, **args):
+    bottle.TEMPLATE_PATH.append('/usr/share/patchew')
     app.db = db
     app.run(**args)
