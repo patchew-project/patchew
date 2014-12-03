@@ -185,7 +185,9 @@ Each term is <COMP>:<VALUE> or <PREFIX><VALUE> or <VALUE>, Example:
     from:Bob subject:fix cc:George age:>1w
 
 to search all emails from Bob that have the word "fix" in subject, with George
-in Cc list, and are sent before last week. And
+in Cc list, and are sent before last week.
+
+And
 
     from:Bob subject:fix is:reviewed not:tested
 
@@ -208,7 +210,7 @@ plain <VALUE>:
  * :VALUE and +VALUE equals to is:VALUE
  * -VALUE equals to not:VALUE
  * >VALUE and <VALUE equals to age:>VALUE and age:<VALUE
- * VALUE (with no prefix) equals to keyword:<value>
+ * VALUE (with no prefix) equals to subject:<value>
 
 """
 
