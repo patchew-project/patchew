@@ -167,8 +167,12 @@ def untest_cmd(db, args):
         if st:
             db.set_status(s.get_message_id(), "testing", None)
 
+def server_args(parser):
+    parser.add_argument("-c", "--config", help="Config file")
 
 def server_cmd(db, args):
+    if args.config:
+        config.load_config(args.config)
     start_server(db, host='0.0.0.0', debug=True, port=8080)
     return 0
 
@@ -317,6 +321,7 @@ commands = {
     },
     'server':  {
         'cmd': server_cmd,
+        'args': server_args,
     },
     'newid': {
         'cmd': newid_cmd,
