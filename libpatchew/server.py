@@ -26,7 +26,7 @@ import bottle
 import time
 import hmac
 import json
-from libpatchew import DB, Message, MessageDuplicated, search_doctext
+from libpatchew import DB, Message, MessageDuplicated, search_doctext, hook
 
 SERVER_VERSION = 1
 
@@ -134,7 +134,7 @@ def view_testing_report():
     failure_step = result["failure-step"]
 
     s = db.get_series(message_id)
-    db.set_status(s.get_message_id(), 'testing', {
+    data = {
         'passed': test_passed,
         'ended': True,
         'end-time': time.time(),
@@ -142,7 +142,10 @@ def view_testing_report():
         'merged': result['merged'],
         'has-warning': '<<< WARNING >>>' in result['log'],
         'failure-step': failure_step,
-        })
+        }
+
+    db.set_status(s.get_message_id(), 'testing', data)
+    hook.invoke("post-testing", **data)
     return {'ok': True}
 
 def next_series_to_test(db):
@@ -184,6 +187,7 @@ def view_testing_next():
             'started': True,
             'start-time': time.time(),
             })
+        hook.invoke("pre-testing", **r)
     else:
         r['has-data'] = False
     return r
