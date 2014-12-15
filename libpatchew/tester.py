@@ -117,6 +117,7 @@ class Tester(object):
         cmd = ["docker", "run", "--net=none",
                "-v", "%s:/var/tmp/patchew-test" % self._testdir,
                self._docker_image,
+               "timeout", "3600",
                "/var/tmp/patchew-test/" + self._test_script_base_name,
                "/var/tmp/patchew-test"]
         self.log("Starting docker...\n")
