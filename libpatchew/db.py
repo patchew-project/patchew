@@ -239,7 +239,7 @@ class DB(object):
         sort = [(s, pymongo.DESCENDING) for s in sort_keys]
 
         if query:
-            filter0 = search.Filter(self, query)
+            filter0 = search.Filter(query)
         else:
             filter0 = None
         n = 0
