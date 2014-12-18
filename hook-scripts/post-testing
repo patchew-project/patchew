@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# change to the test output directory
+cd $1
+
+key_test() {
+    cat "$1" | grep -i -q "$2"
+}
+
+warning=false
+
+if key_test passed true; then
+    if key_test has-warning true; then
+        warning=true
+    else
+        print "Test passed, do nothing"
+        exit 0
+    fi
+fi
+
+cat >mail <<EOF
+Subject: [Patchew] Re: $(cat subject | tr -d '\n')
+From: patchew.tool@gmail.com
+To: famz@redhat.com
+Cc: famcool@gmail.com
+In-Reply-To: $(cat message-id | tr -d '\n')
+
+EOF
+
+if $warning; then
+
+    cat <<EOF
+Hi,
+
+This series passed the automatic testing of Patchew but has some warnings:
+
+...
+$(cat log | grep -C 10 '<<< WARNING >>>')
+...
+
+EOF
+
+else
+
+    cat <<EOF
+Hi,
+
+Patchew tried to test this series and encountered some error. The testing
+failed at step '$(cat failure-step)', with log as below:
+
+$(cat log)
+
+EOF
+
+fi >> mail
+
+cat >>mail <<EOF
+
+---
+Patchew
+
+Project home: https://github.com/famz/patchew
+Contact: famcool@gmail.com
+EOF
+
+cp mail /tmp/mail
+
+cat mail

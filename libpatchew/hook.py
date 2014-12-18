@@ -29,12 +29,15 @@ def invoke(hook, **args):
     for h, cmd in config.items("hook"):
         if h != hook:
             continue
-        d = tempfile.mkdtemp()
-        for k, v in args.iteritems():
-            f = open(os.path.join(d, k), "w")
-            f.write(str(v))
-            f.close()
+        try:
+            d = tempfile.mkdtemp()
+            for k, v in args.iteritems():
+                f = open(os.path.join(d, k), "w")
+                f.write(str(v))
+                f.close()
 
-        cmd = cmd.replace("{dir}", d)
-        return subprocess.Popen(cmd, shell=True)
+            cmd = cmd.replace("{dir}", d)
+            return subprocess.Popen(cmd, shell=True)
+        except Exception, e:
+            print "Error while invoking hook %s: %s" % (hook, e)
 

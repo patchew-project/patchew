@@ -115,17 +115,17 @@ def view_testing_log(message_id):
 def view_testing_report():
     db = app.db
     forms = bottle.request.forms
-    if forms['version'] != str(SERVER_VERSION):
-        raise bottle.HTTPError(400, 'Unknown version ' + forms.get('version'))
+    if forms.get('version') != str(SERVER_VERSION):
+        return {'ok': False, 'error': 'Unknown version %s' % forms.get('version')}
     data = forms['data']
     identity = forms['identity']
     signature = forms['signature']
     key = db.get_key(identity)
     if not key:
-        raise bottle.HTTPError(400, 'Unknown identity ' + identity)
+        return {'ok': False, 'error': 'Unknown identity'}
     hasher = hmac.new(key, data)
     if hasher.hexdigest() != signature:
-        raise bottle.HTTPError(400, 'Invalid signature')
+        return {'ok': False, 'error': 'Invalid signature'}
 
     result = json.loads(data)
     message_id = result["message-id"]
@@ -145,6 +145,10 @@ def view_testing_report():
         }
 
     db.set_status(s.get_message_id(), 'testing', data)
+    data['messgae-id'] = message_id
+    message = db.get_message(message_id)
+    data['subject'] = ''
+    data['subject'] = message.get_subject() if message else ''
     hook.invoke("post-testing", **data)
     return {'ok': True}
 

@@ -277,12 +277,18 @@ def tester_cmd(args):
                     'identity': args.identity,
                     })
                 try:
+                    print "Submitting result to server..."
                     r = urllib.urlopen(report_url, postdata)
                     resp = r.read()
                     r.close()
                     resp = json.loads(resp)
+                    if not resp['ok']:
+                        print "Could not submit test result:", resp.get('error')
+                        print resp
+                    else:
+                        print "OK"
                 except Exception, e:
-                    print "Could not submit test result:", e
+                    print "Error while parsing server response", e
                     print resp
                 if not args.keep_temp:
                     shutil.rmtree(testdir, True)

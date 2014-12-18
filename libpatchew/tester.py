@@ -148,7 +148,7 @@ class Tester(object):
         if not self._cache_repo:
             self._cache_repo = tempfile.mkdtemp(dir="/var/tmp")
             git = GitRepo(self._cache_repo)
-            git("clone", self._spec['codebase'])
+            git("clone", "-q", self._spec['codebase'])
 
         clone = self._cache_repo
 
