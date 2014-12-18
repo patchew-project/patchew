@@ -1,0 +1,12 @@
+#!/bin/bash
+
+while :; do
+	date
+	timeout --kill=30 300 offlineimap
+	mdir=~/.mail/patchew/qemu-devel
+	for i in `ls $mdir/new/* 2>/dev/null`; do
+		./patchew import "$i"
+		mv "$i" $mdir/cur
+	done
+	sleep 60
+done 2>&1

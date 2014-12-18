@@ -257,4 +257,5 @@ def server_static(filename='favicon.ico'):
 def start_server(db, **args):
     bottle.TEMPLATE_PATH.append('/usr/share/patchew')
     app.db = db
+    hook.invoke("pre-start")
     app.run(**args)
