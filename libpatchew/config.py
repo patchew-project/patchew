@@ -23,8 +23,36 @@
 
 import ConfigParser
 
-config = ConfigParser.ConfigParser()
+_config = ConfigParser.ConfigParser()
 
-def load_config(fname):
-    config.read(fname)
+def load_config(*try_files):
+    for f in try_files:
+        try:
+            _config.read(f)
+            return True
+        except:
+            pass
+    return False
 
+def _value(r):
+    if r.upper() in ["TRUE", "FALSE", "YES", "NO"]:
+        return r.upper() in ["TRUE", "YES"]
+    try:
+        if r == str(int(r)):
+            return int(r)
+    except:
+        pass
+
+def get(section, key, default=None):
+    """ Return int if digits, bool if "yes", "no", "true" or "false", list of
+    value if "," is found"""
+    r = _config.get(section, key)
+    if r is None:
+        return default
+    elif "," in r:
+        return [_value(x) for x in r.split(",")]
+    else:
+        return _value(r)
+
+def items(section):
+    return _config.items()

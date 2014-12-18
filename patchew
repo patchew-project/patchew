@@ -171,9 +171,12 @@ def server_args(parser):
     parser.add_argument("-c", "--config", help="Config file")
 
 def server_cmd(db, args):
-    if args.config:
-        config.load_config(args.config)
-    start_server(db, host='0.0.0.0', debug=True, port=8080)
+    if not config.load_config(args.config,
+                              "server.conf",
+                              "/etc/patchew/server.conf"):
+        print "Cannot find config file"
+    port = config.get("server", "port", 8080)
+    start_server(db, host='0.0.0.0', debug=config.get("server", "debug"), port=port)
     return 0
 
 def tester_args(parser):

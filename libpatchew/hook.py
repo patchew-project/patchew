@@ -23,7 +23,7 @@
 import subprocess
 import tempfile
 import os
-from config import config
+import config
 
 def invoke(hook, **args):
     for h, cmd in config.items("hook"):
