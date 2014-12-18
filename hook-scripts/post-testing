@@ -13,7 +13,7 @@ if key_test passed true; then
     if key_test has-warning true; then
         warning=true
     else
-        print "Test passed, do nothing"
+        echo "Test passed, do nothing"
         exit 0
     fi
 fi
