@@ -31,16 +31,19 @@ class BaseChecker(object):
 
     # Place holder in helper text
     placeholder = "VALUE"
+    summary = ""
 
     def __init__(self, prefix, expr):
         self.prefix = prefix
         self.expr = expr
 
 class KeywordChecker(BaseChecker):
-    """Search keyword in subject"""
+    """Search text keyword in the email message. Example:
+       keyword:[PULL"""
 
     placeholder = "KEYWORD"
-    op = ["keyword:", ""]
+    op = ["keyword:", "subject:", ""]
+    summary = "Search by text"
     def __init__(self, prefix, expr):
         self.expr = expr.upper()
 
@@ -48,9 +51,10 @@ class KeywordChecker(BaseChecker):
         return self.expr in m.get_subject(upper=True)
 
 class MessageIDChecker(BaseChecker):
-    """Exact match of message-id"""
+    """Exact match of message-id. Example:
+       message-id:<1416902879-17422-1-git-send-email-user@domain.com>"""
 
-    placeholder = "Message-id"
+    placeholder = "MESSAGE-ID"
     op = "id:"
     def __call__(self, m):
         return m.get_message_id() == self.expr
@@ -66,10 +70,16 @@ class StateChecker(BaseChecker):
            untested - the series is not tested yet
            testing - the series is under testing
            obsolete or old - the series has newer version
+
+       Examples:
+            is:reviewed
+            is:tested,reviewed
+            is:obsolete,failed,untested
     """
 
-    placeholder = "MESSAGE_ID"
+    placeholder = "STATE"
     op = ["is:", ":"]
+    summary = "Search by series state"
     def __init__(self, prefix, expr):
         self._subcheckers = []
         for c in [self._build_subchecker(e) for e in expr.split(",")]:
@@ -96,10 +106,12 @@ class StateChecker(BaseChecker):
         return True in [sc(m) for sc in self._subcheckers]
 
 class ReverseChecker(BaseChecker):
-    """Negative of an expression"""
+    """Negative of an expression. Example:
+       !is:reviewed     (query series that are not reviewed)"""
 
     placeholder = "QUERY"
     op = ["-", "!"]
+    summary = "Reverse condition"
     def __init__(self, prefix, expr):
         self._subchecker = _build_checkers(expr)
 
@@ -107,10 +119,14 @@ class ReverseChecker(BaseChecker):
         return True not in [check(m) for check in self._subchecker]
 
 class AddrChecker(BaseChecker):
-    """Compare the address info of message"""
+    """Compare the address info of message. Example:
+       from:alice
+       to:bob
+       cc:yourname@email.com"""
 
     placeholder = "ADDRESS"
     op = ["from:", "to:", "cc:"]
+    summary = "Search addresses"
     def __init__(self, prefix, expr):
         self._check_from = False
         self._check_to = False
@@ -135,10 +151,16 @@ class AddrChecker(BaseChecker):
         return ret
 
 class AgeChecker(BaseChecker):
-    """Compare age of the message"""
+    """Filter by age of the message. Supports "d" (day), "w" (week), "m" (month) and "y" (year) as units. Examples:
+       age:1d
+       age:>2d
+       age:<1w
+       <1m
+       >1w"""
 
     placeholder = "AGE"
     op = ["age:", ">", "<"]
+    summary = "Search by age"
     def __init__(self, prefix, expr):
         if prefix == "age:":
             if expr and expr[0] in "<>":
@@ -172,12 +194,13 @@ def _build_prefix_doc():
     for n, t in globals().iteritems():
         if not (hasattr(t, "op") and hasattr(t, "__call__")):
             continue
+        r += t.summary + "\n\n"
         if isinstance(t.op, list):
-            p = ['"%s%s"' % (o, t.placeholder) for o in t.op if o]
+            p = [' - Syntax: %s%s' % (o, t.placeholder) for o in t.op]
         else:
-            p = ['"%s%s"' % (t.op, t.placeholder)]
-        r += " | ".join(p) + "\n"
-        r += t.__doc__ + "\n\n"
+            p = [' - Syntax: %s%s' % (t.op, t.placeholder)]
+        r += "\n".join(p) + "\n\n - Documentation:\n       "
+        r += t.__doc__ + "\n\n---------------------------\n\n"
     return r
 
 def _build_prefix_list():
@@ -218,11 +241,11 @@ class Filter(object):
 
 def _build_doctext():
     r = """
-Query = TERM TERM ...
+QUERY = TERM TERM ...
 
-Each term is <PRED><VALUE>. <PRED> is the predict verb, with the possible
-options listed later. <VALUE> is the condition value to be compared against by
-the predict. As a simple example:
+Each term is in form of <PRED><VALUE>. <PRED> is the predict verb, with the
+possible options listed later. <VALUE> is the condition value to be compared
+against by the predict. As a simple example:
 
     from:Bob subject:fix cc:George age:>1w
 
@@ -244,8 +267,8 @@ or:
     from:Bob fix :reviewed !tested
 
 
-Syntax
-------
+Query syntax
+============
 
 """
     r += _build_prefix_doc()
