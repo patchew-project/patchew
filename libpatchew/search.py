@@ -26,20 +26,57 @@ import series
 import patch
 from util import *
 
-def build_keyword_checker(e):
-    u = e.upper()
-    def c(s):
-        return u in s.get_subject(upper=True)
-    return c
+class BaseChecker(object):
+    """Base class for the message filter checker types"""
 
-def build_id_checker(e):
-    u = e.upper()
-    def c(s):
-        return u in s.get_message_id().upper()
-    return c
+    # Place holder in helper text
+    placeholder = "VALUE"
 
-def build_is_checker(e, reverse=False):
-    def build_subchecker(k):
+    def __init__(self, prefix, expr):
+        self.prefix = prefix
+        self.expr = expr
+
+class KeywordChecker(BaseChecker):
+    """Search keyword in subject"""
+
+    placeholder = "KEYWORD"
+    op = ["keyword:", ""]
+    def __init__(self, prefix, expr):
+        self.expr = expr.upper()
+
+    def __call__(self, m):
+        return self.expr in m.get_subject(upper=True)
+
+class MessageIDChecker(BaseChecker):
+    """Exact match of message-id"""
+
+    placeholder = "Message-id"
+    op = "id:"
+    def __call__(self, m):
+        return m.get_message_id() == self.expr
+
+class StateChecker(BaseChecker):
+    """Check message state. Multiple states can be separated with comma, with
+       OR logic. For example, "is:replied,tested,reviewed"
+       Supported states:
+           replied - someone has replied to this series
+           reviewed - all the patches in the series is reviewed
+           tested - the series passed testing
+           failed - the series failed testing
+           untested - the series is not tested yet
+           testing - the series is under testing
+           obsolete or old - the series has newer version
+    """
+
+    placeholder = "MESSAGE_ID"
+    op = ["is:", ":"]
+    def __init__(self, prefix, expr):
+        self._subcheckers = []
+        for c in [self._build_subchecker(e) for e in expr.split(",")]:
+            if c:
+                self._subcheckers.append(c)
+
+    def _build_subchecker(self, p):
         if p == "replied":
             return lambda s: s.is_replied()
         elif p == "reviewed":
@@ -52,135 +89,140 @@ def build_is_checker(e, reverse=False):
             return lambda s: s.get_status("testing") == None
         elif p == "testing":
             return lambda s: s.get_status("testing", {}).get("started") == True
-        elif p == "obsolete":
+        elif p == "obsolete" or p == "old":
             return lambda s: s.get_status("obsoleted-by", None) != None
 
-    subcheckers = []
-    for p in e.split(","):
-        sc = build_subchecker(p)
-        if sc:
-            subcheckers.append(sc)
-    def c(s):
-        return (True in [sc(s) for sc in subcheckers]) != reverse
-    return c
+    def __call__(self, m):
+        return True in [sc(m) for sc in self._subcheckers]
 
-def build_not_checker(e):
-    return build_is_checker(e, reverse=True)
+class ReverseChecker(BaseChecker):
+    """Negative of an expression"""
 
-def build_addr_checker(e, addr_extract):
-    search_list = e.split(",")
-    def c(s):
-        addr_list = addr_extract(s).upper()
-        for i in search_list:
-            if i.upper() in addr_list:
-                return True
-    return c
+    placeholder = "QUERY"
+    op = ["-", "!"]
+    def __init__(self, prefix, expr):
+        self._subchecker = _build_checkers(expr)
 
-def build_from_checker(e):
-    return build_addr_checker(e, lambda x: x.get_from(True))
+    def __call__(self, m):
+        return True not in [check(m) for check in self._subchecker]
 
-def build_to_checker(e):
-    return build_addr_checker(e, lambda x: x.get_to(True))
+class AddrChecker(BaseChecker):
+    """Compare the address info of message"""
 
-def build_cc_checker(e):
-    return build_addr_checker(e, lambda x: x.get_cc(True) + "," + x.get_to(True))
+    placeholder = "ADDRESS"
+    op = ["from:", "to:", "cc:"]
+    def __init__(self, prefix, expr):
+        self._check_from = False
+        self._check_to = False
+        self._check_cc = False
 
-def build_age_checker(e):
-    less = e.startswith("<")
-    value = ""
-    unit = None
-    while e and e[0] in "><":
-        e = e[1:]
-    while e and e[0].isdigit():
-        value = value + e[0]
-        e = e[1:]
-    unit = e or "d"
-    value = int(value)
-    if not value:
-        return lambda x: True
-    sec = human_to_seconds(value, unit)
-    def c(s):
-        a = s.get_age(True)
-        return (a < sec) == less
-    return c
+        if prefix == "from:":
+            self._check_from = True
+        elif prefix == "to:":
+            self._check_to = True
+        elif prefix == "from:":
+            self._check_cc = True
+            self._check_to = True
 
-_checkers = {
-    'subject': {
-        'build': build_keyword_checker,
-        'desc': 'Search keyword in subject'
-    },
-    'id': {
-        'build': build_id_checker,
-        'desc': 'Search by message-id'
-    },
-    'is': {
-        'build': build_is_checker,
-        'desc': '''Search by property, for example is:reviewed or is:replied.
-                Multiple properties can be listed by separating with comma'''
-    },
-    'not': {
-        'build': build_not_checker,
-        'desc': '''Reverse of "is", meaning to search series that has none of the
-                list properties'''
-    },
-    'from': {
-        'build': build_from_checker,
-        'desc': '''Search "From:" field, with a list of names or addresses
-                separated by ",".'''
-    },
-    'to': {
-        'build': build_to_checker,
-        'desc': 'Search "To:" field'
-    },
-    'cc': {
-        'build': build_cc_checker,
-        'desc': 'Search *both* "To:" and "Cc:" field',
-    },
-    'age': {
-        'build': build_age_checker,
-        'desc': '''Search by age of series, for example age:>1w or age:1y. If
-                comparison is omitted, it is compare by less than. Supported units are
-                "d", "w", "m", "y".''',
-    },
-}
+    def __call__(self, m):
+        ret = False
+        if self._check_from:
+            ret = ret or self.expr in m.get_from(True)
+        if self._check_to or self._check_cc:
+            ret = ret or self.expr in m.get_to(True)
+        if self._check_cc:
+            ret = ret or self.expr in m.get_cc(True)
+        return ret
+
+class AgeChecker(BaseChecker):
+    """Compare age of the message"""
+
+    placeholder = "AGE"
+    op = ["age:", ">", "<"]
+    def __init__(self, prefix, expr):
+        if prefix == "age:":
+            if expr and expr[0] in "<>":
+                self._build_exp(expr[0], expr[1:])
+            else:
+                self._build_exp(">", expr)
+        else:
+            self._build_exp(prefix, expr)
+
+    def _build_exp(self, op, e):
+        less = op == "<"
+        value = ""
+        unit = None
+        while e and e[0].isdigit():
+            value = value + e[0]
+            e = e[1:]
+        unit = e or "d"
+        if not value:
+            raise SytaxError("Cannot parse age expression %s" % e)
+        value = int(value)
+        sec = human_to_seconds(value, unit)
+        self._sec = sec
+        self._less_than = less
+
+    def __call__(self, m):
+        c = cmp(m.get_age(True), self._sec)
+        return (c < 0) == self._less_than
+
+def _build_prefix_doc():
+    r = ""
+    for n, t in globals().iteritems():
+        if not (hasattr(t, "op") and hasattr(t, "__call__")):
+            continue
+        if isinstance(t.op, list):
+            p = ['"%s%s"' % (o, t.placeholder) for o in t.op if o]
+        else:
+            p = ['"%s%s"' % (t.op, t.placeholder)]
+        r += " | ".join(p) + "\n"
+        r += t.__doc__ + "\n\n"
+    return r
+
+def _build_prefix_list():
+    r = []
+    full = set()
+    for n, t in globals().iteritems():
+        if hasattr(t, "op") and hasattr(t, "__call__"):
+            if isinstance(t.op, list):
+                for o in t.op:
+                    r.append((o, t))
+                    assert o not in full
+                    full.add(o)
+            else:
+                r.append((t.op, t))
+                assert t.op not in full
+                full.add(t.op)
+    # Longest match first
+    r.sort(lambda x, y: cmp(len(x[0]), len (y[0])), reverse=True)
+    return r
+
+def _build_checkers(exp):
+    r = []
+    for e in exp.split(" "):
+        for p, t in _prefix_list:
+            if e.startswith(p):
+                r.append(t(p, e[len(p):]))
+    return r
 
 class Filter(object):
-    def __init__(self, db, exp):
-        self._db = db
-        self._filters = []
-        self.build_filters(exp)
+    def __init__(self, exp):
+        self._checkers = _build_checkers(exp)
 
     def match(self, s):
-        for c in self._filters:
+        for c in self._checkers:
             if not c(s):
                 return False
         return True
 
-    def build_filters(self, exp):
-        for e in [x.strip() for x in exp.split(" ")]:
-            if not e:
-                continue
-            elif e[0] in ":+":
-                t, v = "is", e[1:]
-            elif e[0] in "-":
-                t, v = "not", e[1:]
-            elif e[0] in "<>":
-                t, v = "age", e
-            elif ":" in e:
-                t, v = e.split(":", 2)
-            else:
-                t, v = 'subject', e
-            if t not in _checkers:
-                continue
-            c = _checkers[t]['build'](v)
-            if c:
-                self._filters.append(c)
-
-def build_doctext():
+def _build_doctext():
     r = """
-Query = <TERM> <TERM> ...
+Query = TERM TERM ...
 
-Each term is <COMP>:<VALUE> or <PREFIX><VALUE> or <VALUE>, Example:
+Each term is <PRED><VALUE>. <PRED> is the predict verb, with the possible
+options listed later. <VALUE> is the condition value to be compared against by
+the predict. As a simple example:
 
     from:Bob subject:fix cc:George age:>1w
 
@@ -192,28 +234,23 @@ And
     from:Bob subject:fix is:reviewed not:tested
 
 to search all email from Bob that have "fix" in subject, and have been reviewed
-but failed testing. It can be simplified as:
+but failed testing. Because there are certain alias for each predict, it can be
+simplified as:
 
-    from:Bob fix :reviewed -tested
+    from:Bob fix +reviewed -tested
 
-The normal syntax, <COMP>:<VALUE> can be one of:
+or:
 
-"""
+    from:Bob fix :reviewed !tested
 
-    for k, v in _checkers.iteritems():
-        r += " * %-10s - %s\n" % (k, " ".join([x.strip() for x in v['desc'].splitlines()]))
-    r +="""
 
-As in the examples, there are a few syntax shortcuts as <PREFIX><VALUE>, or
-plain <VALUE>:
-
- * :VALUE and +VALUE equals to is:VALUE
- * -VALUE equals to not:VALUE
- * >VALUE and <VALUE equals to age:>VALUE and age:<VALUE
- * VALUE (with no prefix) equals to subject:<value>
+Syntax
+------
 
 """
+    r += _build_prefix_doc()
 
     return r
 
-doctext = build_doctext()
+_prefix_list = _build_prefix_list()
+doctext = _build_doctext()
