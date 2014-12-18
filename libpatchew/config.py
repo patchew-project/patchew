@@ -55,4 +55,4 @@ def get(section, key, default=None):
         return _value(r)
 
 def items(section):
-    return _config.items()
+    return _config.items(section)
