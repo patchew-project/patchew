@@ -19,8 +19,8 @@ if key_test passed true; then
 fi
 
 cat >mail <<EOF
-Subject: [Patchew] Re: $(cat subject | tr -d '\n')
-From: patchew.tool@gmail.com
+Subject: Re: $(cat subject | tr -d '\n')
+From: Patchew Tool <patchew.tool@gmail.com>
 To: famz@redhat.com
 Cc: famcool@gmail.com
 In-Reply-To: $(cat message-id | tr -d '\n')
@@ -66,3 +66,4 @@ EOF
 cp mail /tmp/mail
 
 cat mail
+msmtp -t < /tmp/mail
