@@ -22,7 +22,7 @@ cat >mail <<EOF
 Subject: [Patchew] Re: $(cat subject | tr -d '\n')
 From: patchew.tool@gmail.com
 To: famz@redhat.com
-Cc: famcool@gmail.com
+Cc: fam@euphon.net
 In-Reply-To: $(cat message-id | tr -d '\n')
 
 EOF
@@ -60,7 +60,7 @@ cat >>mail <<EOF
 Patchew
 
 Project home: https://github.com/famz/patchew
-Contact: famcool@gmail.com
+Contact: fam@euphon.net
 EOF
 
 cp mail /tmp/mail

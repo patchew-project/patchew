@@ -1,7 +1,7 @@
 #!/bin/bash
 # The MIT License (MIT)
 #
-# Copyright (c) 2014 Fam Zheng <famcool@gmail.com>
+# Copyright (c) 2014 Fam Zheng <fam@euphon.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
