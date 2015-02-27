@@ -145,7 +145,7 @@ def view_testing_report():
         }
 
     db.set_status(s.get_message_id(), 'testing', data)
-    data['messgae-id'] = message_id
+    data['message-id'] = message_id
     message = db.get_message(message_id)
     data['subject'] = ''
     data['subject'] = message.get_subject() if message else ''

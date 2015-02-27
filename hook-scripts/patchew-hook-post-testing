@@ -13,14 +13,14 @@ if key_test passed true; then
     if key_test has-warning true; then
         warning=true
     else
-        print "Test passed, do nothing"
+        echo "Test passed, do nothing"
         exit 0
     fi
 fi
 
 cat >mail <<EOF
-Subject: [Patchew] Re: $(cat subject | tr -d '\n')
-From: patchew.tool@gmail.com
+Subject: Re: $(cat subject | tr -d '\n')
+From: Patchew Tool <patchew.tool@gmail.com>
 To: famz@redhat.com
 Cc: fam@euphon.net
 In-Reply-To: $(cat message-id | tr -d '\n')
@@ -66,3 +66,4 @@ EOF
 cp mail /tmp/mail
 
 cat mail
+msmtp -t < /tmp/mail
