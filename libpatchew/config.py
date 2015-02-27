@@ -27,11 +27,13 @@ _config = ConfigParser.ConfigParser()
 
 def load_config(*try_files):
     for f in try_files:
+        print f
         try:
-            _config.read(f)
-            return True
+            if _config.read(f):
+                return True
         except:
             pass
+        continue
     return False
 
 def _value(r):
@@ -41,13 +43,18 @@ def _value(r):
         if r == str(int(r)):
             return int(r)
     except:
-        pass
+        return r
 
 def get(section, key, default=None):
-    """ Return int if digits, bool if "yes", "no", "true" or "false", list of
-    value if "," is found"""
-    r = _config.get(section, key)
-    if r is None:
+    """ Return int if value in digits;
+        bool if in "yes", "no", "true" or "false";
+        otherwise a string;
+        list of value if "," is found"""
+    try:
+        r = _config.get(section, key)
+    except:
+        r = None
+    if not r:
         return default
     elif "," in r:
         return [_value(x) for x in r.split(",")]

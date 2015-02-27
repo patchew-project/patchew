@@ -254,8 +254,12 @@ def server_static(filename='favicon.ico'):
         root = 'static'
     return bottle.static_file(filename, root=root)
 
-def start_server(db, **args):
+def start_server(db, host, port, debug):
     bottle.TEMPLATE_PATH.append('/usr/share/patchew')
     app.db = db
     hook.invoke("pre-start")
-    app.run(**args)
+    if debug:
+        server = "wsgiref"
+    else:
+        server = "cherrypy"
+    app.run(host=host, port=port, debug=debug, server=server)

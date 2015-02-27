@@ -33,6 +33,7 @@ import urllib
 import tempfile
 import time
 import subprocess
+import libpatchew
 from libpatchew import *
 
 def dump_headers(m):
@@ -171,12 +172,14 @@ def server_args(parser):
     parser.add_argument("-c", "--config", help="Config file")
 
 def server_cmd(db, args):
-    if not config.load_config(args.config,
+    if not libpatchew.config.load_config(args.config,
                               "server.conf",
                               "/etc/patchew/server.conf"):
         print "Cannot find config file"
-    port = config.get("server", "port", 8080)
-    start_server(db, host='0.0.0.0', debug=config.get("server", "debug"), port=port)
+    host = libpatchew.config.get("server", "host", "0.0.0.0")
+    port = libpatchew.config.get("server", "port", 80)
+    debug = libpatchew.config.get("server", "debug", False)
+    start_server(db, host=host, port=port, debug=debug)
     return 0
 
 def tester_args(parser):
