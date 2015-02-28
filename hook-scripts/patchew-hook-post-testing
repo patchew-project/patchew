@@ -50,7 +50,7 @@ else
 
     cat <<EOF
 
-This series failed '$failure' in Patchew automatic testing, see log
+This series failed $failure in Patchew automatic testing, see log
 below:
 
 ----------8<----------
@@ -61,18 +61,5 @@ EOF
 
 fi >> mail
 
-cat >>mail <<EOF
-
----
-Patchew
-
-Project home: https://github.com/famz/patchew
-Contact: fam@euphon.net
-EOF
-
-cp mail /tmp/mail
-
-cat mail
-
 # Assume that msmtp is properly configured
-msmtp -t < /tmp/mail
+msmtp -t < mail
