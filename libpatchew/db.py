@@ -190,7 +190,7 @@ class DB(object):
     def add_message(self, m):
         """Add a new message to DB"""
         e = self._messages.find_one({'message-id': m.get_message_id()})
-        if e:
+        if e and e.get('from'):
             raise MessageDuplicated(e)
         d = {
             'message-id': m.get_message_id(),
@@ -203,7 +203,10 @@ class DB(object):
             'tags': list(m.get_tags()),
             'is-series': series.is_series(m),
         }
-        self._messages.insert(d)
+        if e:
+            for k, v in e.iteritems():
+                d[k] = d.get(k, v)
+        self._messages.save(d)
         return m.get_message_id()
 
     def get_statuses(self, msg_id):
