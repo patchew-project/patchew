@@ -27,7 +27,7 @@ class Series(Message):
     def get_codebase(self):
         if self.find_tags("qemu-devel"):
             return "git://git.qemu-project.org/qemu.git", "master"
-        raise Exception(self.find_tags("qemu-devel"))
+        return "", ""
 
     def get_patch_num(self):
         for t in self.get_tags():
