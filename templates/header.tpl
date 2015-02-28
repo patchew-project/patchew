@@ -81,7 +81,7 @@ $(function() {
             <form role="search" method="GET" action="/">
                 <div class="form-group">
                     <div class="input-group">
-                        <input type="search" class="form-control" name="search" placeholder="Search" value="{{locals().get('search', '')}}">
+                        <input type="search" class="form-control" name="search" placeholder="Search" value="{{locals().get('search') or ""}}">
                         <span class="input-group-btn">
                             <button type="button" class="btn btn-default btn-search-help"><span class="badge">?</span></button>
                             <input type="submit" class="btn btn-success search-go" value="Go"/>
