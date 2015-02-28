@@ -2,6 +2,9 @@
 
 A patch email tracking and testing system
 
+This project, `patchew` (/pæ'tʃu:/), is built to automatically _chew_ the
+_patches_ before they get human reviewing.
+
 ## Motivation
 
 In some open source projects, people collaborate on mailing lists, where all
@@ -14,19 +17,25 @@ such as 80 columns line limit? And which patches has no problem with these
 basic checks, but is waiting for proper reviewing? These are mechanical but
 tedious routine work, even before the patches get actual reviewing.
 
-This project, `patchew` (/pæ'tʃu:/), is built to _chew_ the _patches_
-automatically before they get digested by committers.
+## See it live
+
+This project stems from QEMU development. There is a running instance for
+QEMU patches:
+
+[http://qemu.patchew.org]
 
 ## Quick start
 
 The program is written in Python 2.7, with a few dependencies:
 
-  1. A `MongoDB` is required on the server as the currently supported database.
+  1. `MongoDB` is required on the server.
 
   2. You also need `pymongo` to run `patchew`. (That is also a dependency for
      "tester" subcommand, although this can be improved in the future.)
 
-  3. Docker is required to run tester.
+  3. Docker is required to run the tester.
+
+  4. `bottle` and `cherrypy` for the web server. You can install both with pip.
 
 To get the code, clone from git repo:
 
@@ -35,74 +44,120 @@ git clone https://github.com/famz/patchew.git
 cd patchew
 ```
 
-Everything is done with the command `patchew`, it has several subcommands:
-
-### Server
-
-To run the server:
+Then you can install commands and files to your system with:
 
 ```
-./patchew server
+sudo python setup.py install
 ```
 
-A server program to export a few web pages to show the patch list. The patches
-are imported into the server database on background, independently. It also
-shows their statuses, such as: whether the series is replied, reviewed,
-appliable to current mainline, and also the result of automated compiling and
-testing.
+All operations are done by running `patchew` subcommands.
+
+### The Server
+
+Make sure you have started mongodb server.
+
+To run the server at your console:
+
+```
+patchew server
+```
+
+Or start the systemd service:
+
+```
+sudo systemctl start patchew
+```
+
+Then you can view the patch series that are imported to the mongodb by
+accessing 127.0.0.1 from your browser.
 
 It also responds to testers (see below) through a simple custom `JSON`
-interface over HTTP.
+API interface.
 
-### Import
+#### Search
 
-To run the importer:
+On the web page, you can search the database by keywords, testing results,
+dates, with a simple search syntax. See the help message hidden aside the
+search box.
+
+### Import data
+
+At server side, run the `import` subcommand:
 
 ```
-./patchew import [-r] YOUR_MAILS[,MORE_MAILS...]
+patchew import [-r] YOUR_MAILS[,MORE_MAILS...]
 ```
 
-A command to feed some emails (either in `mbox` or `maildir` format) to the
-database. It's so easy to use that I don't know how to explain it. And in order
-to get real time index of mailing list patches, you should probably cron it or
-use a endless loop:
+This command feeds emails (either in `mbox` or `maildir` format) to the
+database.
+
+If you need continuously importing new emails, you can do something like this:
 
 ```
 #!/bin/bash
-mdir=~/.mail/patchew/qemu-devel
+mdir=~/mailbox-dir
 while :; do
-    date
-    timeout --kill=30 300 offlineimap
-    for i in `ls $mdir/new/* 2>/dev/null`; do
+
+    # sync with email server
+    offlineimap
+
+    # import new messages
+    for i in `ls $mdir/new/*`; do
         ./patchew import "$i"
         mv "$i" $mdir/cur
     done
-    sleep 60
-done 2>&1 | tee patchew-fetch.log
+done
 
 ```
 
 ### Tester
 
-To run the tester (`sudo` for running docker, or configure docker so you can
-run it as normal user):
+The tester runs on another host, queries for new series and test them.
 
 ```
-sudo ./patchew tester -s http://localhost:8080/ -C /var/tmp/qemu.git -t /bin/true -i patchew:fedora-20 -L
+sudo ./patchew tester -s http://localhost:8080/ -C /var/tmp/qemu.git \
+    -t /bin/true -d patchew:fedora-20 -L \
+    -i tester-name -p tester-token
 ```
 
 It asks the `patchew` server for some patches to test. If there is no more
-patches to test, it does nothing. Otherwise it will apply the patches on the
+patches to test, it does nothing; otherwise it will apply the patches on the
 mainline's clone, spin up a docker instance (for security reason, you don't
 want to try untrusted code from the patch on your machine), hand over the
-applied code to the container, and let it start tests. If an error occurs in
-above steps, it reports the failure to server. Otherwise it tells the server
-the test passes.
+applied code to the container, and let it start the actual tests. If an error
+occurs in above steps, it reports the failure to server. Otherwise it tells the
+server the test passes, along with the testing log.
 
-#### Testing
 
-Use `-t $test_script` to tell tester how to test the patches. The script will
-be copied into the container, and started once the container started.
+```
+usage: patchew tester [-h] -s SERVER -i IDENTITY -p SIGNATURE_KEY [-t
+TEST_SCRIPT] [-d DOCKER_IMAGE] [-L] [-C QUICK_REPO] [-k]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SERVER, --server SERVER
+                        Pathew server's base URL
+  -i IDENTITY, --identity IDENTITY
+                        Verification identity to use
+  -p SIGNATURE_KEY, --signature-key SIGNATURE_KEY
+                        Verification key to use
+  -t TEST_SCRIPT, --test-script TEST_SCRIPT
+                        Test script to run inside the container
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                        Docker image to use.
+  -L, --loop            Loop and repeat.
+  -C QUICK_REPO, --quick-repo QUICK_REPO
+                        Clone from a (faster) git repo before pulling from the server returned codebase, in order to speed up the test.
+  -k, --keep-temp       Don't remove temporary directory before exit
+```
+
+_Note: `-i` and `-p` are necessary to verify the tester to the server. They can
+be generated with "newid" subcommand on server side._
+
+#### How testing works
+
+The above command used `-t $test_script` to specify the script to test the
+patches. The script will be copied into the container for execution.
 
 The script gets one argument when executed, which is the path of the testing
 directory. In the directory there are a few subdirectories:
@@ -113,16 +168,16 @@ directory. In the directory there are a few subdirectories:
 
 - patches: a dir containing the patches in mbox format
 
-- step: a text file to output test steps as they go on, each line is a step.
+- step: a text file to output test steps as they go on, one step name per line.
   Useful to report failure step.
 
-#### Docker
+#### Security
 
 Docker is used to avoid running untrusted code in tester's environment.
 
 ##### Image
 
-You have to prepare a docker image in which the code will be tested.
+You have to prepare a docker image in which the testing runs.
 
 It's good to use a commonly available image such as ubuntu or fedora, with
 package customizations. Such as:
@@ -167,18 +222,39 @@ For each patch series to test, tester will do a `git clone` to get the latest
 mainline code. This step is quicker if you clone from a local directory, add
 the mainline code base as a remote (`git remote add`), then fetch from it.
 
-To do this, add `-C LOCAL_GIT_DIR` option to `tester` command.
+To do this, add `-C LOCAL_GIT_DIR` option to the `tester` subcommand.
+
+## Testing Result Notification
+
+For simplicity the patchew server doesn't have notification framework, however
+there is a configurable hook in `server.conf` that run a script after each
+series is tested:
+
+```
+[hook]
+post-testing = patchew-hook-post-testing {dir}
+```
+
+The scripts receives an argument (`{dir}`) which points to a directory that has
+the testing result information.
+
+The installed `patchew-hook-post-testing` is only for reference, and you
+probably want to write your own.
+
+## Other server subcommands
+
+`newid` generates a server side signature key that can be used when tester
+submits testing result. Only results signed with known signatures will be
+accepted by server.
+
+`query` will list threads with given criteria (with the same searching syntax
+with the web).
+
+`untest` clears testing result by given criteria.
+
+`syncdb` scans all the messages in database and rebuild their metadata.
 
 ## TODO list
-
-### Notification
-
-Notification can be easily done, in wrong ways.
-
-It would be convenient to automatically reply to the mailing list if we catch
-some flaws in the series, but it can also be very noisy if do it without care.
-People want information, not noise. We'll add email notification once we are
-confident in telling information from noise in this system.
 
 ### Git repo
 
@@ -190,46 +266,7 @@ probably.
 
 This will further decouple server and importer.
 
-### Tester authentication
-
-Currently the server trusts the result from any tester. Probably not a good
-idea if the server is on untrusted network.
-
 ### Code base
 
 The server advises the code base on which the tester should apply the patches.
 This is currently hard coded and only knows about [qemu.git](http://qemu-project.org).
-
-### Warning
-
-Sometimes a test should pass, even with some warnings.
-
-Coding style is probably one example where warning is better than error: we are
-told to only do one thing in a patch. When you change a code which is wrong
-both in coding style and logic, but you don't care about the coding style
-because you are not as sensitive as your loyal checker script, it's very late
-and you decide to only fix the logic. That's the right thing to do:
-
-```
--            if ((ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1)) > 0) {
-+            if ((ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1)) < 0) {
-```
-
-But if you want to keep the coding style checker happy you have to do:
-
-```
--            if ((ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1)) > 0) {
-+            ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1);
-+            if (ret < 0) {
-```
-
-Or split this simple patch to two patches, write two commit messages and send two emails.
-
-Or just go to bed and leave it to Bob the poor guy.
-
-*It's only one example where machines are machines. Although we always want our
-machines to do more things for us, there is one thing machines just can't do
-yet: reading our mind. It's a question of philosophy about automation and UI
-design: when you build a machine and rely on it for something, keep in mind
-that machines will go wrong because they are built by imperfect persons, then
-leave room for human to fix it when it is wrong.*
