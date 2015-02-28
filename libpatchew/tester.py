@@ -123,10 +123,8 @@ class Tester(object):
         self.log("Starting docker...\n")
         self.log(" ".join(cmd), "\n")
 
-        tp = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        tp = subprocess.Popen(cmd, stdout=self.log, stderr=self.log)
         tp.wait()
-        self.log.write(tp.stdout.read())
-        self.log.write(tp.stderr.read())
         if tp.returncode != 0:
             step = ""
             try:
