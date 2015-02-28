@@ -8,6 +8,7 @@ key_test() {
 }
 
 warning=false
+failure=$(cat failure-step)
 
 if key_test passed true; then
     if key_test has-warning true; then
@@ -16,6 +17,12 @@ if key_test passed true; then
         echo "Test passed, do nothing"
         exit 0
     fi
+fi
+
+if [[ "$failure" = "apply" ]]; then
+    # Don't complain about apply failure for now
+    echo "Ignoring apply failure"
+    exit 0
 fi
 
 cat >mail <<EOF
@@ -30,12 +37,11 @@ EOF
 if $warning; then
 
     cat <<EOF
-Hi,
 
-This series passed the automatic testing of Patchew but has some warnings:
+This series passed Patchew automatic testing, but there are some warnings:
 
 ...
-$(cat log | grep -C 10 '<<< WARNING >>>')
+$(cat log | grep -C 10 '<<< WARNING >>>' | sed -e 's/<<< WARNING >>>//g')
 ...
 
 EOF
@@ -43,10 +49,11 @@ EOF
 else
 
     cat <<EOF
-Hi,
 
-Patchew tried to test this series and encountered some error. The testing
-failed at step '$(cat failure-step)', with log as below:
+This series failed '$failure' in Patchew automatic testing, see log
+below:
+
+----------8<----------
 
 $(cat log)
 
@@ -66,4 +73,6 @@ EOF
 cp mail /tmp/mail
 
 cat mail
+
+# Assume that msmtp is properly configured
 msmtp -t < /tmp/mail
