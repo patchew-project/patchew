@@ -166,14 +166,14 @@ class Message(object):
         return s.intersection(self.get_tags(upper=True))
 
     def get_body(self):
-        payload = self._m.get_payload()
+        payload = self._m.get_payload(decode=True)
         body = ''
         if isinstance(payload, str):
             body = payload
         else:
             for p in payload:
                 if p.get_content_type() == "text/plain":
-                    body += str(p.get_payload())
+                    body += str(p.get_payload(decode=True))
         return body.decode("utf-8", "ignore")
 
     def get_preview(self, maxchar=1000):
