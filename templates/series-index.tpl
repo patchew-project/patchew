@@ -37,7 +37,7 @@
                 %elif s['testing-passed'] == True:
                     %if s['testing-has-warning']:
                     <a href="/testing/log/{{s['message-id']}}">
-                        <span title="{{s['testing-end-time']}}" class="label label-warning timestamp">Partial pass</span>
+                        <span title="{{s['testing-end-time']}}" class="label label-warning timestamp">Warning</span>
                     </a>
                     %else:
                     <a href="/testing/log/{{s['message-id']}}">

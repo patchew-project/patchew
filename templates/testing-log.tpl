@@ -14,7 +14,7 @@
         <span class="label label-defulat">Testing</span>
     %elif series['testing-passed']:
         %if series['testing-has-warning']:
-        <span class="label label-warning">Partial pass</span>
+        <span class="label label-warning">Warning</span>
         %else:
         <span class="label label-success">Passed</span>
         %end
