@@ -65,7 +65,7 @@ class StateChecker(BaseChecker):
        Supported states:
            replied - someone has replied to this series
            reviewed - all the patches in the series is reviewed
-           tested - the series passed testing
+           tested or passed - the series passed testing
            failed - the series failed testing
            untested - the series is not tested yet
            testing - the series is under testing
@@ -91,7 +91,7 @@ class StateChecker(BaseChecker):
             return lambda s: s.is_replied()
         elif p == "reviewed":
             return lambda s: s.is_reviewed()
-        elif p == 'tested':
+        elif p in ['tested', 'passed']:
             return lambda s: s.get_status("testing", {}).get("passed") == True
         elif p == "failed":
             return lambda s: s.get_status("testing", {}).get("passed") == False
@@ -227,6 +227,7 @@ def _build_checkers(exp):
         for p, t in _prefix_list:
             if e.startswith(p):
                 r.append(t(p, e[len(p):]))
+                break
     return r
 
 class Filter(object):
