@@ -123,6 +123,7 @@ class Tester(object):
         self.log("Starting docker...\n")
         self.log(" ".join(cmd), "\n")
 
+        self.log.flush()
         tp = subprocess.Popen(cmd, stdout=self.log, stderr=self.log)
         tp.wait()
         if tp.returncode != 0:
