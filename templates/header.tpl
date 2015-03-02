@@ -32,7 +32,7 @@ $(function() {
 <div class="col-lg-12 container">
     <div class="header">
         <div class="title col-lg-2">
-            <a href="/"><span class="smiley">:p</span>atchew</a></h1>
+            <h1 id="banner"><a href="/"><span class="smiley">:p</span>atchew</a></h1>
         </div>
         <div class="col-lg-4"></div>
         <div class="search col-lg-6">

@@ -14,6 +14,9 @@
 .title a:hover {
     text-decoration: none;
 }
+#banner {
+    margin: 0em;
+}
 .smiley {
     color: #008900;
 }
