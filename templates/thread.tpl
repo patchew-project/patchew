@@ -73,7 +73,7 @@
 
 %put_message(thread, 0)
 
-<script language="javascript" type="text/javascript">
+<script type="text/javascript">
 
 function main() {
     $(".message-toggler").click(function () {
