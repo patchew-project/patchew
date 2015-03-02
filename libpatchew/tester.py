@@ -125,7 +125,7 @@ class Tester(object):
 
         self.log.flush()
         tp = subprocess.Popen(cmd, stdout=self.log, stderr=self.log)
-        tp.wait()
+        tp.communicate()
         if tp.returncode != 0:
             step = ""
             try:
