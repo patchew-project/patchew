@@ -96,7 +96,7 @@ class Tester(object):
         idx = 1
         patch_list = []
         for p in self._spec['patches-mbox-list']:
-            msg = Message(p)
+            msg = Message(p.encode("utf-8", "ignore"))
             fn = build_patch_fname(idx, msg)
             self.log(fn, "\n")
             fn_full = os.path.join(odir, fn)
