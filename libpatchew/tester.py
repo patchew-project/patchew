@@ -78,11 +78,10 @@ class Tester(object):
         fname = _self._testdir_entry(name)
         return open(fname, "r+")
 
-    def write_patches(self, odir):
-        def build_patch_fname(idx, p):
+    def write_patches(self, odir, body_only, postfix):
+        def build_patch_fname(idx, msg):
             r = "%04d-" % idx
             try:
-                msg = Message(p)
                 p = msg.get_subject(strip_tags=True)
                 for c in p:
                     if c.isalnum() or c in "-_[]":
@@ -90,21 +89,23 @@ class Tester(object):
                     else:
                         r += "-"
             except:
-                r += "unknown"
-            r += ".patch"
+                r += "unnamed"
+            r += postfix
             return r
 
-        os.mkdir(odir)
         idx = 1
         patch_list = []
         for p in self._spec['patches-mbox-list']:
-            p = p.encode("utf-8", "ignore")
-            fn = build_patch_fname(idx, p)
+            msg = Message(p)
+            fn = build_patch_fname(idx, msg)
             self.log(fn, "\n")
             fn_full = os.path.join(odir, fn)
             patch_list.append(fn_full)
             f = open(fn_full, "w")
-            f.write(p)
+            if body_only:
+                f.write(msg.get_body().encode("utf-8", "ignore"))
+            else:
+                f.write(p.encode("utf-8", "ignore"))
             f.close()
             idx += 1
         return patch_list
@@ -167,7 +168,9 @@ class Tester(object):
 
         self.log("\n=== Writing patches ===\n")
         patches_dir = self._testdir_entry("patches")
-        patches = self.write_patches(patches_dir)
+        os.mkdir(patches_dir)
+        self.write_patches(patches_dir, True, ".patch")
+        patches = self.write_patches(patches_dir, False, ".email")
 
         self.log("\n=== Applying patches ===\n")
 
