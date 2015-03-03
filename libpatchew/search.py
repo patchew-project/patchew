@@ -131,6 +131,7 @@ class AddrChecker(BaseChecker):
         self._check_from = False
         self._check_to = False
         self._check_cc = False
+        self.expr = expr
 
         if prefix == "from:":
             self._check_from = True
