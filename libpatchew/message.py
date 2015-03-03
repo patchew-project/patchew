@@ -170,10 +170,12 @@ class Message(object):
         body = ''
         if isinstance(payload, str):
             body = payload
-        else:
+        elif isinstance(payload, list):
             for p in payload:
                 if p.get_content_type() == "text/plain":
                     body += str(p.get_payload(decode=True))
+        else:
+            return "<Error while getting message body: %s>" % payload
         return body.decode("utf-8", "ignore")
 
     def get_preview(self, maxchar=1000):
