@@ -5,6 +5,7 @@
 %     return urllib.quote_plus(str)
 % end
 
+% if len(series) > 0:
 <table class="table table-condensed table-striped">
     <tr>
         <th colspan="2">Status</th>
@@ -56,6 +57,13 @@
         </tr>
     %end
 </table>
+
+% else:
+    <div id="message">
+      <p>No patches found.</p>
+      <div class="frownie">:(</div>
+    </div>
+%end
 
 <nav>
     <ul class="pagination">

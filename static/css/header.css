@@ -20,6 +20,14 @@
 .smiley {
     color: #008900;
 }
+.frownie {
+    color: #890000;
+}
+#message {
+    text-align: center;
+    font-weight: bold;
+    font-size: 28px;
+}
 .search {
     margin-top: 5px;
 }
