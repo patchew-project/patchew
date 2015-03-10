@@ -1,11 +1,6 @@
 % include('templates/header.tpl', title='Series')
 
-<style type="text/css">
-.series-status a:hover {
-    text-decoration: none;
-}
-
-</style>
+<link rel="stylesheet" href="/static/css/series-index.css">
 
 <table class="table table-condensed table-striped">
     <tr>

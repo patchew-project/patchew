@@ -23,6 +23,15 @@
 
 from glob import glob
 from distutils.core import setup
+import os
+
+def setup_recursive(dest, target):
+    '''
+    Create a list of files within target to be installed into dest.
+    With permission from James Shubin, from his blog at ttboj.wordpress.com.
+    '''
+    return [(os.path.join(dest,x[0]),
+             map(lambda y: x[0]+'/'+y, x[2])) for x in os.walk(target)]
 
 setup(name='patchew',
       version='1.0',
@@ -34,6 +43,6 @@ setup(name='patchew',
       scripts=['patchew'] + glob('hook-scripts/*'),
       data_files=[('/usr/lib/systemd/system/', ['patchew.service']),
                   ('/etc/patchew', ['server.conf']),
-                  ('/usr/share/patchew/static', glob('static/*')),
-                  ('/usr/share/patchew/templates', glob('templates/*'))],
+                  ('/usr/share/patchew/templates', glob('templates/*.tpl'))
+              ] + setup_recursive('/usr/share/patchew/', 'static/')
       )

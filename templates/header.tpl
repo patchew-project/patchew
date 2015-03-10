@@ -15,53 +15,7 @@
 <link rel="stylesheet" href="/static/bootstrap.min.css">
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="/static/jquery.min.js"></script>
-<style type="text/css">
-.header {
-    overflow: hidden;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    border-bottom-color: #a8c335;
-    border-bottom-style: solid;
-    border-bottom-width: 8px;
-}
-.title a {
-    font-size: 28px;
-    color: #777;
-    font-weight: bold;
-}
-.title a:hover {
-    text-decoration: none;
-}
-.smiley {
-    color: #008900;
-}
-.search {
-    margin-top: 5px;
-}
-.search input {
-    box-shadow: none;
-    -webkit-box-shadow: none;
-    border-right: none;
-}
-.btn-search-help:hover {
-    background-color: white;
-    border-left: none;
-    border-right: none;
-}
-.btn-search-help {
-    border-left: none;
-    border-right: none;
-    padding-left: 5px;
-    padding-right: 5px;
-}
-.search-go {
-    padding-left: 30px;
-    padding-right: 30px;
-}
-.search-help-text {
-    display: none;
-}
-</style>
+<link rel="stylesheet" href="/static/css/header.css">
 <script type="text/javascript">
 $(function() {
     $(".btn-search-help").click(function () {
