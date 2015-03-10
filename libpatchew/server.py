@@ -246,13 +246,20 @@ def view_index(start=0, end=50):
                            search=query,
                            search_help=search_doctext)
 
+def get_root(base='static', sys='/usr/share/patchew/'):
+    if os.path.isdir(base):
+        return base
+    else:
+        return os.path.join(sys, base)
+
 @app.route('/favicon.ico')
+def server_favico():
+    return bottle.static_file('favicon.ico', get_root())
+
 @app.route('/static/<filename>')
-def server_static(filename='favicon.ico'):
-    root = '/usr/share/patchew/static'
-    if os.path.isdir('static'):
-        root = 'static'
-    return bottle.static_file(filename, root=root)
+@app.route('/static/<path:path>/<filename>')
+def server_static(filename, path=''):
+    return bottle.static_file(filename, root=os.path.join(get_root(), path))
 
 def start_server(db, host, port, debug):
     bottle.TEMPLATE_PATH.append('/usr/share/patchew')
