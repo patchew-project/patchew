@@ -1,8 +1,12 @@
 % include('templates/header.tpl', title='Series', stylesheets=('thread.css',))
+% import urllib
+% def uri(str):
+%     return urllib.quote_plus(str)
+% end
 
 <ul class="nav nav-tabs">
     <li role="presentation" class="active"><a href="#">Thread</a></li>
-    <li role="presentation"><a href="/testing/log/{{thread['message-id']}}">Testing</a></li>
+    <li role="presentation"><a href="/testing/log/{{uri(thread['message-id'])}}">Testing</a></li>
 </ul>
 <br>
 

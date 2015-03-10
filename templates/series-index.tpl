@@ -1,5 +1,9 @@
 % include('templates/header.tpl', title='Series',
 %         stylesheets=('series-index.css', ))
+% import urllib
+% def uri(str):
+%     return urllib.quote_plus(str)
+% end
 
 <table class="table table-condensed table-striped">
     <tr>
@@ -19,34 +23,33 @@
             </td>
             <td class="series-status">
                 %if s.get('merged'):
-                    <a href="/testing/log/{{s['message-id']}}">
+                    <a href="/testing/log/{{uri(s['message-id'])}}">
                         <span title="{{s['testing-end-time']}}" class="label label-primary timestamp">Merged</span>
                     </a>
                 %elif s.get('obsoleted-by'):
-                    <a href="/series/{{s['obsoleted-by']}}">
+                    <a href="/series/{{uri(s['obsoleted-by'])}}">
                         <span title="There is a new version, click to see: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
                     </a>
                 %elif s.get('testing-started'):
                     <span title="{{s['testing-start-time']}}" class="label label-default timestamp">Testing</span>
                 %elif s['testing-passed'] == True:
                     %if s['testing-has-warning']:
-                    <a href="/testing/log/{{s['message-id']}}">
+                    <a href="/testing/log/{{uri(s['message-id'])}}">
                         <span title="{{s['testing-end-time']}}" class="label label-warning timestamp">Warning</span>
                     </a>
                     %else:
-                    <a href="/testing/log/{{s['message-id']}}">
+                    <a href="/testing/log/{{uri(s['message-id'])}}">
                         <span title="{{s['testing-end-time']}}" class="label label-success timestamp">Pass</span>
                     </a>
                     %end
                 %elif s['testing-passed'] == False:
-                    <a href="/testing/log/{{s['message-id']}}">
+                    <a href="/testing/log/{{uri(s['message-id'])}}">
                         <span title="{{s['testing-end-time']}}" class="label label-danger timestamp">Failed {{s['testing-failure-step']}}</span>
                     </a>
                 %end
             </td>
             <td>
-                <a name="{{s['message-id']}}"></a>
-                <a href="/series/{{s['message-id']}}">{{s['subject']}}</a>
+                <a id="{{s['message-id']}}" href="/series/{{uri(s['message-id'])}}">{{s['subject']}}</a>
             </td>
             <td><span title="{{s['author-address']}}">{{s['author']}}</span></td>
             <td><span class="timestamp" title="{{s['date']}}">{{s['age']}}</span></td>
