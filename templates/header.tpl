@@ -1,3 +1,4 @@
+% setdefault('stylesheets', list())
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,6 +17,9 @@
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="/static/jquery.min.js"></script>
 <link rel="stylesheet" href="/static/css/header.css">
+% for sheet in stylesheets:
+<link rel="stylesheet" href="/static/css/{{sheet}}">
+% end
 <script type="text/javascript">
 $(function() {
     $(".btn-search-help").click(function () {

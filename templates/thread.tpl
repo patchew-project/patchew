@@ -1,6 +1,4 @@
-% include('templates/header.tpl', title='Series')
-
-<link rel="stylesheet" href="/static/css/thread.css">
+% include('templates/header.tpl', title='Series', stylesheets=('thread.css',))
 
 <ul class="nav nav-tabs">
     <li role="presentation" class="active"><a href="#">Thread</a></li>

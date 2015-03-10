@@ -1,6 +1,5 @@
-% include('templates/header.tpl', title='Series')
-
-<link rel="stylesheet" href="/static/css/series-index.css">
+% include('templates/header.tpl', title='Series',
+%         stylesheets=('series-index.css', ))
 
 <table class="table table-condensed table-striped">
     <tr>
