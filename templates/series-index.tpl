@@ -7,7 +7,7 @@
 
 <table class="table table-condensed table-striped">
     <tr>
-        <th colspan="2"></th>
+        <th colspan="2">Status</th>
         <th>Subject</th>
         <th>Author</th>
         <th>Age</th>
