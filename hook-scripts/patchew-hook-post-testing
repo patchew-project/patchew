@@ -28,8 +28,7 @@ fi
 cat >mail <<EOF
 Subject: Re: $(cat subject | tr -d '\n')
 From: Patchew Tool <patchew.tool@gmail.com>
-To: famz@redhat.com
-Cc: fam@euphon.net
+To: qemu-devel@nongnu.org
 In-Reply-To: $(cat message-id | tr -d '\n')
 
 EOF
@@ -38,11 +37,15 @@ if $warning; then
 
     cat <<EOF
 
-This series passed Patchew automatic testing, but there are some warnings:
+This series passed Patchew automatic testing, but there are some warnings.
 
-...
+Find the log fragments below, or open the following URL to see the full log:
+
+http://qemu.patchew.org/testing/log/$(cat message-id)
+
+----------8<---------
+
 $(cat log | grep -C 10 '<<< WARNING >>>' | sed -e 's/<<< WARNING >>>//g')
-...
 
 EOF
 
@@ -50,12 +53,16 @@ else
 
     cat <<EOF
 
-This series failed $failure in Patchew automatic testing, see log
-below:
+This series failed Patchew automatic testing.
 
-----------8<----------
+Find the log fragments below (grepped lines around keywords "error" and
+"warning"), or open the following URL to see the full log:
 
-$(cat log)
+http://qemu.patchew.org/testing/log/$(cat message-id)
+
+----------8<---------
+
+$(cat log | grep -w -i -C 20 -e warning -e error | sed -e 's/<<< WARNING >>>//g')
 
 EOF
 
