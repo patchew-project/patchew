@@ -166,6 +166,7 @@ def untest_cmd(db, args):
     for s in db.find_series(" ".join(args.query)):
         st = db.get_status(s.get_message_id(), "testing")
         if st:
+            print "untest:", s.get_subject()
             db.set_status(s.get_message_id(), "testing", None)
 
 def server_args(parser):
