@@ -1,10 +1,5 @@
 % include('templates/header.tpl', title='Series',
 %         stylesheets=('series-index.css', ))
-% import urllib
-% def uri(str):
-%     return urllib.quote_plus(str)
-% end
-
 % if len(series) > 0:
 <table class="table table-condensed table-striped">
     <tr>

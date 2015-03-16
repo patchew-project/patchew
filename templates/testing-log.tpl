@@ -1,9 +1,4 @@
 % include('templates/header.tpl', title='Series')
-% import urllib
-% def uri(str):
-%     return urllib.quote_plus(str)
-% end
-
 <ul class="nav nav-tabs">
     <li role="presentation"><a href="/series/{{uri(series['message-id'])}}">Thread</a></li>
     <li role="presentation" class="active"><a href="#">Testing</a></li>

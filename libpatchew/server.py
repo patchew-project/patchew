@@ -26,6 +26,7 @@ import bottle
 import time
 import hmac
 import json
+import urllib
 from libpatchew import DB, Message, MessageDuplicated, search_doctext, hook, config
 
 SERVER_VERSION = 1
@@ -273,4 +274,5 @@ def start_server(db, host, port, debug):
     else:
         server = "cherrypy"
     bottle.BaseTemplate.defaults['stat_code'] = config.getstr('server', 'stat_code', "")
+    bottle.BaseTemplate.defaults['uri'] = urllib.quote_plus
     app.run(host=host, port=port, debug=debug, server=server)
