@@ -76,6 +76,9 @@ def render_series(db, s, patches=False):
 
 app = bottle.Bottle()
 
+def render_template(tmpl, **kwargs):
+    return bottle.template(tmpl, **kwargs)
+
 @app.route('/series/<message_id>')
 def view_series(message_id):
     """TODO"""
@@ -83,7 +86,7 @@ def view_series(message_id):
     s = db.get_series(message_id)
     if not s:
         raise bottle.HTTPError(404)
-    return bottle.template("templates/series.tpl", series=s)
+    return render_template("templates/series.tpl", series=s)
 
 @app.route('/series/<message_id>/mbox')
 def view_series_mbox(message_id):
@@ -107,7 +110,7 @@ def view_testing_log(message_id):
     s = db.get_series(message_id)
     if not s:
         raise bottle.HTTPError(404)
-    return bottle.template('templates/testing-log.tpl',
+    return render_template('templates/testing-log.tpl',
                            series=render_series(db, s, True),
                            log=s.get_status("testing",{}).get("log"))
 
@@ -222,7 +225,7 @@ def render_message(db, m):
 def view_thread(message_id):
     db = app.db
     thread = render_message(db, db.get_message(message_id))
-    return bottle.template("templates/thread.tpl", thread=thread)
+    return render_template("templates/thread.tpl", thread=thread)
 
 @app.route('/')
 @app.route('/index')
@@ -238,7 +241,7 @@ def view_index(start=0, end=50):
     query = bottle.request.query.get("search")
     totalpages = (db.find_series_count(query=query) - 1) / pagesize + 1
     series = [render_series(db, x) for x in db.find_series(query=query, skip=start, limit=limit)]
-    return bottle.template("templates/series-index.tpl",
+    return render_template("templates/series-index.tpl",
                            series=series,
                            totalpages=totalpages,
                            curpage=curpage,
