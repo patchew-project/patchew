@@ -1,49 +1,12 @@
-% include('templates/header.tpl', title='Series')
-
-<style type="text/css">
-.message-toggler {
-    cursor: pointer;
-}
-.message .panel-body {
-    padding-top: 5px;
-    padding-bottom: 5px;
-}
-.panel-body .body-full {
-    background-color: #fff;
-    border: none;
-    padding: 5px;
-    display: none;
-}
-.message {
-    margin-bottom: 5px;
-}
-.message-preview {
-    display: block;
-    color: #555;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.reply-lvl-0 {
-}
-.reply-lvl-1 {
-    margin-left: 8px;
-}
-.reply-lvl-2 {
-    margin-left: 16px;
-}
-.reply-lvl-3 {
-    margin-left: 24px;
-}
-.reply-lvl-4 {
-    margin-left: 32px;
-}
-</style>
+% include('templates/header.tpl', title='Series', stylesheets=('thread.css',))
+% import urllib
+% def uri(str):
+%     return urllib.quote_plus(str)
+% end
 
 <ul class="nav nav-tabs">
     <li role="presentation" class="active"><a href="#">Thread</a></li>
-    <li role="presentation"><a href="/testing/log/{{thread['message-id']}}">Testing</a></li>
+    <li role="presentation"><a href="/testing/log/{{uri(thread['message-id'])}}">Testing</a></li>
 </ul>
 <br>
 
@@ -73,7 +36,7 @@
 
 %put_message(thread, 0)
 
-<script language="javascript" type="text/javascript">
+<script type="text/javascript">
 
 function main() {
     $(".message-toggler").click(function () {
