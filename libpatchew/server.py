@@ -272,5 +272,5 @@ def start_server(db, host, port, debug):
         server = "wsgiref"
     else:
         server = "cherrypy"
-    bottle.BaseTemplate.defaults['stat_code'] = config.get('server', 'stat_code', "")
+    bottle.BaseTemplate.defaults['stat_code'] = config.getstr('server', 'stat_code', "")
     app.run(host=host, port=port, debug=debug, server=server)

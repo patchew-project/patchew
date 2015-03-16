@@ -45,6 +45,14 @@ def _value(r):
     except:
         return r
 
+def getstr(section, key, default=None):
+    """ Return string value """
+    try:
+        r = _config.get(section, key)
+    except:
+        r = default
+    return r
+
 def get(section, key, default=None):
     """ Return int if value in digits;
         bool if in "yes", "no", "true" or "false";
