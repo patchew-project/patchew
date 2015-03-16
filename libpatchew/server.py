@@ -26,7 +26,7 @@ import bottle
 import time
 import hmac
 import json
-from libpatchew import DB, Message, MessageDuplicated, search_doctext, hook
+from libpatchew import DB, Message, MessageDuplicated, search_doctext, hook, config
 
 SERVER_VERSION = 1
 
@@ -272,4 +272,5 @@ def start_server(db, host, port, debug):
         server = "wsgiref"
     else:
         server = "cherrypy"
+    bottle.BaseTemplate.defaults['stat_code'] = config.get('server', 'stat_code', "")
     app.run(host=host, port=port, debug=debug, server=server)
