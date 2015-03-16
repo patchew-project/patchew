@@ -171,6 +171,8 @@ def untest_cmd(db, args):
 
 def server_args(parser):
     parser.add_argument("-c", "--config", help="Config file")
+    parser.add_argument("-p", "--port", type=int, help="Override port number")
+    parser.add_argument("-d", "--debug", action="store_true", help="Override debug flag")
 
 def server_cmd(db, args):
     if not libpatchew.config.load_config(args.config,
@@ -180,6 +182,8 @@ def server_cmd(db, args):
     host = libpatchew.config.get("server", "host", "0.0.0.0")
     port = libpatchew.config.get("server", "port", 80)
     debug = libpatchew.config.get("server", "debug", False)
+    if args.port:
+        port = int(args.port)
     start_server(db, host=host, port=port, debug=debug)
     return 0
 
