@@ -33,6 +33,12 @@ In-Reply-To: $(cat message-id | tr -d '\n')
 
 EOF
 
+showlink()
+{
+    python -c 'import urllib, sys; print urllib.quote_plus(sys.argv[1])' \
+        "http://qemu.patchew.org/testing/log/$(cat message-id)"
+}
+
 if $warning; then
 
     cat <<EOF
@@ -41,7 +47,7 @@ This series passed Patchew automatic testing, but there are some warnings.
 
 Find the log fragments below, or open the following URL to see the full log:
 
-http://qemu.patchew.org/testing/log/$(cat message-id)
+$(showlink)
 
 ----------8<---------
 
@@ -58,7 +64,7 @@ This series failed Patchew automatic testing.
 Find the log fragments below (grepped lines around keywords "error" and
 "warning"), or open the following URL to see the full log:
 
-http://qemu.patchew.org/testing/log/$(cat message-id)
+$(showlink)
 
 ----------8<---------
 
