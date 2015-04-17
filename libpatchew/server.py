@@ -29,7 +29,7 @@ import json
 import urllib
 from libpatchew import DB, Message, MessageDuplicated, search_doctext, hook, config
 
-SERVER_VERSION = 1
+SERVER_VERSION = 2
 
 def render_patch(db, p):
     fr = p.get_from()
