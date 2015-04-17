@@ -77,6 +77,10 @@ def render_series(db, s, patches=False):
 
 app = bottle.Bottle()
 
+@app.route('/version')
+def view_version():
+    return {'version': SERVER_VERSION }
+
 def render_template(tmpl, **kwargs):
     return bottle.template(tmpl, **kwargs)
 
