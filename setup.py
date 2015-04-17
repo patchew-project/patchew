@@ -40,7 +40,7 @@ setup(name='patchew',
       author_email="fam@euphon.net",
       url="https://github.com/famz/patchew",
       packages=['libpatchew'],
-      scripts=['patchew'] + glob('hook-scripts/*'),
+      scripts=['patchew'] + glob('scripts/patchew-*'),
       data_files=[('/usr/lib/systemd/system/', ['patchew.service']),
                   ('/etc/patchew', ['server.conf']),
                   ('/usr/share/patchew/templates', glob('templates/*.tpl'))
