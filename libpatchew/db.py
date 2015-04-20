@@ -248,6 +248,8 @@ class DB(object):
         n = 0
         for i in self._messages.find(q, sort=sort):
             s = self._series_from_dict(i)
+            if s.get_status('deleted'):
+                continue
             if not series.is_series(s):
                 continue
             if not query or filter0.match(s):
@@ -267,7 +269,10 @@ class DB(object):
         """query all the series with tags and status with pagination, but skip
         and limit are applied before tags and status filtering"""
         for m in self._find_series_iter(query=query, skip=skip, limit=limit, sort_keys=sort_keys):
-                yield m
+            yield m
+
+    def delete_series(self, s):
+        self.set_status(s.get_message_id(), 'deleted', True)
 
     def find_messages(self):
         for i in self._messages.find():
