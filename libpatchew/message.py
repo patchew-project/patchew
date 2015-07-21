@@ -234,3 +234,6 @@ class Message(object):
 
     def get_status(self, st, default=None):
         return self._status.get(st, default)
+
+    def get_status_by_prefix(self, pref):
+        return dict([(k, v) for k, v in self._status.iteritems() if k.startswith(pref)])
