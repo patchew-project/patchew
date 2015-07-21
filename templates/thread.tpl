@@ -1,7 +1,7 @@
 % include('templates/header.tpl', title='Series', stylesheets=('thread.css',))
 <ul class="nav nav-tabs">
     <li role="presentation" class="active"><a href="#">Thread</a></li>
-    <li role="presentation"><a href="/testing/log/{{uri(thread['message-id'])}}">Testing</a></li>
+    <!-- <li role="presentation"><a href="/testing/log/{{uri(thread['message-id'])}}">Testing</a></li> -->
 </ul>
 <br>
 
