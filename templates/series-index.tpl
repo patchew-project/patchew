@@ -20,28 +20,22 @@
             <td class="series-status">
                 %if s.get('merged'):
                     <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="{{s['testing-end-time']}}" class="label label-primary timestamp">Merged</span>
+                        <span title="Series is merged" class="label label-primary">Merged</span>
                     </a>
                 %elif s.get('obsoleted-by'):
                     <a href="/series/{{uri(s['obsoleted-by'])}}">
                         <span title="There is a new version, click to see: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
                     </a>
-                %elif s.get('testing-started'):
-                    <span title="{{s['testing-start-time']}}" class="label label-default timestamp">Testing</span>
-                %elif s['testing-passed'] == True:
-                    %if s['testing-has-warning']:
+                %elif s['testings-failed']:
                     <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="{{s['testing-end-time']}}" class="label label-warning timestamp">Warning</span>
+                        <span title="Failed tests: {{ ", ".join([x for x, y in s.get('testings-failed')]) }}" class="label label-default">Fail</span>
                     </a>
-                    %else:
+                %elif s['testings-warning']:
                     <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="{{s['testing-end-time']}}" class="label label-success timestamp">Pass</span>
+                        <span title="There are warnings in tests: {{ ", ".join([x for x, y in s.get('testings-warning')]) }}" class="label label-warning">Warning</span>
                     </a>
-                    %end
-                %elif s['testing-passed'] == False:
-                    <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="{{s['testing-end-time']}}" class="label label-danger timestamp">Failed {{s['testing-failure-step']}}</span>
-                    </a>
+                %elif s['testings-running']:
+                    <span title="Running tests: {{ ", ".join([x for x, y in s.get('testings-running')]) }}" class="label label-default">Testing</span>
                 %end
             </td>
             <td>

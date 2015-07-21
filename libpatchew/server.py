@@ -45,7 +45,8 @@ def render_patch(db, p):
 def render_series(db, s, patches=False):
     fr = s.get_from()
     revby = s.get_status('reviewed-by')
-    testing = s.get_status('testing', {})
+    testings = s.get_status_by_prefix('testing-')
+    pl = lambda x: x[len("testing-"):]
     r = {
         'age'                  : "%d %s" % s.get_age(),
         'author'               : fr[0],
@@ -58,12 +59,12 @@ def render_series(db, s, patches=False):
         'repliers'             : s.get_status('repliers'),
         'reviewed'             : s.is_reviewed(),
         'reviewers'            : s.get_status('reviewers'),
-        'testing-passed'       : testing.get('passed'),
-        'testing-end-time'     : testing.get('end-time'),
-        'testing-start-time'   : testing.get('start-time'),
-        'testing-started'      : testing.get('started'),
-        'testing-failure-step' : testing.get('failure-step'),
-        'testing-has-warning'  : testing.get('has-warning'),
+        'testing-list'         : [x[len('testing-'):] for x in testings.keys()],
+        'testings'             : testings,
+        'testings-passed'      : [(pl(k), v) for k, v in testings.iteritems() if v.get("passed")],
+        'testings-failed'      : [(pl(k), v) for k, v in testings.iteritems() if v.get("end-time") and not v.get("passed")],
+        'testings-running'     : [(pl(k), v) for k, v in testings.iteritems() if not v.get("end-time")],
+        'testings-warning'     : [(pl(k), v) for k, v in testings.iteritems() if v.get("has-warning")],
         }
     if patches:
         r['patches'] = [render_patch(db, x) for x in db.get_patches(s)]
@@ -119,12 +120,14 @@ def view_testing_log(message_id):
                            series=render_series(db, s, True),
                            log=s.get_status("testing",{}).get("log"))
 
-@app.route('/testing/report', method="POST")
-def view_testing_report():
+@app.route('/testing/report/<t>', method="POST")
+def view_testing_report(t):
     db = app.db
     forms = bottle.request.forms
     if forms.get('version') != str(SERVER_VERSION):
         return {'ok': False, 'error': 'Unknown version %s' % forms.get('version')}
+    if not is_valid_test_type_name(t):
+        return {'ok': False, 'error': 'Invalid test type name: ' + t}
     data = forms['data']
     identity = forms['identity']
     signature = forms['signature']
@@ -152,21 +155,22 @@ def view_testing_report():
         'failure-step': failure_step,
         }
 
-    db.set_status(s.get_message_id(), 'testing', data)
+    db.set_status(s.get_message_id(), 'testing-' + t, data)
     data['message-id'] = message_id
     message = db.get_message(message_id)
     data['subject'] = ''
     data['subject'] = message.get_subject() if message else ''
+    data['type'] = t
     hook.invoke("post-testing", **data)
     return {'ok': True}
 
-def next_series_to_test(db):
+def next_series_to_test(db, t):
     """Find the next series for testing"""
     testing_series = None
     candidate = None, None
     candidate_start_time = None
     for s in db.find_series():
-        testing = s.get_status('testing', {})
+        testing = s.get_status('testing-' + t, {})
         if testing.get("ended"):
             continue
         patches = db.get_patches(s)
@@ -182,12 +186,23 @@ def next_series_to_test(db):
             candidate_start_time = testing.get("start-time")
     return candidate
 
-@app.route('/testing/next')
-def view_testing_next():
+def is_valid_test_type_name(t):
+    for c in t:
+        if c.isalnum() or c in "-_[]":
+            continue
+        return False
+    return True
+
+@app.route('/testing/next/<t>')
+def view_testing_next(t):
     db = app.db
-    s, patches = next_series_to_test(db)
     r = {}
+    s = None
     r['version'] = SERVER_VERSION
+    if not is_valid_test_type_name(t):
+        r['error'] = "Invalid test type: " + t
+    else:
+        s, patches = next_series_to_test(db, t)
     if s:
         r['has-data']                = True
         r['message-id']              = s.get_message_id()
@@ -195,7 +210,7 @@ def view_testing_next():
         r['patches-message-id-list'] = [x.get_message_id(strip_angle_brackets = True) for x in patches]
         r['patches-mbox-list']       = [x.mbox() for x in patches]
         r['codebase'], r['branch']   = s.get_codebase()
-        db.set_status(s.get_message_id(), "testing", {
+        db.set_status(s.get_message_id(), "testing-" + t, {
             'started': True,
             'start-time': time.time(),
             })

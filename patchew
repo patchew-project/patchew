@@ -247,8 +247,8 @@ def tester_cmd(args):
     base_url = args.server
     if not base_url.endswith("/"):
         base_url += "/"
-    next_url = base_url + "testing/next"
-    report_url = base_url + "testing/report"
+    next_url = base_url + "testing/next/%s" % args.identity
+    report_url = base_url + "testing/report/%s" % args.identity
     tmpdir = "/var/tmp/patchew-tester"
     shutil.rmtree(tmpdir, True)
     os.mkdir(tmpdir)
