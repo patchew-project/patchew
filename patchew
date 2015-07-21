@@ -372,7 +372,7 @@ def create_db(url):
         raise Exception("Missing database name")
     server, dbname = rest.split("/")
     if ":" in server:
-        server, port = server_port.split(":", 2)
+        server, port = server.split(":", 2)
         try:
             port = int(port)
         except Exception, e:
