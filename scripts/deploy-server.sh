@@ -1,19 +1,20 @@
 #!/bin/bash
 set -e
 ip=${1?"usage: $0 <remote address> [<username>]"}
-remote=root@$ip
+user=${2:-root}
+remote=$user@$ip
+DOCKER=docker
 
-echo
-echo "Run from the project root, press enter to continue..."
-read
+if [ "$user" != "root" ]; then
+    DOCKER="sudo docker"
+fi
 
-echo "Copying to remote..."
-rsync -azr . $remote:/tmp/patchew-deploy/
-echo "Installing..."
-ssh $remote "cd /tmp/patchew-deploy; rm -rf build; python setup.py install"
-echo "Starting service..."
-ssh $remote "systemctl restart patchew"
+if ! test -f README.md; then
+    echo "Must run from project root (where README.md is)"
+    exit 1
+fi
 
-echo -n "Testing if service has started..."
-sleep 1
-curl -s $ip >/dev/null && echo " yes"
+scp -r . $remote:/tmp/patchew-deploy.$$
+ssh $remote "$DOCKER stop patchew-server; $DOCKER rm -f patchew-server; cd /tmp/patchew-deploy.$$ && $DOCKER build -t patchew-server ."
+ssh $remote $DOCKER run --name patchew-mongo -d mongo || true
+ssh $remote $DOCKER run --name patchew-server --link patchew-mongo:mongo -p 8383:8383 -d patchew-server
