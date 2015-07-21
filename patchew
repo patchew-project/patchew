@@ -267,7 +267,7 @@ def tester_cmd(args):
             except Exception, e:
                 logger("\nInvalid response from server:\n", resp)
                 raise e
-            if spec['version'] != 1:
+            if spec['version'] != Tester.VERSION:
                 logger("\nUnknown server version: ", spec['version'], "\n")
                 return False
 

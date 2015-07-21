@@ -61,7 +61,7 @@ class TestLogger(file):
         self.write(*w)
 
 class Tester(object):
-    VERSION = 1
+    VERSION = 2
     def __init__(self, logger, testdir, test_spec, test_script=None, docker_image=None, cache_repo=None):
         self._spec = test_spec
         self._testdir = testdir
