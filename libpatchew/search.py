@@ -52,7 +52,7 @@ class KeywordChecker(BaseChecker):
 
 class MessageIDChecker(BaseChecker):
     """Exact match of message-id. Example:
-       message-id:<1416902879-17422-1-git-send-email-user@domain.com>"""
+       id:<1416902879-17422-1-git-send-email-user@domain.com>"""
 
     placeholder = "MESSAGE-ID"
     op = "id:"
