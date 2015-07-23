@@ -116,7 +116,13 @@ class DB(object):
         self.set_status(msg_id, field, l)
 
     def _add_patch(self, msg_id, patch_msg_id):
-        return self._status_list_add(msg_id, "patches", patch_msg_id)
+        self._status_list_add(msg_id, "patches", patch_msg_id)
+        s = self.get_series(msg_id);
+        if s:
+            patches = self.get_patches(s)
+            if len(patches) >= s.get_patch_num():
+                print "Series complete:", msg_id
+                self.set_status(msg_id, "complete", True)
 
     def _add_reply(self, msg_id, reply_msg_id):
         return self._status_list_add(msg_id, "replies", reply_msg_id)

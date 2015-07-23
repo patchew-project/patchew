@@ -169,13 +169,11 @@ def next_series_to_test(db, t):
     testing_series = None
     candidate = None, None
     candidate_start_time = None
-    for s in db.find_series():
+    for s in db.find_series("is:complete"):
         testing = s.get_status('testing-' + t, {})
         if testing.get("ended"):
             continue
         patches = db.get_patches(s)
-        if len(patches) < s.get_patch_num():
-            continue
         if not testing.get("started"):
             # This one is not started yet, start it
             return s, patches
