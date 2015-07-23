@@ -208,6 +208,21 @@ def delete_cmd(db, args):
         print "Delete:", s.get_subject()
         db.delete_series(s)
 
+def set_status_args(parser):
+    parser.add_argument("-i", "--id", required=True,
+                        help="Message id of the series")
+    parser.add_argument("name", type=str,
+                        help="Status name")
+    parser.add_argument("value", type=str, default="",
+                        help="Status value, default is empty")
+
+def set_status_cmd(db, args):
+    s = db.get_series(args.id)
+    if not s:
+        print "Cannot find message with id:", args.id
+        return 1
+    db.set_status(args.id, args.name, args.value)
+
 def server_args(parser):
     parser.add_argument("-c", "--config", help="Config file")
     parser.add_argument("-p", "--port", type=int, help="Override port number")
@@ -379,6 +394,11 @@ commands = {
         'args': delete_args,
         'cmd': delete_cmd,
         'help': 'delete series by query',
+    },
+    'set-status':  {
+        'args': set_status_args,
+        'cmd': set_status_cmd,
+        'help': 'set status of series',
     },
     'server':  {
         'cmd': server_cmd,
