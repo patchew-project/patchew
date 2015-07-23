@@ -140,23 +140,54 @@ def query_args(parser):
                         help="Sort reversely")
     parser.add_argument("-p", "--patches", action="store_true",
                         help="Show patches in the series")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Show more information about series")
+    parser.add_argument("-n", "--limit", type=int, default=0,
+                        help="Limit the number of output")
+    parser.add_argument("-f", "--format", type=str, default="oneline",
+                        help="""Format of the patch.
+    oneline - one line for each series
+    short - one line for each message
+    medium - one line for each message, plus some meta info
+    mbox - mbox format of the whole series
+    id - the message id""")
     add_query_args(parser)
 
 def query_cmd(db, args):
+    c = 0
+    fmt = args.format
     for s in db.find_series(" ".join(args.query), args.reverse):
-        print s.get_date(), "", s
-        if args.verbose:
+        if fmt == "oneline":
+            print s.get_date(), "", s
+        elif fmt == "verbose":
             dump_headers(s)
             dump_status(db, s.get_message_id())
             print
-
-        if args.patches:
+        elif fmt == "short":
+            print s.get_date(), "", s
             for p in db.get_patches(s):
                 if p.get_message_id() != s.get_message_id():
                     print "                    ", p
             print
+        elif fmt == "medium":
+            print s.get_date(), "", s
+            for p in db.get_patches(s):
+                if p.get_message_id() != s.get_message_id():
+                    print "                    ", p
+            for k, v in db.get_statuses(s.get_message_id()).iteritems():
+                print "%16s: %s" % (k, v)
+            print
+        elif fmt in ["patches", "mbox"]:
+            if fmt == "mbox":
+                print s.mbox()
+            for p in db.get_patches(s):
+                print p.mbox()
+            print
+        elif fmt == "id":
+            print s.get_message_id()
+        else:
+            print "Unrecognized format:", fmt
+        c += 1
+        if args.limit and c == args.limit:
+            break
     return 0
 
 def untest_args(parser):
