@@ -102,7 +102,10 @@ class DB(object):
 
     def get_series(self, msg_id):
         r = self._messages.find_one({"message-id": msg_id})
-        if r and series.is_series(self._message_from_dict(r)):
+        m = None
+        if r:
+            m = self._message_from_dict(r)
+        if m and series.is_series(m):
             return self._series_from_dict(r)
 
     def _status_list_add(self, msg_id, field, new):
