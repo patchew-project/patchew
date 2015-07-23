@@ -70,6 +70,7 @@ class StateChecker(BaseChecker):
            untested - the series is not tested yet
            testing - the series is under testing
            obsolete or old - the series has newer version
+           complete - the series has all the patches it contains
 
        Examples:
             is:reviewed
@@ -101,6 +102,8 @@ class StateChecker(BaseChecker):
             return lambda s: s.get_status("testing", {}).get("started") == True
         elif p == "obsolete" or p == "old":
             return lambda s: s.get_status("obsoleted-by", None) != None
+        elif p == "complete":
+            return lambda s: s.get_status("complete", False)
 
     def __call__(self, m):
         return True in [sc(m) for sc in self._subcheckers]
