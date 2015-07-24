@@ -79,15 +79,21 @@ class StateChecker(BaseChecker):
     """
 
     placeholder = "STATE"
-    op = ["is:", ":"]
+    op = ["is:", ":", "has:"]
     summary = "Search by series state"
     def __init__(self, prefix, expr):
         self._subcheckers = []
-        for c in [self._build_subchecker(e) for e in expr.split(",")]:
+        for c in [self._build_subchecker(prefix, e) for e in expr.split(",")]:
             if c:
                 self._subcheckers.append(c)
 
-    def _build_subchecker(self, p):
+    def _build_subchecker(self, prefix, p):
+        if prefix in ["is:", ":"]:
+            return self._build_subchecker_is(p)
+        else:
+            return self._build_subchecker_has(p)
+
+    def _build_subchecker_is(self, p):
         if p == "replied":
             return lambda s: s.is_replied()
         elif p == "reviewed":
@@ -105,8 +111,14 @@ class StateChecker(BaseChecker):
         elif p == "complete":
             return lambda s: s.get_status("complete", False)
 
+    def _build_subchecker_has(self, p):
+        return lambda s: s.get_status(p)
+
     def __call__(self, m):
-        return True in [sc(m) for sc in self._subcheckers]
+        for  sc in self._subcheckers:
+            if sc(m):
+                return True
+        return False
 
 class ReverseChecker(BaseChecker):
     """Negative of an expression. Example:
