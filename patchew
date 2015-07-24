@@ -223,6 +223,21 @@ def set_status_cmd(db, args):
         return 1
     db.set_status(args.id, args.name, args.value)
 
+def get_status_args(parser):
+    parser.add_argument("-i", "--id", required=True,
+                        help="Message id of the series")
+    parser.add_argument("name", type=str,
+                        help="Status name")
+
+def get_status_cmd(db, args):
+    s = db.get_series(args.id)
+    if not s:
+        print "Cannot find message with id:", args.id
+        return 1
+    r = db.get_status(args.id, args.name)
+    if r:
+        print r
+
 def server_args(parser):
     parser.add_argument("-c", "--config", help="Config file")
     parser.add_argument("-p", "--port", type=int, help="Override port number")
@@ -399,6 +414,11 @@ commands = {
         'args': set_status_args,
         'cmd': set_status_cmd,
         'help': 'set status of series',
+    },
+    'get-status':  {
+        'args': get_status_args,
+        'cmd': get_status_cmd,
+        'help': 'get status of series',
     },
     'server':  {
         'cmd': server_cmd,
