@@ -149,6 +149,8 @@ def query_args(parser):
     short - one line for each message
     medium - one line for each message, plus some meta info
     mbox - mbox format of the whole series
+    patches - mbox format of the patches in this series (not including cover
+              letter)
     id - the message id""")
     add_query_args(parser)
 
