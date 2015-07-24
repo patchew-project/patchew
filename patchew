@@ -59,7 +59,8 @@ def import_message(db, m, verbose):
         if verbose:
             print "Message:", msg.get_subject()
     except MessageDuplicated:
-        print "Message duplicated:", msg.get_message_id(), msg.get_subject()
+        if verbose:
+            print "Message duplicated:", msg.get_message_id(), msg.get_subject()
     except Exception, e:
         print "Error while saving message:"
         print m.as_string()
