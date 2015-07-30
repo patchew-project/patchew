@@ -6,6 +6,7 @@ set -e
 PATCHEW=${PATCHEW:-./patchew}
 QEMU="$HOME/qemu"
 tag_remote=git@github.com:famz/qemu-patchew
+tag_remote_pub=https://github.com/famz/qemu-patchew
 tmp_repo=/var/tmp/qemu-tmp
 GIT="git -C $tmp_repo"
 test -d $tmp_repo && rm -rf $tmp_repo
@@ -27,10 +28,10 @@ gen-git-tags()
     echo "Trying to apply $s"
     $PATCHEW query -f short id:"$s"
     $PATCHEW query "id:$s" -f patches > /tmp/$$.patch
-    if $GIT tag | grep -q "$s" || $GIT am /tmp/$$.patch; then
+    if $GIT tag | grep -q "$s" || $GIT am -m /tmp/$$.patch; then
         $GIT tag "$s"
         $PATCHEW set-status -i "$s" can-apply yes
-        $PATCHEW set-status -i "$s" git-repo $tag_remote
+        $PATCHEW set-status -i "$s" git-repo $tag_remote_pub
         $PATCHEW set-status -i "$s" git-tag "$s"
         $PATCHEW set-status -i "$s" git-url "https://github.com/famz/qemu-patchew/tree/$s"
     else
