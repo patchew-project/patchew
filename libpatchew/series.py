@@ -24,10 +24,6 @@
 from message import Message
 
 class Series(Message):
-    def get_codebase(self):
-        if self.find_tags("qemu-devel"):
-            return "git://git.qemu-project.org/qemu.git", "master"
-        return "", ""
 
     def get_patch_num(self):
         for t in self.get_tags():

@@ -213,9 +213,8 @@ def view_testing_next(t):
         r['has-data']                = True
         r['message-id']              = s.get_message_id()
         r['series-subject']          = s.get_subject(strip_tags=True)
-        r['patches-message-id-list'] = [x.get_message_id(strip_angle_brackets = True) for x in patches]
-        r['patches-mbox-list']       = [x.mbox() for x in patches]
-        r['codebase'], r['branch']   = s.get_codebase()
+        r['git-repo']                = s.get_status('git-repo')
+        r['git-tag']                 = s.get_status('git-tag')
         db.set_status(s.get_message_id(), "testing-" + t, {
             'started': True,
             'start-time': time.time(),
