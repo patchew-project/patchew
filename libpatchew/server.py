@@ -65,7 +65,15 @@ def render_series(db, s, patches=False):
         'testings-failed'      : [(pl(k), v) for k, v in testings.iteritems() if v.get("end-time") and not v.get("passed")],
         'testings-running'     : [(pl(k), v) for k, v in testings.iteritems() if not v.get("end-time")],
         'testings-warning'     : [(pl(k), v) for k, v in testings.iteritems() if v.get("has-warning")],
+        'git-url'              : s.get_status('git-url', ""),
         }
+
+    can_apply = s.get_status('can-apply', None)
+    if can_apply is None:
+        r['can-apply'] = None
+    else:
+        r['can-apply'] = can_apply == "yes"
+
     if patches:
         r['patches'] = [render_patch(db, x) for x in db.get_patches(s)]
     ob = s.get_status('obsoleted-by')

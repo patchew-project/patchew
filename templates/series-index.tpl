@@ -16,6 +16,11 @@
                 %elif s.get('repliers'):
                     <span title="Have replies from: {{", ".join([x for x, y in s['repliers']])}}" class="label label-info">Replied</span>
                 %end
+                %if s.get('can-apply') == True:
+                    <span class="label label-info"><a href="{{s.get('git-url')}}" target="blank">Git</a></span>
+                %elif s.get('can-apply') == False:
+                    <span title="Series doesn't apply to current master" class="label label-info">NA</span>
+                %end
             </td>
             <td class="series-status">
                 %if s.get('merged'):
