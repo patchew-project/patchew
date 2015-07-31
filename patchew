@@ -259,127 +259,6 @@ def server_cmd(db, args):
     start_server(db, host=host, port=port, debug=debug)
     return 0
 
-def tester_args(parser):
-    parser.add_argument("-s", "--server", required=True,
-                        help="Pathew server's base URL")
-    parser.add_argument("-i", "--identity", required=True,
-                        help="Verification identity to use")
-    parser.add_argument("-p", "--signature-key", required=True,
-                        help="Verification key to use")
-    parser.add_argument("-t", "--test-script",
-                        help="Test script to run inside the container")
-    parser.add_argument("-d", "--docker-image",
-                        help="Docker image to use.")
-    parser.add_argument("-L", "--loop", action="store_true",
-                        help="Loop and repeat.")
-    parser.add_argument("-C", "--quick-repo", default=None,
-                        help="""Clone from a (faster) git repo before pulling
-                        from the server returned codebase, in order to speed up
-                        the test.""")
-    parser.add_argument("-k", "--keep-temp", default=False, action="store_true",
-                        help="Don't remove temporary directory before exit")
-
-def check_docker(args):
-    if args.test_script or args.docker_image:
-        if not args.test_script:
-            print "You need to specify --test-script to run docker test"
-            return False
-        if not args.docker_image:
-            print "You need to specify --docker-image to run docker test"
-            return False
-        try:
-            subprocess.check_output(["docker", "version"])
-        except Exception, e:
-            print "Failed to run docker version:", e
-            return False
-    return True
-
-def dump_test_spec(logger, spec):
-    for k_, v in spec.iteritems():
-        k = "%-30s :" % k_
-        if isinstance(v, list):
-            logger(k, "[...]\n")
-        elif "\n" in str(v):
-            logger(k)
-            logger(v, "\n")
-        else:
-            logger(k, v, "\n")
-
-def tester_cmd(args):
-    if not check_docker(args):
-        return False
-    base_url = args.server
-    if not base_url.endswith("/"):
-        base_url += "/"
-    next_url = base_url + "testing/next/%s" % args.identity
-    report_url = base_url + "testing/report/%s" % args.identity
-    tmpdir = "/var/tmp/patchew-tester"
-    shutil.rmtree(tmpdir, True)
-    os.mkdir(tmpdir)
-    while True:
-        try:
-            testdir = tempfile.mkdtemp(dir=tmpdir)
-            logfile = os.path.join(testdir, "log")
-            logger = TestLogger(logfile, "w+")
-            logger("Server: %s\n" % base_url)
-            logger("Fetching new test...")
-            r = urllib.urlopen(next_url)
-            resp = r.read()
-            r.close()
-            try:
-                spec = json.loads(resp)
-            except Exception, e:
-                logger("\nInvalid response from server:\n", resp)
-                raise e
-            if spec['version'] != Tester.VERSION:
-                logger("\nUnknown server version: ", spec['version'], "\n")
-                return False
-
-            logger("OK\n")
-            if spec['has-data']:
-                dump_test_spec(logger, spec)
-                tester = Tester(logger, testdir, spec, args.test_script, args.docker_image, args.quick_repo)
-                result, reason = tester.do_test()
-                logger.seek(0)
-                data = json.dumps({
-                    'message-id': spec['message-id'],
-                    'passed': result,
-                    'failure-step': reason,
-                    'merged': result and reason == "merged",
-                    'log': logger.read(),
-                    })
-                hasher = hmac.new(args.signature_key, data)
-                signature = hasher.hexdigest()
-                postdata = urllib.urlencode({
-                    'version': tester.VERSION,
-                    'data': data,
-                    'signature': signature,
-                    'identity': args.identity,
-                    })
-                try:
-                    print "Submitting result to server..."
-                    r = urllib.urlopen(report_url, postdata)
-                    resp = r.read()
-                    r.close()
-                    resp = json.loads(resp)
-                    if not resp['ok']:
-                        print "Could not submit test result:", resp.get('error')
-                        print resp
-                    else:
-                        print "OK"
-                except Exception, e:
-                    print "Error while parsing server response", e
-                    print resp
-                if not args.keep_temp:
-                    shutil.rmtree(testdir, True)
-            else:
-                print "Nothing to test, let's have a rest..."
-                time.sleep(60)
-        except Exception, e:
-            raise
-        if not args.loop:
-            break
-
 def newid_args(parser):
     parser.add_argument("identity")
 
@@ -430,11 +309,6 @@ commands = {
     'newid': {
         'cmd': newid_cmd,
         'args': newid_args,
-    },
-    'tester': {
-        'cmd': tester_cmd,
-        'require-db': False,
-        'args': tester_args
     },
 }
 
