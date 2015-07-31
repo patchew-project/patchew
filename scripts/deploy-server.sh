@@ -11,12 +11,13 @@ fi
 rsync -azrC . $remote:/tmp/patchew-deploy
 ssh -t $remote "\
     mkdir -p /data/db/patchew; \
-    $DOCKER stop patchew-server; \
-    $DOCKER rm -f patchew-server; \
-    $DOCKER rm -f patchew-mongo; \
+    $DOCKER stop patchew-server patchew-mongo; \
+    $DOCKER rm -f patchew-server patchew-mongo; \
     cd /tmp/patchew-deploy; \
+    $DOCKER rmi patchew-server; \
     $DOCKER build -t patchew-server .; \
     $DOCKER run --name patchew-mongo -v /data/db/patchew:/data/db -d mongo; \
     sleep 3; \
     $DOCKER run --name patchew-server --link patchew-mongo:mongo \
+    -v \$HOME/.ssh:/root/host-ssh \
     -p 8383:8383 -d patchew-server"

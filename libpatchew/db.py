@@ -118,11 +118,6 @@ class DB(object):
     def _add_patch(self, msg_id, patch_msg_id):
         self._status_list_add(msg_id, "patches", patch_msg_id)
         s = self.get_series(msg_id);
-        if s:
-            patches = self.get_patches(s)
-            if len(patches) >= s.get_patch_num():
-                print "Series complete:", msg_id
-                self.set_status(msg_id, "complete", True)
 
     def _add_reply(self, msg_id, reply_msg_id):
         return self._status_list_add(msg_id, "replies", reply_msg_id)
@@ -135,7 +130,7 @@ class DB(object):
             pm = self._message_from_dict(p)
             if version <= max(pm.get_status("obsoleted-by-version", 0), pm.get_version()):
                 continue
-            print "obsolete '%s' %d => %d" % (name, pm.get_version(), version)
+            print "Obsolete: '%s' %d => %d" % (name, pm.get_version(), version)
             self.set_statuses(p['message-id'], {'obsoleted-by': m.get_message_id(),
                                                 'obsoleted-by-version': m.get_version()})
 
@@ -166,6 +161,8 @@ class DB(object):
         revby = m.get_reviewed_by()
         p = self._get_top_series_or_patch(msg_id)
         s = self._get_top_series(msg_id)
+        if s:
+            s = self.get_series(s.get_message_id())
         if irt:
             # A reply to some other message
             self._add_reply(irt, msg_id)
@@ -174,6 +171,11 @@ class DB(object):
             elif m.is_reply():
                 if s:
                     self._status_list_add(s.get_message_id(), "repliers", m.get_from())
+        if s:
+            patches = self.get_patches(s)
+            if len(patches) >= s.get_patch_num():
+                print "Series complete:", s.get_subject()
+                self.set_status(s.get_message_id(), "complete", True)
         if revby:
             if p:
                 # Mark the target of review, either a patch or a series, reviewed

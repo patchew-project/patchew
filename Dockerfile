@@ -5,6 +5,4 @@ RUN git clone https://github.com/qemu/qemu $HOME/qemu
 RUN git config --global user.email no-reply@patchew.org
 RUN git config --global user.name 'Patchew Server'
 ADD . /opt/patchew
-ADD $HOME/.ssh /root/.ssh
-RUN echo StrictHostKeyChecking no >> $HOME/.ssh/config
 CMD /opt/patchew/scripts/patchew-server.sh

@@ -5,8 +5,8 @@ cd $(dirname $0)/..
 set -e
 PATCHEW=${PATCHEW:-./patchew}
 QEMU="$HOME/qemu"
-tag_remote=git@github.com:famz/qemu-patchew
-tag_remote_pub=https://github.com/famz/qemu-patchew
+remote=git@github.com:famz/qemu-patchew
+remote_pub=https://github.com/famz/qemu-patchew
 tmp_repo=/var/tmp/qemu-tmp
 GIT="git -C $tmp_repo"
 test -d $tmp_repo && rm -rf $tmp_repo
@@ -19,7 +19,7 @@ import()
     rm -rf $OUT
 }
 
-gen-git-tags()
+gen-git-branches()
 {
     local s=$($PATCHEW query -n 1 is:complete \!has:can-apply --format=id)
     if test -z "$s"; then
@@ -28,28 +28,28 @@ gen-git-tags()
     echo "Trying to apply $s"
     $PATCHEW query -f short id:"$s"
     $PATCHEW query "id:$s" -f patches > /tmp/$$.patch
-    if $GIT tag | grep -q "$s" || $GIT am -m /tmp/$$.patch; then
-        $GIT tag "$s"
+    $GIT branch | grep -q "$s" && $GIT branch -D "$s" &>/dev/null
+    $GIT checkout master -b "$s"
+    if $GIT am -m /tmp/$$.patch; then
+        echo "Pushing branch $s"
+        $GIT push -f patchew-remote "$s"
         $PATCHEW set-status -i "$s" can-apply yes
-        $PATCHEW set-status -i "$s" git-repo $tag_remote_pub
-        $PATCHEW set-status -i "$s" git-tag "$s"
-        $PATCHEW set-status -i "$s" git-url "https://github.com/famz/qemu-patchew/tree/$s"
+        $PATCHEW set-status -i "$s" git-repo $remote_pub
+        $PATCHEW set-status -i "$s" git-branch "$s"
+        $PATCHEW set-status -i "$s" git-url "https://github.com/famz/qemu-patchew/commits/$s"
     else
         $PATCHEW set-status -i "$s" can-apply no
     fi
     rm /tmp/$$.patch
 }
 
+git -C $QEMU checkout -f master
 git -C $QEMU pull
 cp -Hr $QEMU $tmp_repo
-$GIT checkout master
-$GIT tag -d base.$$ &>/dev/null || true
-$GIT tag base.$$
-while gen-git-tags; do
+$GIT remote remove patchew-remote &>/dev/null || true
+$GIT remote add patchew-remote $remote
+$GIT push patchew-remote master
+while gen-git-branches; do
     $GIT am --abort &>/dev/null || true
-    $GIT reset --hard base.$$
+    $GIT reset --hard master
 done
-$GIT tag -d base.$$
-$GIT remote remove tag-remote 2>&1 || true
-$GIT remote add tag-remote $tag_remote
-$GIT push -f tag-remote --tags

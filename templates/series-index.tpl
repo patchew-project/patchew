@@ -3,7 +3,7 @@
 % if len(series) > 0:
 <table class="table table-condensed table-striped">
     <tr>
-        <th colspan="2">Status</th>
+        <th>Status</th>
         <th>Subject</th>
         <th>Author</th>
         <th>Age</th>
@@ -12,35 +12,25 @@
         <tr>
             <td>
                 %if s.get('reviewed'):
-                    <span title="Reviewers: {{", ".join([x for x, y in s['reviewers']])}}" class="label label-success">Reviewed</span>
-                %elif s.get('repliers'):
-                    <span title="Have replies from: {{", ".join([x for x, y in s['repliers']])}}" class="label label-info">Replied</span>
+                    <span title="Reviewed by {{", ".join([x for x, y in s['reviewers']])}}" class="label label-success">R</span>
                 %end
                 %if s.get('can-apply') == True:
-                    <span class="label label-info"><a href="{{s.get('git-url')}}" target="blank">Git</a></span>
+                    <a href="{{s.get('git-url')}}" target="blank"><span class="label label-info">G</span></a>
                 %elif s.get('can-apply') == False:
-                    <span title="Series doesn't apply to current master" class="label label-info">NA</span>
+                    <span title="Series doesn't apply to current master" class="label label-default">N</span>
                 %end
-            </td>
-            <td class="series-status">
-                %if s.get('merged'):
-                    <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="Series is merged" class="label label-primary">Merged</span>
-                    </a>
-                %elif s.get('obsoleted-by'):
+                %if s.get('obsoleted-by'):
                     <a href="/series/{{uri(s['obsoleted-by'])}}">
-                        <span title="There is a new version, click to see: {{s['obsoleted-by-subject']}}" class="label label-default">Old version</span>
+                        <span title="Old version, obsoleted by: {{s['obsoleted-by-subject']}}" class="label label-default">O</span>
                     </a>
                 %elif s['testings-failed']:
                     <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="Failed tests: {{ ", ".join([x for x, y in s.get('testings-failed')]) }}" class="label label-default">Fail</span>
+                        <span title="Failed tests: {{ ", ".join([x for x, y in s.get('testings-failed')]) }}" class="label label-danger">E</span>
                     </a>
                 %elif s['testings-warning']:
                     <a href="/testing/log/{{uri(s['message-id'])}}">
-                        <span title="There are warnings in tests: {{ ", ".join([x for x, y in s.get('testings-warning')]) }}" class="label label-warning">Warning</span>
+                        <span title="There are warnings in tests: {{ ", ".join([x for x, y in s.get('testings-warning')]) }}" class="label label-warning">W</span>
                     </a>
-                %elif s['testings-running']:
-                    <span title="Running tests: {{ ", ".join([x for x, y in s.get('testings-running')]) }}" class="label label-default">Testing</span>
                 %end
             </td>
             <td>
