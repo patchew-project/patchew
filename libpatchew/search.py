@@ -52,12 +52,19 @@ class KeywordChecker(BaseChecker):
 
 class MessageIDChecker(BaseChecker):
     """Exact match of message-id. Example:
-       id:<1416902879-17422-1-git-send-email-user@domain.com>"""
+       id:<1416902879-17422-1-git-send-email-user@domain.com>
+       or
+       id:1416902879-17422-1-git-send-email-user@domain.com"""
 
     placeholder = "MESSAGE-ID"
     op = "id:"
     def __call__(self, m):
-        return m.get_message_id() == self.expr
+        return self._trim(m.get_message_id()) == self._trim(self.expr)
+
+    def _trim(self, m):
+        if m.startswith('<') and m.endswith('>'):
+            return m[1:-1]
+        return m
 
 class StateChecker(BaseChecker):
     """Check message state. Multiple states can be separated with comma, with
