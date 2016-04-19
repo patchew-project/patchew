@@ -64,15 +64,16 @@ class DB(object):
         self._db_name = dbname + "-default"
         self._client = pymongo.MongoClient(server, port)
         self._db = self._client[self._db_name]
-        self._messages = self._db.messages
         self._identities = self._db.identities
+
+        self._messages = self._db.messages
+        self._messages.ensure_index([('message-id', pymongo.DESCENDING)])
+        self._messages.ensure_index([('in-reply-to', pymongo.DESCENDING)])
+        self._messages.ensure_index([('date', pymongo.DESCENDING)])
+        self._messages.ensure_index([('untagged-subject', pymongo.DESCENDING)])
 
     def reset(self):
         self._messages.remove()
-        self._messages.create_index([('message-id', pymongo.DESCENDING)])
-        self._messages.create_index([('in-reply-to', pymongo.DESCENDING)])
-        self._messages.create_index([('date', pymongo.DESCENDING)])
-        self._messages.create_index([('untagged-subject', pymongo.DESCENDING)])
 
     def _init_status(self, m, d):
         status = {}
