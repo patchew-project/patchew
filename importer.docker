@@ -1,0 +1,7 @@
+FROM fedora:23
+RUN dnf install -y python offlineimap findutils
+ADD . /opt/patchew
+CMD cd /opt/patchew && \
+    while :; do\
+        ./scripts/patchew-importer -c patchew-importer.config; \
+    done

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/series-list.css">
+{% endblock %}
+
+{% block content %}
+
+{% if series %}
+<table class="table table-condensed table-striped">
+    <tr>
+        {% if project_column %}
+        <th>Project</th>
+        {% endif %}
+        <th>Status</th>
+        <th>Subject</th>
+        <th>Author</th>
+        <th>Age</th>
+    </tr>
+    {% for s in series %}
+        <tr>
+            {% if project_column %}
+            <td>{{ s.project.name }}</td>
+            {% endif %}
+            <td class="series-status">
+                {% for st in s.status_tags %}
+                    {% if st.url %}<a href="{{ st.url }}">{% endif %}<span title="{{ st.title }}" class="label label-{{ st.type }}">{{ st.char }}</span>{% if st.url %}</a>{% endif %}
+                {% endfor %}
+            </td>
+            <td>
+                <a id="{{ s.message_id }}" href="{{ s.url }}" class="series-subject">{{ s.subject }}</a>
+            </td>
+            <td>
+                <span title="{{ s.sender_full_name }}">
+                    {{ s.sender_display_name }}
+                </span>
+            </td>
+            <td><span class="timestamp" title="{{ s.date }}">{{ s.get_age }}</span></td>
+        </tr>
+    {% endfor %}
+</table>
+
+{% else %}
+    <div id="message">
+      <p>No patches found.</p>
+      <div class="frownie">:(</div>
+    </div>
+{% endif %}
+
+<nav>
+    <ul class="pagination pagination-sm">
+        {% for i in page_links %}
+            <li class="{{ i.class }}">
+                <a href="{{ i.url }}">{{ i.title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>
+
+<script type="text/javascript">
+
+function main() {
+    $(".series-subject").each(function () {
+        {% for kw in keywords %}
+        $(this).html($(this).html().replace(/{{ kw | safe }}/g,
+            "<span class=\"keyword-highlight\">$&</span>"));
+        {% endfor %}
+    })
+}
+
+$(main);
+
+</script>
+
+{% endblock %}

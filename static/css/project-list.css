@@ -1,0 +1,13 @@
+.project h3 a {
+    text-decoration: none;
+    color: #555;
+    font-weight: bold;
+}
+
+.project .description {
+    color: #777;
+}
+
+.project-logo {
+    padding-top: 10px;
+}

@@ -1,0 +1,14 @@
+FROM fedora:23
+EXPOSE 80
+RUN dnf install -y python-pip httpd mod_wsgi
+RUN pip install Django==1.9.7
+ADD . /opt/patchew
+RUN ln -s /opt/patchew/apache.conf /etc/httpd/conf.d/patchew.conf
+CMD cd /opt/patchew && \
+    python manage.py migrate --noinput && \
+    echo "from django.contrib.auth.models import User; \
+          User.objects.create_superuser('admin', \
+                                        'admin@patchew.org', 'adminpass')" \
+        | python manage.py shell && \
+    chown -R apache:apache /data/patchew /opt/patchew/data && \
+    apachectl -D FOREGROUND

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/thread.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="top"></div>
+
+<div class="col-lg-2">
+    <div class="list-group">
+        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+        {% for op in series_operations %}
+            <a href="{{ op.url }}" class="list-group-item list-group-item-info">{{ op.title }}</a>
+        {% endfor %}
+        <a href="/{{ project }}/{{ series.message_id }}/mbox" class="list-group-item list-group-item-info">Download mbox</a>
+    </div>
+    <div class="list-group">
+        {% if testings %}
+                <li class="list-group-item"><strong>Test Reports</strong></li>
+        {% endif %}
+        {% for t in testings %}
+            <a href="#testing-{{ t.name }}" class="list-group-item">
+                {{ t.name }}: <span class="label label-{{ t.class }}">{{ t.result }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+<div class="col-lg-10">
+    <ul class="list-group">
+        <li class="list-group-item">Subject: {{ series.subject }}</li>
+        <li class="list-group-item">Author:
+            <span title="{{ series.sender_full_name }}">
+                {{ series.sender_display_name }}
+            <span>
+        </li>
+        <li class="list-group-item">Date: {{ series.date }}</li>
+        <li class="list-group-item">Patches: {{ series.num_patches }} / {{ series.total_patches }}</li>
+        {% for header in series.extra_headers %}
+        <li class="list-group-item">{{ header | safe }} </li>
+        {% endfor %}
+    </ul>
+    {% if series.get_diff_stat %}
+    <div class="panel panel-default">
+        <div class="panel-heading panel-toggler">
+        Changeset
+        </div>
+        <div class="panel-body panel-toggle">
+            <pre class="body-full">{{ series.get_diff_stat }}</pre>
+        </div>
+    </div>
+    {% endif %}
+
+    {% for info in series.extra_info %}
+    <div class="panel {% if info.is_error %}panel-danger{% else %}panel-default{% endif %}">
+        <div class="panel-heading panel-toggler">{{ info.title }}</div>
+        <div class="panel-body panel-toggle panel-hidden">
+            <pre class="body-full">{{ info.content }}</pre>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div id="thread">
+    {% for msg in messages %}
+        <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
+            <div class="panel-heading panel-toggler">
+                <h3 class="panel-title">
+                {{ msg.subject }}
+                <span class="pull-right">
+                    <small>Posted by</small>
+                    <span class="message-author" title="{{ msg.sender_full_name }}">
+                        {{ msg.sender_display_name }}
+                    </span>
+                    <small>at</small>
+                    <span class="timestamp" title="{{ msg.date }}">
+                        {{ msg.get_age }}
+                    </span>
+                    <small>ago</small>
+                </span>
+                </h3>
+            </div>
+            <div class="panel-body panel-toggle panel-hidden">
+                <pre class="body-full">{{ msg.get_body }}</pre>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+
+    <div id="testings">
+        {% for t in testings %}
+            <div class="panel panel-{{ t.class }}" id="testing-{{ t.name }}">
+                <div class="panel-heading panel-toggler">
+                Test &quot;{{ t.name }}&quot; - {{ t.result }}
+                </div>
+                <div class="panel-body panel-toggle">
+                    <pre class="body-full">{{ t.log | safe }}</pre>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script type="text/javascript">
+
+function main() {
+    $(".panel-toggler").click(function () {
+        $(this).parent().find(".panel-toggle").toggle();
+    });
+    $(".timestamp").each(function (i, o) {
+        $(o).attr("title", new Date(1000 * $(o).attr("title")));
+    });
+    $("#btn-expand-all").click(function () {
+        $(".panel-toggle").show();
+    });
+    $("#btn-fold-all").click(function () {
+        $(".panel-toggle").hide();
+    });
+}
+
+$(main);
+
+</script>
+
+{% endblock %}

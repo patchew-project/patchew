@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/project-list.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+{% for project in projects %}
+    <div class="col-sm-6 col-md-3 project">
+        <div class="thumbnail">
+            {% if project.logo %}
+                <div class="project-logo">
+                    <a href="{% url "series_list" project=project.name %}">
+                        <img src="{{ project.logo.url }}">
+                    </a>
+                </div>
+            {% endif %}
+            <div class="caption">
+                <h3><a href="{% url "series_list" project=project.name %}">{{ project.name }}</a></h3>
+                <p><a href="{{ project.url }}">{{ project.url }}</a></p>
+                <p class="description">{{ project.description }}</p>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+    <div class="col-sm-12 col-md-12">
+        <div class="thumbnail">
+            <div class="caption">
+                <h3>Want your open source project hosted?</h3>
+                <p><a href="https://github.com/patchew-project/patchew/issues/new">Submit a request now!</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

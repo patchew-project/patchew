@@ -1,0 +1,105 @@
+#!/bin/bash
+
+set -e
+
+CONFIG="$HOME/.patchew-importer/config"
+
+while getopts "c:" FLAG; do
+    case $FLAG in
+        c)  #set option "c"
+            echo $OPTARG
+            CONFIG=$OPTARG
+            ;;
+    esac
+done
+
+BASEDIR="$HOME/.patchew-importer"
+
+mkdir -p $BASEDIR
+PATCHEW_CLI=./patchew-cli
+
+. $CONFIG
+
+offlineimap_rc=$BASEDIR/offlineimap.rc
+maildir=$BASEDIR/maildir
+
+type offlineimap 1>/dev/null
+type md5sum 1>/dev/null
+
+cat >$offlineimap_rc <<EOF
+[general]
+accounts = main
+
+[Account main]
+# Identifier for the local repository; e.g. the maildir to be synced via IMAP.
+localrepository = main-local
+# Identifier for the remote repository; i.e. the actual IMAP, usually non-local.
+remoterepository = main-remote
+# Status cache. Default is plain, which eventually becomes huge and slow.
+status_backend = sqlite
+
+[Repository main-local]
+# Currently, offlineimap only supports maildir and IMAP for local repositories.
+type = Maildir
+# Where should the mail be placed?
+localfolders = $maildir
+
+[Repository main-remote]
+# Remote repos can be IMAP or Gmail, the latter being a preconfigured IMAP.
+type = IMAP
+remotehost = $IMAP_SERVER
+remoteuser = $IMAP_USER
+remotepass = $IMAP_PASS
+ssl= yes
+cert_fingerprint = F8FA861AFD7E65634037400757BEACB6111217F4
+folderfilter = lambda foldername: foldername in [
+    $(for x in $IMAP_FOLDERS; do printf "'$x',"; done)
+    ]
+EOF
+
+IMPORTED_DIR=$BASEDIR/imported
+mkdir -p $IMPORTED_DIR
+
+BAD_MESSAGES_DIR=$BASEDIR/bad-messages
+mkdir -p $BAD_MESSAGES_DIR
+
+hashstr()
+{
+    echo $@ | md5sum - | cut -f 1 -d \ 
+}
+
+imported()
+{
+    test -f $IMPORTED_DIR/$(hashstr $@)
+}
+
+import()
+{
+    echo import $@
+    if $PATCHEW_CLI -s "$PATCHEW_SERVER" import $@; then
+        if test -n "$IMAP_DELETE_AFTER_IMPORT"; then
+            rm $f
+        fi
+        touch $IMPORTED_DIR/$(hashstr $@)
+    else
+        cp $@ $BAD_MESSAGES_DIR
+        echo "(bad message saved in $BAD_MESSAGES_DIR)"
+    fi
+}
+
+$PATCHEW_CLI -s "$PATCHEW_SERVER" login "$PATCHEW_UESR" "$PATCHEW_PASS"
+
+while :; do
+    if ! timeout -k 2000 1800 offlineimap -c $offlineimap_rc; then
+        sleep 300
+        continue
+    fi
+    find "$maildir" -type f | while read f; do
+        if imported "$f"; then
+            continue
+        fi
+        import "$f" || true
+    done
+    echo "Done"
+    sleep 60
+done

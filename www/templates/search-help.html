@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/search-help.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="search-help-content">
+    <h1>Using Patchew Search</h1>
+    <hr />
+    {{ search_help_doc | safe }}
+</div>
+
+{% endblock %}
