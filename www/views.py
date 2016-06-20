@@ -16,6 +16,7 @@ def prepare_message(m):
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
     m.url = "/%s/%s" % (m.project.name, m.message_id)
+    m.status_tags = []
     if m.is_series_head:
         m.num_patches = len(m.get_patches())
         if m.get_num():
@@ -25,13 +26,12 @@ def prepare_message(m):
         if m.num_patches < m.total_patches:
             m.status_tags.append({
                 "title": "Series not complete (%d patches not received)" % \
-                        m.total_patches - m.num_patches,
+                        (m.total_patches - m.num_patches),
                 "type": "warning",
                 "char": "P",
                 })
     m.extra_info = []
     m.extra_headers = []
-    m.status_tags = []
     dispatch_module_hook("prepare_message_hook", message=m)
     return m
 
