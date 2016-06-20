@@ -21,6 +21,7 @@ password = yourpassword
 from = your@email.com
 
 [mail a]
+enabled = false
 event = TestingReport
 passed = false
 project = QEMU
@@ -112,6 +113,8 @@ class EmailModule(PatchewModule):
                          user, tester, project, series, passed, test, log):
         conf = self.get_config_obj()
         for sec in self._sections_by_event(event):
+            if not self.get_config(sec, "enabled", "getboolean", True):
+                continue
             if not passed == self.get_config(sec, "passed", "getboolean"):
                 continue
             if not project == project:
