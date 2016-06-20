@@ -80,8 +80,15 @@ class LogoutCommand(SubCommand):
 class DeleteCommand(SubCommand):
     name = "delete"
 
+    def arguments(self, parser):
+        parser.add_argument("--all", "-a", action="store_true",
+                            help="Delete all messages")
+
     def do(self, args, argv):
-        self.api_do("delete")
+        if not argv and not args.all:
+            print "Must specify --all to delete all patches"
+            return 1
+        self.api_do("delete", terms=argv)
         return 0
 
 class ImportCommand(SubCommand):
