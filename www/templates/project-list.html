@@ -13,7 +13,7 @@
             {% if project.logo %}
                 <div class="project-logo">
                     <a href="{% url "series_list" project=project.name %}">
-                        <img src="{{ project.logo.url }}">
+                        <img alt="Project Logo" src="{{ project.logo.url }}" />
                     </a>
                 </div>
             {% endif %}
