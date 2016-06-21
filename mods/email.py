@@ -30,6 +30,47 @@ template = template_a
 
 """
 class EmailModule(PatchewModule):
+    """
+
+Documentation
+-------------
+
+This module is configured in "INI" style.
+
+It has a global `[smtp]` section and one or more `[mail XXX]` sections. The
+`[smtp]` section stores the usual SMTP information for sending emails:
+
+    [smtp]
+    server = smtp.example.com
+    ssl = True
+    port = 465
+    username = youruser
+    password = yourpassword
+    from = your@email.com
+
+Each `[mail XXX]` section stores a scenario for the system to send out email:
+
+    [mail a]
+    enabled = false
+    event = TestingReport
+    template = template_a
+    to = your@email.com
+    passed = false
+    project = QEMU
+
+The meaning of each option is:
+
+  * **enabled**: Whether the email should be sent.
+
+  * **event**: The event type of the scenario.
+
+  * **to**: The address to which the email should be sent.
+
+  * **template**: The email message text template.
+
+  * Other fields are supported depending on the type of event.
+
+"""
     name = "email" # The notify method name
     default_config = _default_config
 
