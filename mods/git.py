@@ -21,7 +21,7 @@ push_to=https://your_name:your_pass@github.com/your_name/your_project
 public_repo=https://github.com/your_name/your_project
 
 # The url format of the hyperlink
-url_template=https://github.com/your_name/your_project/tree/{message_id}
+url_template=https://github.com/your_name/your_project/tree/{tag_name}
 
 """
 
@@ -116,6 +116,7 @@ class GitModule(PatchewModule):
                 subprocess.check_call(["git", "remote", "add",
                                         "push_remote", push_to], cwd=repo,
                                         stdout=logf, stderr=logf)
+                # Push the new branch to remote as a new tag with the same name
                 subprocess.check_call(["git", "push", "-f",
                                        "push_remote",
                                        "refs/heads/%s:refs/tags/%s" % \
@@ -130,7 +131,7 @@ class GitModule(PatchewModule):
             s.set_property("git.base", base)
             s.set_property("git.url",
                            self.get_project_config(project_name, "url_template")\
-                                   .format(message_id=s.message_id))
+                                   .format(tag_name=new_branch))
             s.set_property("git.apply-failed", False)
         except Exception as e:
             logf.write(str(e))
