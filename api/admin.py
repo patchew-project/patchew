@@ -42,7 +42,7 @@ class ModuleAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         q = Module.objects.filter(pk=object_id).first()
         if q:
-            extra_context['title'] = "Configure module " + q.name
+            extra_context['title'] = "%s Module " % q.name.capitalize()
         return super(ModuleAdmin, self).change_view(
             request, object_id, form_url, extra_context=extra_context,
         )
