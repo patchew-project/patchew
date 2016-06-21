@@ -161,7 +161,8 @@ The meaning of each option is:
             s.set_property("git.url", None)
         finally:
             logf.seek(0)
-            s.set_property("git.apply-log", logf.read())
+            s.set_property("git.apply-log", logf.read().\
+                    replace(push_to, "$PUSH_TO"))
 
     def prepare_message_hook(self, message):
         if not message.is_series_head:
