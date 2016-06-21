@@ -105,11 +105,8 @@ class DeletreView(APILoginRequiredView):
             Message.objects.all().delete()
         else:
             se = SearchEngine()
-            while True:
-                r = se.search_series(*terms)
-                if not r:
-                    break
-                Message.objects.delete_subthread(r[0])
+            for r in se.search_series(*terms):
+                Message.objects.delete_subthread(r)
         return self.response()
 
 class Logout(APIView):

@@ -79,6 +79,7 @@ class LogoutCommand(SubCommand):
 
 class DeleteCommand(SubCommand):
     name = "delete"
+    want_argv = True
 
     def arguments(self, parser):
         parser.add_argument("--all", "-a", action="store_true",

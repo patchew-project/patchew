@@ -87,6 +87,11 @@ class MessageManager(models.Manager):
         if not find:
             self.mark_series_complete(s)
 
+    def delete_subthread(self, msg):
+        for r in msg.get_replies():
+            self.delete_subthread(r)
+        msg.delete()
+
     def add_message_from_mbox(self, mbox, user, project_name=None):
         m = MboxMessage(mbox)
         msgid = m.get_message_id()
