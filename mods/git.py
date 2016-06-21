@@ -40,7 +40,7 @@ apply for each series in that project. A typical setup looks like:
     cache_repo=/var/tmp/patchew-git-cache-qemu
     push_to=/path/to/your/repo
     public_repo=https://github.com/your_name/your_project
-    url_template=https://github.com/your_name/your_project/tree/{message_id}
+    url_template=https://github.com/your_name/your_project/tree/{tag_name}
 
 The meaning of each option is:
 
