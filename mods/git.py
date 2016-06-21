@@ -101,6 +101,7 @@ The meaning of each option is:
     def _update_series(self, wd, s):
         logf = tempfile.NamedTemporaryFile()
         project_name = s.project.name
+        push_to = None
         try:
             project_git = s.project.git
             if not project_git:
@@ -161,8 +162,10 @@ The meaning of each option is:
             s.set_property("git.url", None)
         finally:
             logf.seek(0)
-            s.set_property("git.apply-log", logf.read().\
-                    replace(push_to, "$PUSH_TO"))
+            log = logf.read()
+            if push_to:
+                log = log.replace(push_to, "$PUSH_TO")
+            s.set_property("git.apply-log", log)
 
     def prepare_message_hook(self, message):
         if not message.is_series_head:
