@@ -47,15 +47,12 @@ class ModuleAdmin(admin.ModelAdmin):
             request, object_id, form_url, extra_context=extra_context,
         )
 
-class PatchewAdminSite(admin.AdminSite):
-    site_header = 'Patchew admin'
-    site_title = 'Patchew admin'
-    index_title = 'Patchew administration'
+admin_site = admin.site
 
-admin_site = PatchewAdminSite()
+admin_site.site_header = 'Patchew admin'
+admin_site.site_title = 'Patchew admin'
+admin_site.index_title = 'Patchew administration'
 
 admin_site.register(Project)
 admin_site.register(Message, MessageAdmin)
 admin_site.register(Module, ModuleAdmin)
-admin_site.register(User)
-admin_site.register(Group)
