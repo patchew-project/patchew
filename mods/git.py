@@ -27,17 +27,36 @@ url_template=https://github.com/your_name/your_project/tree/{tag_name}
 
 class GitModule(PatchewModule):
     """
-    afasdf
-    asdfdasf
-    sdadf
-    asdf
-    asd
-    fa
-    sdf
-    asd
-    fasd
-    fasdffffffffffffffffffffffasdfasd
-    """
+
+Documentation
+-------------
+
+This module is configured in "INI" style.
+
+Each section named like 'project FOO' provides information for automatical git
+apply for each series in that project. A typical setup looks like:
+
+    [project QEMU]
+    cache_repo=/var/tmp/patchew-git-cache-qemu
+    push_to=/path/to/your/repo
+    public_repo=https://github.com/your_name/your_project
+    url_template=https://github.com/your_name/your_project/tree/{message_id}
+
+The meaning of each option is:
+
+  * **cache_repo**: Where to hold the local repo as a clone of project
+    upstream. The server script must have write access to this location, and
+    each project should have its own location.
+
+  * **push_to**: Where to push (as in `git remote`) the git tag after
+    successfully applying.
+
+  * **public_repo**: The URL to the repo (as in HTML hyperlinks).
+
+  * **url_template**: The template to generate a quick link to the pushed tag.
+    '{tag_name}' in the template will be replaced with the actual tag name.
+
+"""
     name = "git"
     default_config = _default_config
 
