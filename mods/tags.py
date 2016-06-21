@@ -67,7 +67,8 @@ series cover letter, patch mail body and their replies.
         num_reviewed = 0
         for p in series.get_patches():
             first = True
-            for rev_tag in filter(lambda x: x.startswith(REV_BY_PREFIX),
+            for rev_tag in filter(lambda x: \
+                                  x.lower().startswith(REV_BY_PREFIX.lower()),
                                   p.get_property("tags", [])):
                 if first:
                     num_reviewed += 1
@@ -83,7 +84,7 @@ series cover letter, patch mail body and their replies.
         r = []
         for l in m.get_body().splitlines():
             for p in self.get_tag_prefixes():
-                if l.startswith(p):
+                if l.lower().startswith(p.lower()):
                     r.append(l)
         return r
 
