@@ -29,6 +29,41 @@ tester = debug
 _instance = None
 
 class TestingModule(PatchewModule):
+    """
+
+Documentation
+-------------
+
+This module is configured in "INI" style.
+
+Each section named like 'test FOO' is a test case
+that will be distributed to testers. For example:
+
+    [test a]
+    project = BAR
+    command = true
+    timeout = 1000
+
+defines a test called "a" that will be run against each new series of project
+BAR. The testing command to run is 'true' which will already pass. The timeout
+specifies for how long the tester should wait for the command to execute,
+before aborting and reporting a timeout error.
+
+Other supported options are:
+
+  * **command-asset**: Instead of using a one liner command as given in "command"
+    option, this option refers to a named "module asset" and treat it as a
+    script in any format.
+
+  * **user**: Limit the accepted user name that can run this test.
+
+  * **tester**: Limit the accepted tester name that can run this test.
+
+  * **requirements**: Limit the accepted tester to those that has these
+    capabilities. Multiple requirements are delimit with comma.
+
+"""
+
     name = "testing"
     default_config = _default_config
 
