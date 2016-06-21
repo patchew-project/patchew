@@ -6,6 +6,17 @@ _default_config = """
 """
 
 class FooterModule(PatchewModule):
+    """
+
+Documentation
+-------------
+
+This is a simple module to inject any HTML code into the page bottom. Can be
+useful to add statistic code, etc..
+
+The config is the raw HTML code to inject.
+
+"""
     name = "footer"
     default_config = _default_config
 
