@@ -12,6 +12,23 @@ tags = Reviewed-by, Tested-by, Reported-by, Acked-by, Suggested-by
 """
 
 class SeriesTagsModule(PatchewModule):
+    """
+
+Documentation
+-------------
+
+This module is configured in "INI" style.
+
+It has only one section named `[default]`. The only supported option is tags:
+
+    [default]
+    tags = Reviewed-by, Tested-by, Reported-by, Acked-by, Suggested-by
+
+The `tags` option contains the tag line prefixes (must be followed by colon)
+that should be treated as meaningful patch status tags, and picked up from
+series cover letter, patch mail body and their replies.
+
+"""
     name = "tags"
     default_config = _default_config
 
