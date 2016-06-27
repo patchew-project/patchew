@@ -91,7 +91,7 @@ class ImportView(APILoginRequiredView):
     def handle(self, request, mboxes):
         for mbox in mboxes:
             try:
-                Message.objects.add_message_from_mbox(mbox, request.user)
+                Message.objects.add_message_from_mbox(mbox.encode("utf8"), request.user)
             except Message.objects.DuplicateMessageError:
                 pass
         return self.response()
