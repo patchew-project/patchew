@@ -78,11 +78,22 @@ The meaning of each option is:
     def get_project_config(self, project, what):
         return self.get_config("project " + project, what)
 
+    def _is_repo(self, path):
+        if not os.path.isdir(path):
+            return False
+        if 0 != subprocess.call(["git", "rev-parse", "--is-bare-repository"],
+                                cwd=path,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+            return False
+        return True
+
     def _clone_repo(self, project_name, wd, repo, branch, logf):
         clone = os.path.join(wd, "src")
         cache_repo = self.get_project_config(project_name, "cache_repo")
-        if not os.path.isdir(cache_repo):
+        if not self._is_repo(cache_repo):
             # Clone upstream to local cache
+            subprocess.call(["rm", "-rf", cache_repo],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             subprocess.check_output(["git", "init", "--bare",
                                      cache_repo])
         remote_name = hashlib.sha1(repo).hexdigest()
