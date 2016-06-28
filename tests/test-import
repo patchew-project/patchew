@@ -2,6 +2,7 @@
 import sys
 import os
 from patchewtest import PatchewTestCase, main
+import json
 
 class ImportTest(PatchewTestCase):
 
@@ -19,6 +20,20 @@ class ImportTest(PatchewTestCase):
         a, b = self.check_cli_command("search")
         self.assertIn('[Qemu-devel] [PATCH] quorum: Only compile when supported',
                       a.splitlines())
+
+    def test_case_insensitive(self):
+        self.check_cli_command("project", "add", "QEMU",
+                               "--mailing-list", "qemu-devel@nongnu.org")
+        self.check_cli_command("import",
+                               self.get_data_path("0002-unusual-cased-tags.mbox.gz"))
+        a, b = self.check_cli_command("search", "-r")
+        ao = json.loads(a)[0]
+        self.assertEqual(["Fam Zheng", "famz@redhat.com"],
+                         ao["properties"]["reviewers"][0])
+        self.assertIn('Reviewed-By: Fam Zheng <famz@redhat.com>',
+                      ao["properties"]["tags"])
+        self.assertIn('tESTed-bY: Fam Zheng <famz@redhat.com>',
+                      ao["properties"]["tags"])
 
 if __name__ == '__main__':
     main()
