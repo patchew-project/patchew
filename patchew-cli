@@ -168,17 +168,23 @@ class SearchCommand(SubCommand):
     want_argv = True
 
     def arguments(self, parser):
-        parser.add_argument("--output", "-o", default="subject", type=str)
+        parser.add_argument("--output", "-o", default="subject", type=str,
+                            help="Output fields")
+        parser.add_argument("--raw", "-r", action="store_true",
+                            help="Output raw response")
         parser.add_argument("term", nargs="*", type=str)
 
     def do(self, args, argv):
         r = self.api_do("search", terms=args.term)
         if not r:
             return 0
-        for x in r:
-            for a in args.output.split(","):
-                print x[a],
-            print
+        if args.raw:
+            print json.dumps(r, indent=2, separators=",:")
+        else:
+            for x in r:
+                for a in args.output.split(","):
+                    print x[a],
+                print
         return 0
 
 class TesterCommand(SubCommand):
