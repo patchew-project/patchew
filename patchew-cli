@@ -17,6 +17,9 @@ import hashlib
 
 COOKIE_FILENAME = os.path.expanduser("~/.patchew-cli.cookie")
 
+class APIError(Exception):
+    pass
+
 class SubCommand(object):
     """ Base class of subcommand"""
     help = ""
@@ -48,7 +51,7 @@ class SubCommand(object):
         if r["succeeded"]:
             return r.get("data")
         else:
-            raise Exception(r.get("message", "unknown error"))
+            raise APIError(r.get("message", "unknown error"))
 
     def do(self, args, argv):
         """Do command"""
