@@ -22,8 +22,7 @@ class APIView(View):
         r = {"succeeded": succeeded}
         if message:
             r["message"] = message
-        if data:
-            r["data"] = data
+        r["data"] = data
         return HttpResponse(json.dumps(r))
 
     def error_response(self, msg):
