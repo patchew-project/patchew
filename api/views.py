@@ -60,12 +60,26 @@ class VersionView(APIView):
     def handle(self, request):
         return self.response(settings.VERSION)
 
-class ProjectListView(APIView):
-    name = "project-list"
+class ListProjectView(APIView):
+    name = "list-projects"
 
     def handle(self, request):
         r = [x.name for x in Project.objects.all()]
         return self.response(r)
+
+class AddProjectView(APILoginRequiredView):
+    name = "add-project"
+
+    def handle(self, request, name, mailing_list, url, git, description):
+        if Project.objects.filter(name=name):
+            return self.error_response("Project already exists")
+        p = Project(name=name,
+                    mailing_list=mailing_list,
+                    url=url,
+                    git=git,
+                    description=description)
+        p.save()
+        return self.response()
 
 def render_series(s):
     r = {"subject": s.subject,

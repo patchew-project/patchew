@@ -130,9 +130,35 @@ class ProjectCommand(SubCommand):
     name = "project"
     want_argv = True
 
+    def add_project(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("name", help="Name of the project")
+        parser.add_argument("--mailing-list", "-l", default="",
+                            help="Mailing list")
+        parser.add_argument("--url", "-u", default="",
+                            help="Project URL")
+        parser.add_argument("--git", "-g", default="",
+                            help="Project git repo")
+        parser.add_argument("--desc", "-d", default="",
+                            help="Project short discription")
+        args = parser.parse_args(argv)
+        self.api_do("add-project",
+                    name=args.name,
+                    mailing_list=args.mailing_list,
+                    url=args.url,
+                    git=args.git,
+                    description=args.desc)
+
     def do(self, args, argv):
-        print "\n".join(self.api_do("project-list"))
-        return 0
+        if not argv:
+            r = self.api_do("list-projects")
+            print "\n".join(r)
+            return 0
+        elif argv[0] == "add":
+            return self.add_project(argv[1:])
+        else:
+            print "Unknown project command"
+            return 1
 
 class SearchCommand(SubCommand):
     name = "search"
