@@ -103,7 +103,7 @@ series cover letter, patch mail body and their replies.
         if message.get_property("reviewed"):
             reviewers = message.get_property("reviewers")
             message.status_tags.append({
-                "title": "Reviewed by " + ",".join([x for x, y in reviewers]),
+                "title": "Reviewed by " + ", ".join([x for x, y in reviewers]),
                 "type": "success",
                 "char": "R",
                 })
