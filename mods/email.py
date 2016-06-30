@@ -22,7 +22,7 @@ from = your@email.com
 
 [mail a]
 enabled = false
-event = TestingReport
+event = SeriesTestingReport
 passed = false
 project = QEMU
 to = your@email.com
@@ -52,7 +52,7 @@ Each `[mail XXX]` section stores a scenario for the system to send out email:
 
     [mail a]
     enabled = false
-    event = TestingReport
+    event = SeriesTestingReport
     template = template_a
     to = your@email.com
     passed = false
@@ -75,7 +75,7 @@ The meaning of each option is:
     default_config = _default_config
 
     def __init__(self):
-        register_handler("TestingReport", self.on_testing_report)
+        register_handler("SeriesTestingReport", self.on_series_testing_report)
 
     def _get_smtp(self):
         server = self.get_config("smtp", "server")
@@ -150,8 +150,9 @@ The meaning of each option is:
     def gen_message_id(self):
         return "<%s@patchew.org>" % uuid.uuid1()
 
-    def on_testing_report(self, event,\
-                         user, tester, project, series, passed, test, log):
+    def on_series_testing_report(self, event,\
+                                user, tester, project,
+                                series, passed, test, log):
         conf = self.get_config_obj()
         for sec in self._sections_by_event(event):
             if not self.get_config(sec, "enabled", "getboolean", True):

@@ -71,7 +71,7 @@ Other supported options are:
         global _instance
         assert _instance == None
         _instance = self
-        declare_event("TestingReport",
+        declare_event("SeriesTestingReport",
                       user="the user's name that runs this tester",
                       tester="the name of the tester",
                       project="the project's name in which the test is for",
@@ -118,11 +118,11 @@ Other supported options are:
         all_tests = set(self.get_tests(series.project.name).keys())
         if all_tests.issubset(done_tests):
             series.set_property("testing.done", True)
-        emit_event("TestingReport", tester=tester, user=user.username,
-                                    project=series.project.name,
-                                    series=series, passed=passed,
-                                    test=test,
-                                    log=log)
+        emit_event("SeriesTestingReport", tester=tester, user=user.username,
+                                          project=series.project.name,
+                                          series=series, passed=passed,
+                                          test=test,
+                                          log=log)
 
     def get_tests(self, project):
         ret = {}
