@@ -24,6 +24,10 @@ requirements = docker
 user = fam
 tester = debug
 
+[capability docker]
+project = QEMU
+probe = docker ps || sudo -n docker ps
+
 """
 
 _instance = None
@@ -51,16 +55,30 @@ before aborting and reporting a timeout error.
 
 Other supported options are:
 
-  * **command-asset**: Instead of using a one liner command as given in "command"
-    option, this option refers to a named "module asset" and treat it as a
-    script in any format.
+  * **command-asset**: Instead of using a one liner command as given in
+    `command` option, this option refers to a named "module asset" and treat it
+    as a script in any format.
 
   * **user**: Limit the accepted user name that can run this test.
 
   * **tester**: Limit the accepted tester name that can run this test.
 
   * **requirements**: Limit the accepted tester to those that has these
-    capabilities. Multiple requirements are delimit with comma.
+    capabilities. Multiple requirements are separeted with comma. See
+    following for capability probing with `[capability ...]` sections.
+
+Capability probing methods are configured with a `[capability ...]` section,
+where `...` is the name of the capability to be referenced by the
+`requirements` field in a test config. Example:
+
+    [capability clang]
+    project = BAR
+    probe = clang
+
+  * **project**: Limit to only the project to which this capability probing
+  should be applied.
+
+  * **probe**: The probing command.
 
 """
 
@@ -217,6 +235,22 @@ Other supported options are:
                 "char": "T",
                 })
 
+    def get_capability_probes(self, project):
+        ret = {}
+        conf = self.get_config_obj()
+        for sec in filter(lambda x: x.lower().startswith("capability "),
+                          conf.sections()):
+            if conf.get(sec, "project") and conf.get(sec, "project") != project:
+                continue
+            try:
+                name = sec[len("capability "):]
+                ret[name] = dict(conf.items(sec))
+            except Exception as e:
+                print "Error while parsing capability config:"
+                traceback.print_exc(e)
+        return ret
+
+
 class TestingGetView(APILoginRequiredView):
     name = "testing-get"
     allowed_groups = ["testers"]
@@ -324,3 +358,11 @@ class TestingReportView(APILoginRequiredView):
     def handle(self, request, tester, project, test, head, base, passed, log, identity):
         _instance.add_test_report(request.user, project, tester, test, head, base, identity, passed, log)
         return self.response()
+
+class TestingCapabilitiesView(APILoginRequiredView):
+    name = "testing-capabilities"
+    allowed_groups = ["testers"]
+
+    def handle(self, request, tester, project):
+        probes = _instance.get_capability_probes(project)
+        return self.response(probes)
