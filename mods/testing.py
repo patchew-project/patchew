@@ -192,12 +192,14 @@ class TestingGetView(APILoginRequiredView):
 
     def _generate_test_data(self, s, test):
         r = {"project": s.project.name,
-             "message-id": s.message_id,
              "repo": s.get_property("git.repo"),
              "tag": s.get_property("git.tag"),
              "base": s.get_property("git.base"),
-             "subject": s.subject,
              "test": test,
+             "identity": {
+                 "message-id": s.message_id,
+                 "subject": s.subject,
+                 },
              }
         return r
 

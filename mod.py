@@ -5,6 +5,7 @@ from django.conf import settings
 import traceback
 import ConfigParser
 import io
+import json
 
 class PatchewModule(object):
     """ Module base class """
@@ -38,6 +39,20 @@ class PatchewModule(object):
             return a.text
         elif a.file:
             return a.file.file.read()
+
+    def get_data(self, key, default=None):
+        from api.models import ModuleData as MD
+        a = MD.objects.get(module__name=self.name, name=key).first()
+        if a and a.text:
+            return json.loads(a.text)
+        else:
+            return default
+
+    def set_data(self, key, value):
+        from api.models import ModuleData as MD
+        a = MD.objects.get_or_create(module__name=self.name, name=key)
+        a.text = json.dumps(value)
+        a.save()
 
     def __init__(self):
         pass
