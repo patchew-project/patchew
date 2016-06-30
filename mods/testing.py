@@ -8,7 +8,7 @@ import smtplib
 import email
 import traceback
 from api.views import APILoginRequiredView
-from api.models import Message
+from api.models import Message, Project
 from api.search import SearchEngine
 from event import emit_event, declare_event
 
@@ -79,6 +79,13 @@ Other supported options are:
                       passed="True if the test is passed",
                       test="test name",
                       log="test log")
+        declare_event("ProjectTestingReport",
+                      user="the user's name that runs this tester",
+                      tester="the name of the tester",
+                      project="the project's name in which the test is for",
+                      passed="True if the test is passed",
+                      test="test name",
+                      log="test log")
 
     def www_view_testing_reset(self, request, message_id):
         if not request.user.is_authenticated():
@@ -103,26 +110,49 @@ Other supported options are:
                               kwargs={"message_id": series.message_id}),
                               "title": "Reset testing states"})
 
-    def add_test_report(self, user, tester, series, test, passed, log):
-        series.set_property("testing.report." + test,
-                            {"passed": passed,
-                             "user": user.username,
-                             "tester": tester or user.username,
-                            })
-        series.set_property("testing.log." + test, log)
+    def add_test_report(self, user, project, tester, test, head, base, identity, passed, log):
+        # Find a project or series depending on the test type and assign it to obj
+        if identity["type"] == "project":
+            obj = Project.objects.filter(name=project).first()
+            if not obj:
+                return self.error_response("Project not found")
+            is_proj_report = True
+            project = obj.name
+        elif identity["type"] == "series":
+            message_id = identity["message-id"]
+            obj = Message.objects.find_series(message_id, project)
+            if not obj:
+                return self.error_response("Series doesn't exist")
+            is_proj_report = False
+            project = obj.project.name
+        obj.set_property("testing.report." + test,
+                         {"passed": passed,
+                          "user": user.username,
+                          "tester": tester or user.username,
+                         })
+        obj.set_property("testing.log." + test, log)
         if not passed:
-            series.set_property("testing.failed", True)
+            obj.set_property("testing.failed", True)
         reports = filter(lambda x: x.startswith("testing.report."),
-                        series.get_properties())
+                        obj.get_properties())
         done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set(self.get_tests(series.project.name).keys())
+        all_tests = set(self.get_tests(project).keys())
         if all_tests.issubset(done_tests):
-            series.set_property("testing.done", True)
-        emit_event("SeriesTestingReport", tester=tester, user=user.username,
-                                          project=series.project.name,
-                                          series=series, passed=passed,
-                                          test=test,
-                                          log=log)
+            obj.set_property("testing.done", True)
+        if all_tests.issubset(done_tests):
+            obj.set_property("testing.tested-head", head)
+        if is_proj_report:
+            emit_event("SeriesTestingReport", tester=tester, user=user.username,
+                                              project=project,
+                                              series=obj, passed=passed,
+                                              test=test,
+                                              log=log)
+        else:
+            emit_event("ProjectTestingReport", tester=tester, user=user.username,
+                                               project=project,
+                                               passed=passed,
+                                               test=test,
+                                               log=log)
 
     def get_tests(self, project):
         ret = {}
@@ -191,25 +221,43 @@ class TestingGetView(APILoginRequiredView):
     name = "testing-get"
     allowed_groups = ["testers"]
 
-    def _generate_test_data(self, s, test):
-        r = {"project": s.project.name,
-             "repo": s.get_property("git.repo"),
-             "tag": s.get_property("git.tag"),
-             "base": s.get_property("git.base"),
+    def _generate_test_data(self, project, repo, head, base, identity, test):
+        r = {"project": project,
+             "repo": repo,
+             "head": head,
+             "base": base,
              "test": test,
-             "identity": {
-                 "message-id": s.message_id,
-                 "subject": s.subject,
-                 },
+             "identity": identity
              }
         return r
 
-    def _find_applicable_test(self, user, project, tester, capabilities, s):
+    def _generate_series_test_data(self, s, test):
+        return self._generate_test_data(project=s.project.name,
+                                        repo=s.get_property("git.repo"),
+                                        head=s.get_property("git.tag"),
+                                        base=s.get_property("git.base"),
+                                        identity={
+                                            "type": "series",
+                                            "message-id": s.message_id,
+                                            "subject": s.subject,
+                                        },
+                                        test=test)
+
+    def _generate_project_test_data(self, project, repo, head, base, test):
+        return self._generate_test_data(project=project,
+                                        repo=repo, head=head, base=base,
+                                        identity={
+                                            "type": "project",
+                                            "head": head,
+                                        },
+                                        test=test)
+
+    def _find_applicable_test(self, user, project, tester, capabilities, obj):
         all_tests = set()
         done_tests = set()
         for tn, t in _instance.get_tests(project).iteritems():
             all_tests.add(tn)
-            if s.get_property("testing.report." + tn):
+            if obj.get_property("testing.report." + tn):
                 done_tests.add(tn)
                 continue
             if "tester" in t and tester != t["tester"]:
@@ -226,9 +274,25 @@ class TestingGetView(APILoginRequiredView):
                 continue
             return t
         if all_tests.issubset(done_tests):
-            s.set_property("testing.done", True)
+            obj.set_property("testing.done", True)
+
+    def _handle_project(self, request, project, tester, capabilities):
+        po = Project.objects.get(name=project)
+        test = self._find_applicable_test(request.user, project,
+                                          tester, capabilities, po)
+        if not test:
+            return
+        head = po.get_property("git.head")
+        repo = po.get_property("git.repo")
+        tested = po.get_property("testing.tested-head")
+        td = self._generate_project_test_data(project, repo, head, tested, test)
+        return self.response(td)
 
     def handle(self, request, project, tester, capabilities):
+        # Try project head test first
+        r = self._handle_project(request, project, tester, capabilities)
+        if r:
+            return r
         se = SearchEngine()
         q = se.search_series("is:applied", "not:old", "not:tested", "project:" + project)
         candidate = None
@@ -248,7 +312,8 @@ class TestingGetView(APILoginRequiredView):
         if candidate:
             s.set_property("testing.started", True)
             s.set_property("testing.start-time", time.time())
-            return self.response(self._generate_test_data(candidate[0], candidate[1]))
+            return self.response(self._generate_series_test_data(candidate[0],
+                                                                 candidate[1]))
         else:
             return self.response()
 
@@ -256,9 +321,6 @@ class TestingReportView(APILoginRequiredView):
     name = "testing-report"
     allowed_groups = ["testers"]
 
-    def handle(self, request, tester, project, message_id, test, passed, log):
-        m = Message.objects.find_series(message_id, project)
-        if not m:
-            return self.error_response("Series doesn't exist")
-        _instance.add_test_report(request.user, tester, m, test, passed, log)
+    def handle(self, request, tester, project, test, head, base, passed, log, identity):
+        _instance.add_test_report(request.user, project, tester, test, head, base, identity, passed, log)
         return self.response()

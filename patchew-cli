@@ -202,7 +202,7 @@ class TesterCommand(SubCommand):
         parser.add_argument("--debug", "-d", action="store_true",
                             help="enable debug output")
 
-    def _clone_repo(self, wd, cache_repo, remote, tag, logf):
+    def _clone_repo(self, wd, cache_repo, remote, head, logf):
         clone = os.path.join(wd, "src")
         if not os.path.isdir(cache_repo):
             # Clone upstream to local cache
@@ -218,7 +218,7 @@ class TesterCommand(SubCommand):
                               stdout=logf, stderr=logf)
         subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
                               stderr=logf, stdout=logf)
-        subprocess.check_call(["git", "checkout", tag, "-b", "test"],
+        subprocess.check_call(["git", "checkout", head, "-b", "test"],
                               stderr=logf, stdout=logf,
                               cwd=clone)
         return clone
@@ -242,8 +242,10 @@ class TesterCommand(SubCommand):
                                     capabilities=self.probe_capabilities())
         if not r:
             return False
-        print "Running test '%s' on series '%s'" % (r["test"]["name"], r["subject"])
-        assert r["project"] == args.project
+        print "Running test '%s'" % r["test"]["name"]
+        if r["project"] != args.project:
+            return
+
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print "  Workdir:", wd
         logf = open(os.path.join(wd, "log"), "w+b")
@@ -251,8 +253,8 @@ class TesterCommand(SubCommand):
         test_script = os.path.join(wd, "run")
         tf = open(test_script, "wb")
         commands = r["test"]["commands"].strip() + "\n"
-        logf.write("Testing series: %s\n" % r["subject"])
-        logf.write("Message id: %s\n" % r["message-id"])
+        for k, v in r["identity"].iteritems():
+            logf.write(" %s: %s\n" % (k.capitalize(), v))
         logf.write("\n")
         logf.write("=== TEST SCRIPT BEGIN ===\n")
         logf.write(commands)
@@ -265,15 +267,14 @@ class TesterCommand(SubCommand):
         rc = 1
         try:
             repo = os.path.join(wd, "src")
-            clone = self._clone_repo(wd, args.cache_repo, r["repo"], r["tag"],
+            clone = self._clone_repo(wd, args.cache_repo, r["repo"], r["head"],
                                      logf)
             base = r["base"]
-            subprocess.check_call(["git", "branch", "base", base],
-                                  cwd=clone, stdout=logf, stderr=logf)
-            logf.write("\n")
-            logf.flush()
-            subprocess.check_call(["git", "log", "--oneline", "%s.." % (base)],
-                                  cwd=clone, stdout=logf, stderr=logf)
+            if base:
+                subprocess.check_call(["git", "branch", "base", base],
+                                      cwd=clone, stdout=logf, stderr=logf)
+                subprocess.check_call(["git", "log", "--oneline", "%s.." % (base)],
+                                      cwd=clone, stdout=logf, stderr=logf)
             logf.write("\n")
             logf.write("=== OUTPUT BEGIN ===\n")
             logf.flush()
@@ -304,9 +305,11 @@ class TesterCommand(SubCommand):
             if args.debug:
                 print log
             self.api_do("testing-report", project=r["project"],
-                                          message_id=r["message-id"],
+                                          identity=r["identity"],
                                           test=r["test"]["name"],
                                           tester=args.name,
+                                          head=r["head"],
+                                          base=r["base"],
                                           passed=passed,
                                           log=log)
             logf.close()
