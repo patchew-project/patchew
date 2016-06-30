@@ -3,6 +3,15 @@ from .models import *
 from mod import get_module
 from django.contrib.auth.models import User, Group
 
+class ProjectPropertyInline(admin.TabularInline):
+    model = ProjectProperty
+    extra = 0
+
+class ProjectAdmin(admin.ModelAdmin):
+    inlines = [
+            ProjectPropertyInline
+        ]
+
 class MessagePropertyInline(admin.TabularInline):
     model = MessageProperty
     extra = 0
@@ -53,6 +62,6 @@ admin_site.site_header = 'Patchew admin'
 admin_site.site_title = 'Patchew admin'
 admin_site.index_title = 'Patchew administration'
 
-admin_site.register(Project)
+admin_site.register(Project, ProjectAdmin)
 admin_site.register(Message, MessageAdmin)
 admin_site.register(Module, ModuleAdmin)

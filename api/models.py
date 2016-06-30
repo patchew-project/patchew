@@ -35,6 +35,30 @@ class Project(models.Model):
     def has_project(self, project):
         return self.objects.filter(name=project).exists()
 
+    def get_property(self, prop, default=None):
+        a = ProjectProperty.objects.filter(project=self, name=prop).first()
+        if a:
+            return json.loads(a.value)
+        else:
+            return default
+
+    def set_property(self, prop, value):
+        if value == None:
+            ProjectProperty.objects.filter(project=self, name=prop).delete()
+            return
+        pp, created = ProjectProperty.objects.get_or_create(project=self,
+                                                            name=prop)
+        pp.value = json.dumps(value)
+        pp.save()
+
+class ProjectProperty(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE)
+    name = models.CharField(max_length=1024, unique=True, db_index=True)
+    value = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('project', 'name',)
+
 declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
 
