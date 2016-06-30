@@ -42,6 +42,12 @@ class Project(models.Model):
         else:
             return default
 
+    def get_properties(self):
+        r = {}
+        for m in ProjectProperty.objects.filter(project=self):
+            r[m.name] = json.loads(m.value)
+        return r
+
     def set_property(self, prop, value):
         if value == None:
             ProjectProperty.objects.filter(project=self, name=prop).delete()
