@@ -223,23 +223,23 @@ class TesterCommand(SubCommand):
                               cwd=clone)
         return clone
 
-    def probe_capabilities(self):
-        def probe_one(cmd):
-            return subprocess.call(cmd, shell=True, stderr=subprocess.PIPE,
-                                   stdout=subprocess.PIPE) == 0
-        probes = [
-            ("docker", "docker version"),
-            ("docker", "sudo docker version"),
-            ]
-        r = set()
-        for n, c in probes:
-            if probe_one(c):
-                r.add(n)
-        return list(r)
+    def _refresh_capabilities(self, project, name):
+        r = self.api_do("testing-capabilities",
+                        project=project,
+                        tester=name)
+        if not r:
+            return []
+        ret = []
+        for name, cap in r.iteritems():
+            if 0 == subprocess.call(cap["probe"], shell=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE):
+                ret.append(name)
+        return ret
 
-    def test_one(self, args):
+    def test_one(self, args, capabilities):
         r = self.api_do("testing-get", project=args.project, tester=args.name,
-                                    capabilities=self.probe_capabilities())
+                                    capabilities=capabilities)
         if not r:
             return False
         print "Running test '%s'" % r["test"]["name"]
@@ -320,9 +320,15 @@ class TesterCommand(SubCommand):
         # Make sure git works
         subprocess.check_output(["git", "version"])
         rest = False
+        count = 0
+        cap_refresh = 10
         while True:
             try:
-                if self.test_one(args):
+                if count % cap_refresh == 0:
+                    capabilities = self._refresh_capabilities(args.project,
+                                                              args.name)
+                count += 1
+                if self.test_one(args, capabilities=capabilities):
                     rest = False
                     continue
                 if not rest:
