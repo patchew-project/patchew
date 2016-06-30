@@ -57,6 +57,9 @@ class Project(models.Model):
         pp.value = json.dumps(value)
         pp.save()
 
+    def total_series_count(self):
+        return Message.objects.series_heads(project_name=self.name).count()
+
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, unique=True, db_index=True)
