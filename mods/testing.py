@@ -81,7 +81,7 @@ Other supported options are:
                       log="test log")
 
     def www_view_testing_reset(self, request, message_id):
-        if not request.user:
+        if not request.user.is_authenticated():
             return HttpResponseForbidden()
         m = Message.objects.find_series(message_id)
         if not m:
@@ -97,7 +97,8 @@ Other supported options are:
                                name="testing-reset"))
 
     def www_series_operations_hook(self, request, series, operations):
-        if request.user and series.get_property("testing.started"):
+        if request.user.is_authenticated() \
+                and series.get_property("testing.started"):
             operations.append({"url": reverse("testing-reset",
                               kwargs={"message_id": series.message_id}),
                               "title": "Reset testing states"})
