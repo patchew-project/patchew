@@ -233,6 +233,7 @@ The meaning of each option is:
         old_head = po.get_property("git.head")
         if old_head != head:
             po.set_property("git.head", head)
+            po.set_property("git.repo", repo)
             emit_event("ProjectGitUpdate", project=po.name)
 
     def www_view_git_poll(self, request):
