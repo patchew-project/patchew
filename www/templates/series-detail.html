@@ -17,16 +17,6 @@
         {% endfor %}
         <a href="/{{ project }}/{{ series.message_id }}/mbox" class="list-group-item list-group-item-info">Download mbox</a>
     </div>
-    <div class="list-group">
-        {% if testings %}
-                <li class="list-group-item"><strong>Test Reports</strong></li>
-        {% endif %}
-        {% for t in testings %}
-            <a href="#testing-{{ t.name }}" class="list-group-item">
-                {{ t.name }}: <span class="label label-{{ t.class }}">{{ t.result }}</span>
-            </a>
-        {% endfor %}
-    </div>
 </div>
 <div class="col-lg-10">
     <ul class="list-group">
