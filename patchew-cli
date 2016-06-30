@@ -285,7 +285,7 @@ class TesterCommand(SubCommand):
             timeout = r["test"]["timeout"]
             while time.time() - start_time < timeout:
                 rc = tp.poll()
-                if rc:
+                if rc != None:
                     break
                 time.sleep(0.1)
             logf.write("=== OUTPUT END ===\n")
