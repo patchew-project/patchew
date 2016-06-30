@@ -236,7 +236,7 @@ class TesterCommand(SubCommand):
         return list(r)
 
     def test_one(self, args):
-        r = self.api_do("test-get", project=args.project, tester=args.name,
+        r = self.api_do("testing-get", project=args.project, tester=args.name,
                                     capabilities=self.probe_capabilities())
         if not r:
             return False
@@ -299,12 +299,12 @@ class TesterCommand(SubCommand):
             logf.seek(0)
             log = logf.read()
             print "  Result:", "Passed" if passed else "Failed"
-            self.api_do("test-report", project=r["project"],
-                                       message_id=r["message-id"],
-                                       test=r["test"]["name"],
-                                       tester=args.name,
-                                       passed=passed,
-                                       log=log)
+            self.api_do("testing-report", project=r["project"],
+                                          message_id=r["message-id"],
+                                          test=r["test"]["name"],
+                                          tester=args.name,
+                                          passed=passed,
+                                          log=log)
             logf.close()
             shutil.rmtree(wd)
             return True

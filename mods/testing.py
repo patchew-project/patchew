@@ -188,7 +188,7 @@ Other supported options are:
                 })
 
 class TestingGetView(APILoginRequiredView):
-    name = "test-get"
+    name = "testing-get"
     allowed_groups = ["testers"]
 
     def _generate_test_data(self, s, test):
@@ -253,7 +253,7 @@ class TestingGetView(APILoginRequiredView):
             return self.response()
 
 class TestingReportView(APILoginRequiredView):
-    name = "test-report"
+    name = "testing-report"
     allowed_groups = ["testers"]
 
     def handle(self, request, tester, project, message_id, test, passed, log):
