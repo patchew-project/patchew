@@ -59,6 +59,8 @@ class APILoginRequiredView(APIView):
     def check_request(self, request):
         if not request.user.is_authenticated():
             raise PermissionDenied()
+        if request.user.is_superuser:
+            return
         for grp in request.user.groups.all():
             if grp.is_superuser or grp.name in self.allowed_groups or \
                     self.check_permission(request):
