@@ -129,6 +129,17 @@ def view_search_help(request):
                        navigate_links=nav_path,
                        search_help_doc=markdown(api.search.SearchEngine.__doc__))
 
+def view_project_detail(request, project):
+    po = api.models.Project.objects.filter(name=project).first()
+    if not po:
+        raise Http404("Project not found")
+    nav_path = prepare_navigate_list("Information",
+                        ("series_list", {"project": project}, project))
+    return render_page(request, "project-detail.html",
+                       project=po,
+                       navigate_links=nav_path,
+                       search="")
+
 def view_search(request):
     from api.search import SearchEngine
     search = request.GET.get("q", "").strip()

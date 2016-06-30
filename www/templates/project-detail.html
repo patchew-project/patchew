@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/thread.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="top"></div>
+
+<div class="col-lg-2">
+    <div class="list-group">
+        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+        {% for op in series_operations %}
+            <a href="{{ op.url }}" class="list-group-item list-group-item-info">{{ op.title }}</a>
+        {% endfor %}
+    </div>
+</div>
+<div class="col-lg-10">
+    <ul class="list-group">
+        <li class="list-group-item">Project: <strong>{{ project.name }}</strong></li>
+        <li class="list-group-item">Total series: {{ project.total_series_count }}</li>
+    </ul>
+
+    {% for info in project.extra_info %}
+    <div class="panel {% if info.is_error %}panel-danger{% else %}panel-default{% endif %}">
+        <div class="panel-heading panel-toggler">{{ info.title }}</div>
+        <div class="panel-body panel-toggle panel-hidden">
+            <pre class="body-full">{{ info.content }}</pre>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script type="text/javascript">
+
+function main() {
+    $(".panel-toggler").click(function () {
+        $(this).parent().find(".panel-toggle").toggle();
+    });
+    $(".timestamp").each(function (i, o) {
+        $(o).attr("title", new Date(1000 * $(o).attr("title")));
+    });
+    $("#btn-expand-all").click(function () {
+        $(".panel-toggle").show();
+    });
+    $("#btn-fold-all").click(function () {
+        $(".panel-toggle").hide();
+    });
+}
+
+$(main);
+
+</script>
+
+{% endblock %}
