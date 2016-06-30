@@ -133,7 +133,7 @@ class MboxMessage(object):
         return s.intersection(self.get_prefixes(upper=True))
 
     def get_body(self):
-        payload = self._m.get_payload(decode=True)
+        payload = self._m.get_payload(decode=not self._m.is_multipart())
         body = ''
         if isinstance(payload, str):
             body = payload
