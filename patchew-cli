@@ -199,6 +199,8 @@ class TesterCommand(SubCommand):
         parser.add_argument("--cache-repo", "-C",
                             default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
                             help="local git repo for fast clone")
+        parser.add_argument("--debug", "-d", action="store_true",
+                            help="enable debug output")
 
     def _clone_repo(self, wd, cache_repo, remote, tag, logf):
         clone = os.path.join(wd, "src")
@@ -299,6 +301,8 @@ class TesterCommand(SubCommand):
             logf.seek(0)
             log = logf.read()
             print "  Result:", "Passed" if passed else "Failed"
+            if args.debug:
+                print log
             self.api_do("testing-report", project=r["project"],
                                           message_id=r["message-id"],
                                           test=r["test"]["name"],
