@@ -2,9 +2,14 @@ import os
 import subprocess
 import tempfile
 import shutil
-from mod import PatchewModule
 import hashlib
-from event import register_handler
+from django.conf.urls import url
+from django.http import HttpResponse, Http404
+from mod import PatchewModule
+from event import declare_event, register_handler, emit_event
+from api.models import Project
+
+_instance = None
 
 _default_config = """
 [project QEMU]
@@ -61,8 +66,12 @@ The meaning of each option is:
     default_config = _default_config
 
     def __init__(self):
+        global _instance
+        assert _instance == None
+        _instance = self
         # Make sure git is available
         subprocess.check_output(["git", "version"])
+        declare_event("ProjectGitUpdate", project="the updated project name")
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_series_update)
 
@@ -87,8 +96,7 @@ The meaning of each option is:
             return False
         return True
 
-    def _clone_repo(self, project_name, wd, repo, branch, logf):
-        clone = os.path.join(wd, "src")
+    def _update_cache_repo(self, project_name, repo, branch, logf=None):
         cache_repo = self.get_project_config(project_name, "cache_repo")
         if not self._is_repo(cache_repo):
             # Clone upstream to local cache
@@ -104,25 +112,34 @@ The meaning of each option is:
         subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
                               remote_name, repo], cwd=cache_repo,
                               stdout=logf, stderr=logf)
+        return cache_repo
+
+    def _clone_repo(self, project_name, wd, repo, branch, logf):
+        cache_repo = self._update_cache_repo(project_name, repo, branch, logf)
+        clone = os.path.join(wd, "src")
         subprocess.check_call(["git", "clone", "-q", "--branch", branch,
                               cache_repo, clone],
                               stderr=logf, stdout=logf)
         return clone
+
+    def _get_project_repo_and_branch(self, project):
+        project_git = project.git
+        if not project_git:
+            raise Exception("Project git repo not set")
+        if len(project_git.split()) != 2:
+            # Use master as the default branch
+            project_git += " master"
+        upstream, branch = project_git.split()[0:2]
+        if not upstream or not branch:
+            raise Exception("Project git repo invalid: %s" % project_git)
+        return upstream, branch
 
     def _update_series(self, wd, s):
         logf = tempfile.NamedTemporaryFile()
         project_name = s.project.name
         push_to = None
         try:
-            project_git = s.project.git
-            if not project_git:
-                raise Exception("Project git repo not set")
-            if len(project_git.split()) != 2:
-                # Use master as the default branch
-                project_git += " master"
-            upstream, base_branch = project_git.split()[0:2]
-            if not upstream or not base_branch:
-                raise Exception("Project git repo invalid: %s" % project_git)
+            upstream, base_branch = self._get_project_repo_and_branch(s.project)
             repo = self._clone_repo(project_name, wd, upstream, base_branch, logf)
             new_branch = s.message_id
             subprocess.check_call(["git", "checkout", "-q", "-b", new_branch],
@@ -208,3 +225,25 @@ The meaning of each option is:
                     "char": "G",
                     })
 
+    def _poll_project(self, po):
+        repo, branch = self._get_project_repo_and_branch(po)
+        cache_repo = self._update_cache_repo(po.name, repo, branch)
+        head = subprocess.check_output(["git", "rev-parse", branch],
+                                       cwd=cache_repo).strip()
+        old_head = po.get_property("git.head")
+        if old_head != head:
+            po.set_property("git.head", head)
+            emit_event("ProjectGitUpdate", project=po.name)
+
+    def www_view_git_poll(self, request):
+        project = request.GET.get("project")
+        if project:
+            po = Project.objects.get(name=project)
+            self._poll_project(po)
+        else:
+            for p in Project.objects.all():
+                self._poll_project(p)
+        return HttpResponse()
+
+    def www_url_hook(self, urlpatterns):
+        urlpatterns.append(url(r"^git-poll/", self.www_view_git_poll))
