@@ -188,6 +188,7 @@ Other supported options are:
 
 class TestingGetView(APILoginRequiredView):
     name = "test-get"
+    allowed_groups = ["testers"]
 
     def _generate_test_data(self, s, test):
         r = {"project": s.project.name,
@@ -250,6 +251,7 @@ class TestingGetView(APILoginRequiredView):
 
 class TestingReportView(APILoginRequiredView):
     name = "test-report"
+    allowed_groups = ["testers"]
 
     def handle(self, request, tester, project, message_id, test, passed, log):
         m = Message.objects.find_series(message_id, project)

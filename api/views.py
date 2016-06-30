@@ -50,9 +50,20 @@ class APIView(View):
         return self.handle(request, **params)
 
 class APILoginRequiredView(APIView):
+
+    allowed_groups = []
+
+    def check_permission(self, request):
+        return False
+
     def check_request(self, request):
         if not request.user.is_authenticated():
             raise PermissionDenied()
+        for grp in request.user.groups.all():
+            if grp.is_superuser or grp.name in self.allowed_groups or \
+                    self.check_permission(request):
+                return
+        raise PermissionDenied()
 
 class VersionView(APIView):
     name = "version"
@@ -100,6 +111,7 @@ class SearchView(APIView):
 
 class ImportView(APILoginRequiredView):
     name = "import"
+    allowed_groups = ["importers"]
 
     def handle(self, request, mboxes):
         for mbox in mboxes:

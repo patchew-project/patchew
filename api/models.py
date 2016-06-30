@@ -5,7 +5,7 @@ import datetime
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from mbox import MboxMessage
 from event import emit_event, declare_event
 from django.contrib import admin
