@@ -47,7 +47,7 @@ crossorigin="anonymous"></script>
             <form role="search" method="GET" action="{% url 'search' %}">
                 <div class="form-group">
                     <div class="input-group">
-                        <span class="input-group-addon" id="basic-addon1"><a href="{% url "search_help" %}" class="search-help">Search</a></span>
+                        <span class="input-group-addon"><a href="{% url "search_help" %}" class="search-help">Search</a></span>
                         <input type="search" class="form-control" name="q" placeholder="Click 'Search' at left to see help" value="{{ search }}">
                     </div>
                 </div>
