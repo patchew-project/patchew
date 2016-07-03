@@ -29,11 +29,14 @@ integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7
 crossorigin="anonymous"></script>
 
 <link rel="stylesheet" href="/static/css/header.css">
+
 {% block header %}
 {% endblock %}
+
 </head>
 <body>
 <div class="col-lg-12 container-fluid">
+
     <div class="header">
         <div class="title col-lg-2">
             <h1 id="banner"><a href="/"><span class="smiley">:p</span>atchew</a>
@@ -51,6 +54,7 @@ crossorigin="anonymous"></script>
             </form>
         </div>
     </div>
+
     {% if navigate_links %}
         <ol class="breadcrumb">
         {% for n in navigate_links %}
@@ -62,8 +66,10 @@ crossorigin="anonymous"></script>
         {% endfor %}
         </ol>
     {% endif %}
+
     {% block content %}
     {% endblock %}
-{{ footer | safe }}
+
+    {{ footer | safe }}
 </div>
 </body>
