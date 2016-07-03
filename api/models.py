@@ -95,20 +95,13 @@ class MessageManager(models.Manager):
     def complete_series(self, project_name=None):
         return self.series_heads(project_name).filter(is_complete=True)
 
-    def mark_series_complete(self, s):
-        if s.is_complete:
-            return
-        s.is_complete = True
-        s.save()
-        emit_event("SeriesComplete", project=s.project, series=s)
-
     def update_series(self, msg):
         s = msg.get_series_head()
         if not s:
             return
         cur, total = s.get_num()
         if cur == total and s.is_patch:
-            self.mark_series_complete(s)
+            s.set_complete()
             return
         # TODO: Handle no cover letter case
         find = set(range(1, total + 1))
@@ -118,7 +111,7 @@ class MessageManager(models.Manager):
             if cur in find:
                 find.remove(cur)
         if not find:
-            self.mark_series_complete(s)
+            self.set_complete()
 
     def delete_subthread(self, msg):
         for r in msg.get_replies():
@@ -316,6 +309,13 @@ class Message(models.Model):
     def get_alternative_revisions(self):
         assert self.is_series_head
         return Message.objects.series_heads().filter(stripped_subject=self.stripped_subject)
+
+    def set_complete(self):
+        if self.is_complete:
+            return
+        self.is_complete = True
+        self.save()
+        emit_event("SeriesComplete", project=self.project, series=self)
 
     def __str__(self):
         return self.subject
