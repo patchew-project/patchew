@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.contrib.auth import views as auth_views
 from . import views
 from mod import dispatch_module_hook
 
@@ -6,6 +7,17 @@ urlpatterns = []
 dispatch_module_hook("www_url_hook", urlpatterns=urlpatterns)
 
 urlpatterns += [
+        url(
+            '^login/$',
+            auth_views.login,
+            {'template_name': 'login.html'},
+            name="login"
+        ),
+        url(
+            '^logout/$',
+            auth_views.logout,
+            name="logout"
+        ),
         url(r"^search$", views.view_search, name="search"),
         url(r"^search-help$", views.view_search_help, name="search_help"),
         url(r"^(?P<project>[^/]*)/$", views.view_series_list, name="series_list"),

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/login.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-2 col-md-offset-5">
+        <div class="panel panel-info login-panel">
+            <div class="panel-heading">Login to Patchew</div>
+            <div class="panel-body">
+                <form class="login-form" method="post" action="{% url 'django.contrib.auth.views.login' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% if next %}{{ next }}{% else %}/{% endif %}" />
+                    <div class="form-group">
+                        <label for="{{ form.username.id_for_label }}">{{ form.username.label_tag }}</label>
+                        <input type="username" class="form-control" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" placeholder="User Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.password.id_for_label }}">{{ form.password.label_tag }}</label>
+                        <input type="password" class="form-control" id="{{ form.password.id_for_label }}" name="{{ form.password.html_name }}" placeholder="Password">
+                    </div>
+                    {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">Your username and password didn't match. Please try again.</div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-default">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
