@@ -19,8 +19,8 @@ href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
 integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
 crossorigin="anonymous">
 
-<script src="https://code.jquery.com/jquery-3.0.0.min.js"
-integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0="
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"
+integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
 crossorigin="anonymous"></script>
 
 <!-- Latest compiled and minified JavaScript -->
@@ -35,25 +35,50 @@ crossorigin="anonymous"></script>
 
 </head>
 <body>
-<div class="col-lg-12 container-fluid">
-
-    <div class="header">
-        <div class="title col-lg-2">
-            <h1 id="banner"><a href="/"><span class="smiley">:p</span>atchew</a>
-            </h1>
-        </div>
-        <div class="col-lg-4"></div>
-        <div class="search col-lg-6">
-            <form role="search" method="GET" action="{% url 'search' %}">
-                <div class="form-group">
-                    <div class="input-group">
-                        <span class="input-group-addon"><a href="{% url "search_help" %}" class="search-help">Search</a></span>
-                        <input type="search" class="form-control" name="q" placeholder="Click 'Search' at left to see help" value="{{ search }}">
-                    </div>
-                </div>
-            </form>
-        </div>
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><span class="smiley">:p</span>atchew</a>
     </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-right">
+            <form class="navbar-form navbar-left search-form" role="search" method="GET" action="{% url 'search' %}">
+                <div class="form-group">
+                    <input type="text" class="form-control" name="q" placeholder="Search">
+                </div>
+                <a href="{% url "search_help" %}"><span class="glyphicon glyphicon-question-sign search-help"></span></a>
+            </form>
+            <div class="btn-group user-button">
+                {% if request.user.is_authenticated %}
+
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Hi {{ user.username }} <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="{% url "logout" %}?next={{ request.path }}">Logout</a></li>
+                </ul>
+                {% else %}
+                <a href="{% url "login" %}?next={{ request.path }}" class="btn btn-default">Login</a>
+                {% endif %}
+            </div>
+        </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+<div class="col-lg-12 container-fluid">
 
     {% if navigate_links %}
         <ol class="breadcrumb">
