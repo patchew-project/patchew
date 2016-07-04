@@ -98,7 +98,7 @@ def get_page_from_request(request):
 def prepare_navigate_list(cur, *path):
     """ each path is (view_name, kwargs, title) """
     r = [{"url": reverse("project_list"),
-          "title": "Home"}]
+          "title": "Projects"}]
     for it in path:
         r.append({"url": reverse(it[0], kwargs=it[1]),
                   "title": it[2]})
@@ -111,7 +111,8 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
     series = query[start:start + PAGE_SIZE]
     page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE)
     if project:
-        nav_path = prepare_navigate_list(project)
+        nav_path = prepare_navigate_list("Patches",
+                                         ("project_detail", {"project": project}, project))
     else:
         nav_path = prepare_navigate_list('search "%s"' % search)
     return render_page(request, 'series-list.html',
@@ -134,7 +135,7 @@ def view_project_detail(request, project):
     if not po:
         raise Http404("Project not found")
     nav_path = prepare_navigate_list("Information",
-                        ("series_list", {"project": project}, project))
+                        ("project_detail", {"project": project}, project))
     return render_page(request, "project-detail.html",
                        project=po,
                        navigate_links=nav_path,
