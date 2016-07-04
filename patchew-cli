@@ -28,6 +28,8 @@ class SubCommand(object):
 
     def api_do(self, cmd, **data):
         """Do server api call"""
+        logging.debug("API call '%s':" % cmd)
+        logging.debug("data:\n%s" % data)
         cookie = cookielib.MozillaCookieJar(COOKIE_FILENAME)
         try:
             cookie.load()
@@ -48,7 +50,9 @@ class SubCommand(object):
         # insert data
         resp = opener.open(req)
         cookie.save(ignore_discard=True, ignore_expires=True)
-        r = json.loads(resp.read())
+        respdata = resp.read()
+        logging.debug("Server response:\n%s" % respdata)
+        r = json.loads(respdata)
         if r["succeeded"]:
             return r.get("data")
         else:
@@ -426,6 +430,7 @@ def main():
         return 1
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+        logging.debug("Server: %s", args.server)
     if argv and not args.cmdobj.want_argv:
         raise Exception("Unrecognized arguments:\n" + argv[0])
     base_url = args.server
