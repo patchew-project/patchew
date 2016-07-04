@@ -180,7 +180,8 @@ def view_series_detail(request, project, message_id):
     if not s:
         raise Http404("Series not found")
     nav_path = prepare_navigate_list(s.message_id,
-                    ("series_list", {"project": project}, project))
+                    ("project_detail", {"project": project}, project),
+                    ("series_list", {"project": project}, "Patches"))
     search = "id:" + message_id
     ops = []
     dispatch_module_hook("www_series_operations_hook",
