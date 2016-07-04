@@ -12,22 +12,6 @@ from api.models import Project
 
 _instance = None
 
-_default_config = """
-[project QEMU]
-
-# The remote repo to push the new branch with the series applied
-# You can specify a https based github repo with username/password embedded in
-# the URL for authentication
-push_to=https://your_name:your_pass@github.com/your_name/your_project
-
-# The visible git repo URL that is visible to users
-public_repo=https://github.com/your_name/your_project
-
-# The url format of the hyperlink
-url_template=https://github.com/your_name/your_project/tree/{tag_name}
-
-"""
-
 class GitModule(PatchewModule):
     """Git module"""
     name = "git"
