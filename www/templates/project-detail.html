@@ -28,7 +28,7 @@
     <div class="panel {% if info.is_error %}panel-danger{% else %}panel-default{% endif %}">
         <div class="panel-heading panel-toggler">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden">
-            <pre class="body-full">{{ info.content }}</pre>
+            {{ info.content | safe }}
         </div>
     </div>
     {% endfor %}
