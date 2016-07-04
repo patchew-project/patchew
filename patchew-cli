@@ -51,12 +51,12 @@ class SubCommand(object):
         resp = opener.open(req)
         cookie.save(ignore_discard=True, ignore_expires=True)
         respdata = resp.read()
-        logging.debug("Server response:\n%s" % respdata)
-        r = json.loads(respdata)
-        if r["succeeded"]:
-            return r.get("data")
+        logging.debug("Server response:\n%s" % (respdata or "<empty>"))
+        if respdata:
+            r = json.loads(respdata)
         else:
-            raise APIError(r.get("message", "unknown error"))
+            r = None
+        return r
 
     def do(self, args, argv):
         """Do command"""

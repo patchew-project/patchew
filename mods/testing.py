@@ -131,16 +131,14 @@ where `...` is the name of the capability to be referenced by the
     def add_test_report(self, user, project, tester, test, head, base, identity, passed, log):
         # Find a project or series depending on the test type and assign it to obj
         if identity["type"] == "project":
-            obj = Project.objects.filter(name=project).first()
-            if not obj:
-                return self.error_response("Project not found")
+            obj = Project.objects.get(name=project)
             is_proj_report = True
             project = obj.name
         elif identity["type"] == "series":
             message_id = identity["message-id"]
             obj = Message.objects.find_series(message_id, project)
             if not obj:
-                return self.error_response("Series doesn't exist")
+                raise Exception("Series doesn't exist")
             is_proj_report = False
             project = obj.project.name
         obj.set_property("testing.report." + test,
@@ -320,7 +318,7 @@ class TestingGetView(APILoginRequiredView):
         repo = po.get_property("git.repo")
         tested = po.get_property("testing.tested-head")
         td = self._generate_project_test_data(project, repo, head, tested, test)
-        return self.response(td)
+        return td
 
     def handle(self, request, project, tester, capabilities):
         # Try project head test first
@@ -346,10 +344,9 @@ class TestingGetView(APILoginRequiredView):
         if candidate:
             s.set_property("testing.started", True)
             s.set_property("testing.start-time", time.time())
-            return self.response(self._generate_series_test_data(candidate[0],
-                                                                 candidate[1]))
+            return self._generate_series_test_data(candidate[0], candidate[1])
         else:
-            return self.response()
+            return
 
 class TestingReportView(APILoginRequiredView):
     name = "testing-report"
@@ -357,7 +354,6 @@ class TestingReportView(APILoginRequiredView):
 
     def handle(self, request, tester, project, test, head, base, passed, log, identity):
         _instance.add_test_report(request.user, project, tester, test, head, base, identity, passed, log)
-        return self.response()
 
 class TestingCapabilitiesView(APILoginRequiredView):
     name = "testing-capabilities"
@@ -365,4 +361,4 @@ class TestingCapabilitiesView(APILoginRequiredView):
 
     def handle(self, request, tester, project):
         probes = _instance.get_capability_probes(project)
-        return self.response(probes)
+        return probes

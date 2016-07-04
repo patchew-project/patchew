@@ -1,8 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import View
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from .models import Project, Message
@@ -18,24 +17,11 @@ class APIView(View):
     def dispatch(self, request, *args, **kwargs):
         return super(APIView, self).dispatch(request, *args, **kwargs)
 
-    def _api_response(self, succeeded, message, data=None):
-        r = {"succeeded": succeeded}
-        if message:
-            r["message"] = message
-        r["data"] = data
-        return HttpResponse(json.dumps(r))
-
-    def error_response(self, msg):
-        return self._api_response(False, msg)
-
-    def response(self, data=None):
-        return self._api_response(True, "ok", data)
-
     def get(self, request):
-        return self.error_response("API must use POST method")
+        raise PermissionDenied("API must use POST method")
 
     def handle(self, request, **params):
-        return self.error_response("unrecognized command")
+        raise Http404("unknown command")
 
     def check_request(self, request):
         pass
@@ -47,7 +33,11 @@ class APIView(View):
         else:
             params = {}
         self.check_request(request)
-        return self.handle(request, **params)
+        r = self.handle(request, **params)
+        if r:
+            return HttpResponse(json.dumps(r))
+        else:
+            return HttpResponse()
 
 class APILoginRequiredView(APIView):
 
@@ -71,28 +61,27 @@ class VersionView(APIView):
     name = "version"
 
     def handle(self, request):
-        return self.response(settings.VERSION)
+        return settings.VERSION
 
 class ListProjectView(APIView):
     name = "list-projects"
 
     def handle(self, request):
         r = [x.name for x in Project.objects.all()]
-        return self.response(r)
+        return r
 
 class AddProjectView(APILoginRequiredView):
     name = "add-project"
 
     def handle(self, request, name, mailing_list, url, git, description):
         if Project.objects.filter(name=name):
-            return self.error_response("Project already exists")
+            raise Exception("Project already exists")
         p = Project(name=name,
                     mailing_list=mailing_list,
                     url=url,
                     git=git,
                     description=description)
         p.save()
-        return self.response()
 
 def render_series(s):
     r = {"subject": s.subject,
@@ -109,7 +98,7 @@ class SearchView(APIView):
     def handle(self, request, terms):
         se = SearchEngine()
         r = se.search_series(*terms)
-        return self.response([render_series(x) for x in r])
+        return [render_series(x) for x in r]
 
 class ImportView(APILoginRequiredView):
     name = "import"
@@ -121,7 +110,6 @@ class ImportView(APILoginRequiredView):
                 Message.objects.add_message_from_mbox(mbox.encode("utf8"), request.user)
             except Message.objects.DuplicateMessageError:
                 pass
-        return self.response()
 
 class DeletreView(APILoginRequiredView):
     """ Delete messages """
@@ -134,14 +122,12 @@ class DeletreView(APILoginRequiredView):
             se = SearchEngine()
             for r in se.search_series(*terms):
                 Message.objects.delete_subthread(r)
-        return self.response()
 
 class Logout(APIView):
     name = "logout"
 
     def handle(self, request):
         logout(request)
-        return self.response()
 
 class LoginComand(APIView):
     name = "login"
@@ -152,9 +138,9 @@ class LoginComand(APIView):
             # the password verified for the user
             if user.is_active:
                 login(request, user)
-                return self.response()
+                return
             else:
-                return self.error_response("User is disabled")
+                raise Exception("User is disabled")
         else:
-                return self.error_response("Wrong user name or password")
+                raise PermissionDenied("Wrong user name or password")
 
