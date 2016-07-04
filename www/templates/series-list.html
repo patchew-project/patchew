@@ -15,7 +15,18 @@
         <th>Status</th>
         <th>Subject</th>
         <th>Author</th>
-        <th>Age</th>
+        <th>
+            <div class="dropdown">
+                <a class="dropdown-toggle" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    {% if order_by_reply %} Replied {% else %} Age {% endif %}
+                    <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                    <li><a href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=age">Age</a></li>
+                    <li><a href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=replied">Replied</a></li>
+                </ul>
+            </div>
+        </th>
     </tr>
     {% for s in series %}
         <tr>
@@ -35,7 +46,11 @@
                     {{ s.sender_display_name }}
                 </span>
             </td>
+            {% if order_by_reply %}
+            <td><span class="timestamp" title="{{ s.last_reply_date }}">{{ s.get_last_reply_age }}</span></td>
+            {% else %}
             <td><span class="timestamp" title="{{ s.date }}">{{ s.get_age }}</span></td>
+            {% endif %}
         </tr>
     {% endfor %}
 </table>

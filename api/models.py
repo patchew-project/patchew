@@ -80,7 +80,7 @@ class MessageManager(models.Manager):
 
     def series_heads(self, project_name=None):
         q = super(MessageManager, self).get_queryset()\
-                .filter(is_series_head=True).order_by("-date", "-version")
+                .filter(is_series_head=True)
         if project_name:
             q = q.filter(project__name=project_name)
         return q

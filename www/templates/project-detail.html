@@ -12,7 +12,7 @@
     <div class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
-        <a href="{% url "series_list" project=project %}" class="list-group-item list-group-item-info">View patches</a>
+        <a href="{% url "series_list" project=project %}" class="list-group-item list-group-item-info">Patches</a>
         {% for op in series_operations %}
             <a href="{{ op.url }}" class="list-group-item list-group-item-info">{{ op.title }}</a>
         {% endfor %}

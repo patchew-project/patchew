@@ -7,3 +7,7 @@
 .frownie {
     color: #890000;
 }
+
+.dropdown a:hover, .dropdown a:focus {
+    text-decoration: none;
+}
