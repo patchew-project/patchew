@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import argparse
+import ConfigParser
 import json
 import urllib
 import urllib2
@@ -199,8 +200,6 @@ class TesterCommand(SubCommand):
         parser.add_argument("--cache-repo", "-C",
                             default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
                             help="local git repo for fast clone")
-        parser.add_argument("--debug", "-d", action="store_true",
-                            help="enable debug output")
 
     def _clone_repo(self, wd, cache_repo, remote, head, logf):
         clone = os.path.join(wd, "src")
@@ -302,8 +301,7 @@ class TesterCommand(SubCommand):
             logf.seek(0)
             log = logf.read()
             print "  Result:", "Passed" if passed else "Failed"
-            if args.debug:
-                print log
+            logging.debug(log)
             self.api_do("testing-report", project=r["project"],
                                           identity=r["identity"],
                                           test=r["test"]["name"],
@@ -385,10 +383,30 @@ class ApplyCommand(SubCommand):
         return 0
 
 def global_args(parser):
-    parser.add_argument("-D", "--debug", action="store_true",
+    parser.add_argument("-d", "--debug", action="store_true", default=None,
                         help="Enable debug output")
-    parser.add_argument("-s", "--server", default="http://127.0.0.1:8000/",
+    parser.add_argument("-D", "--nodebug", action="store_false", dest="debug",
+                        help="Disable debug output")
+    parser.add_argument("-s", "--server",
                         help="Base URL for patchew server")
+    parser.add_argument("-c", "--config",
+                        help="""Config file to use. Default is to look up under
+                        $(pwd) and $HOME""")
+
+def args_merge_config(args):
+    if not args.config:
+        for fp in [".patchew-cli.conf", os.path.expanduser("~/.patchew-cli.conf")]:
+            if os.path.isfile(fp):
+                args.config = fp
+    if not args.config:
+        return
+    cp = ConfigParser.ConfigParser()
+    cp.read(args.config)
+    if args.debug == None:
+        args.debug = cp.getboolean("general", "debug")
+    if args.server == None:
+        args.server = cp.get("general", "server")
+
 def main():
     parser = argparse.ArgumentParser()
     global_args(parser)
@@ -400,6 +418,9 @@ def main():
             cmd.arguments(p)
         p.set_defaults(cmdobj=cmd, all=False)
     args, argv = parser.parse_known_args()
+
+    args_merge_config(args)
+
     if not hasattr(args, "cmdobj"):
         parser.print_usage()
         return 1

@@ -58,7 +58,7 @@ class PatchewTestCase(unittest.TestCase):
 
     def cli_command(self, *argv):
         """Run patchew-cli command and return (retcode, stdout, stderr)"""
-        p = subprocess.Popen([self.patchew_cli, "-s", self.server_url] +\
+        p = subprocess.Popen([self.patchew_cli, "-D", "-s", self.server_url] +\
                               list(argv),
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         a, b = p.communicate()
