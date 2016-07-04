@@ -5,6 +5,7 @@ import shutil
 import hashlib
 from django.conf.urls import url
 from django.http import HttpResponse, Http404
+from django.template import Context, Template
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Project
@@ -13,9 +14,6 @@ _instance = None
 
 _default_config = """
 [project QEMU]
-
-# The local mirror of upstream repo to speed up clone
-cache_repo=/var/tmp/patchew-git-cache-qemu
 
 # The remote repo to push the new branch with the series applied
 # You can specify a https based github repo with username/password embedded in
@@ -31,39 +29,8 @@ url_template=https://github.com/your_name/your_project/tree/{tag_name}
 """
 
 class GitModule(PatchewModule):
-    """
-
-Documentation
--------------
-
-This module is configured in "INI" style.
-
-Each section named like 'project FOO' provides information for automatical git
-apply for each series in that project. A typical setup looks like:
-
-    [project QEMU]
-    cache_repo=/var/tmp/patchew-git-cache-qemu
-    push_to=/path/to/your/repo
-    public_repo=https://github.com/your_name/your_project
-    url_template=https://github.com/your_name/your_project/tree/{tag_name}
-
-The meaning of each option is:
-
-  * **cache_repo**: Where to hold the local repo as a clone of project
-    upstream. The server script must have write access to this location, and
-    each project should have its own location.
-
-  * **push_to**: Where to push (as in `git remote`) the git tag after
-    successfully applying.
-
-  * **public_repo**: The URL to the repo (as in HTML hyperlinks).
-
-  * **url_template**: The template to generate a quick link to the pushed tag.
-    '{tag_name}' in the template will be replaced with the actual tag name.
-
-"""
+    """Git module"""
     name = "git"
-    default_config = _default_config
 
     def __init__(self):
         global _instance
@@ -85,7 +52,7 @@ The meaning of each option is:
             shutil.rmtree(wd)
 
     def get_project_config(self, project, what):
-        return self.get_config("project " + project, what)
+        return project.get_property("git." + what)
 
     def _is_repo(self, path):
         if not os.path.isdir(path):
@@ -97,7 +64,7 @@ The meaning of each option is:
         return True
 
     def _update_cache_repo(self, project_name, repo, branch, logf=None):
-        cache_repo = self.get_project_config(project_name, "cache_repo")
+        cache_repo = "/var/tmp/patchew-git-cache-%s" % project_name
         if not self._is_repo(cache_repo):
             # Clone upstream to local cache
             subprocess.call(["rm", "-rf", cache_repo],
@@ -159,7 +126,7 @@ The meaning of each option is:
                     subprocess.check_output(["git", "filter-branch", "-f",
                                              "--msg-filter", "cat; " + filter_cmd,
                                              "HEAD~1.."], cwd=repo)
-            push_to = self.get_project_config(project_name, "push_to")
+            push_to = self.get_project_config(s.project, "push_to")
             if push_to:
                 subprocess.check_call(["git", "remote", "add",
                                         "push_remote", push_to], cwd=repo,
@@ -174,11 +141,11 @@ The meaning of each option is:
                 subprocess.call(["git", "push", "push_remote", base_branch],
                                 cwd=repo,
                                 stdout=logf, stderr=logf)
-            s.set_property("git.repo", self.get_project_config(project_name, "public_repo"))
+            s.set_property("git.repo", self.get_project_config(s.project, "public_repo"))
             s.set_property("git.tag", new_branch)
             s.set_property("git.base", base)
             s.set_property("git.url",
-                           self.get_project_config(project_name, "url_template")\
+                           self.get_project_config(s.project, "url_template")\
                                    .format(tag_name=new_branch))
             s.set_property("git.apply-failed", False)
         except Exception as e:
@@ -224,6 +191,81 @@ The meaning of each option is:
                     "type": "info",
                     "char": "G",
                     })
+
+    def _get_config_html(self, request, project):
+        tmpl = """
+<form>
+  <input type="hidden" name="project" value="{{ project.name }}" >
+  <div class="form-group">
+    <label for="git-input-push-remote">Push remote:</label>
+    <input type="text" class="form-control" id="git-input-push-remote"
+     name="push_to"
+     placeholder="Git push URL"
+     value="{{ push_to }}">
+  </div>
+  <div class="form-group">
+    <label for="git-input-public-repo">Public repo:</label>
+    <input type="text" class="form-control" id="git-input-public-repo"
+     name="public_repo"
+     placeholder="Git clone URL for the push remote"
+     value="{{ public_repo }}">
+  </div>
+  <div class="form-group">
+    <label for="git-input-url-template">URL template:</label>
+    <input type="text" class="form-control" id="git-input-url-template"
+     name="url_template"
+     placeholder="Git URL to generate link"
+     value="{{ url_template }}">
+  </div>
+  <div id="git-save-message" class="alert hidden"></div>
+  <div class="form-group">
+    <button type="button" id="git-save" class="btn btn-default">Save</button>
+  </div>
+</form>
+<script type="text/javascript">
+$("#git-save").click(function () {
+    $(this).addClass("disabled");
+    $(this).text("Saving...");
+    $("#git-save-message").addClass("hidden");
+    patchew_api_do("set-project-properties",
+                   { project: "{{ project.name }}",
+                     properties: {
+                        "git.push_to": $("#git-input-push-remote").val(),
+                        "git.public_repo": $("#git-input-public-repo").val(),
+                        "git.url_template": $("#git-input-public-repo").val(),
+                    }})
+        .done(function (data) {
+            $("#git-save-message").text("Saved");
+            $("#git-save-message").removeClass("alert-dander");
+            $("#git-save-message").addClass("alert-success");
+        })
+        .fail(function (data, text, error) {
+            $("#git-save-message").text("Failed: " + error);
+            $("#git-save-message").removeClass("alert-success");
+            $("#git-save-message").addClass("alert-danger");
+        })
+        .always(function (data) {
+            $("#git-save-message").removeClass("hidden");
+            $("#git-save").removeClass("disabled");
+            $("#git-save").text("Save");
+        });
+})
+</script>
+"""
+        template = Template(tmpl)
+        c = Context({"project": project,
+                     "push_to": project.get_property("git.push_to", ""),
+                     "public_repo": project.get_property("git.public_repo", ""),
+                     "url_template": project.get_property("git.url_template", ""),
+                    })
+        return template.render(c)
+
+    def prepare_project_hook(self, request, project):
+        if not project.maintained_by(request.user):
+            return
+        project.extra_info.append({"title": "Git configuration",
+                                   "content": self._get_config_html(request,
+                                                                    project)})
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
