@@ -60,6 +60,13 @@ class Project(models.Model):
     def total_series_count(self):
         return Message.objects.series_heads(project_name=self.name).count()
 
+    def maintained_by(self, user):
+        if user.is_superuser:
+            return True
+        if user.username in self.get_property("maintainers", []):
+            return True
+        return False
+
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, unique=True, db_index=True)
