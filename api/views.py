@@ -83,6 +83,25 @@ class AddProjectView(APILoginRequiredView):
                     description=description)
         p.save()
 
+class GetProjectPropertiesView(APILoginRequiredView):
+    name = "get-project-properties"
+
+    def handle(self, request, project):
+        po = Project.objects.get(name=project)
+        if not po.maintained_by(request.user):
+            raise PermissionDenied("Access denied to this project")
+        return po.get_properties()
+
+class SetProjectPropertiesView(APILoginRequiredView):
+    name = "set-project-properties"
+
+    def handle(self, request, project, properties):
+        po = Project.objects.get(name=project)
+        if not po.maintained_by(request.user):
+            raise PermissionDenied("Access denied to this project")
+        for k, v in properties.iteritems():
+            po.set_property(k, v)
+
 def render_series(s):
     r = {"subject": s.subject,
          "project": s.project.name,
