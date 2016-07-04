@@ -279,8 +279,8 @@ class Message(models.Model):
     def get_sender_name(self):
         return self.get_sender()[0]
 
-    def get_age(self):
-        def seconds_to_human(sec):
+    def _get_age(self, date):
+        def _seconds_to_human(sec):
             unit = 'second'
             if sec > 60:
                 sec /= 60
@@ -297,10 +297,17 @@ class Message(models.Model):
             if sec > 1:
                 unit += 's'
             return "%s %s" % (sec, unit)
-        age = int((datetime.datetime.utcnow() - self.date).total_seconds())
+
+        age = int((datetime.datetime.utcnow() - date).total_seconds())
         if age < 0:
             return "now"
-        return seconds_to_human(age)
+        return _seconds_to_human(age)
+
+    def get_age(self):
+        return self._get_age(self.date)
+
+    def get_last_reply_age(self):
+        return self._get_age(self.last_reply_date)
 
     def get_body(self):
         return self.get_mbox_obj().get_body()
