@@ -115,7 +115,7 @@ class MessageManager(models.Manager):
             if cur in find:
                 find.remove(cur)
         if not find:
-            self.set_complete()
+            s.set_complete()
 
     def delete_subthread(self, msg):
         for r in msg.get_replies():
