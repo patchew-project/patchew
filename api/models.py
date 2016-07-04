@@ -96,9 +96,13 @@ class MessageManager(models.Manager):
         return self.series_heads(project_name).filter(is_complete=True)
 
     def update_series(self, msg):
+        """Update the series' record to which @msg is replying"""
         s = msg.get_series_head()
         if not s:
             return
+        if not s.last_reply_date or s.last_reply_date < msg.date:
+            s.last_reply_date = msg.date
+            s.save()
         cur, total = s.get_num()
         if cur == total and s.is_patch:
             s.set_complete()
@@ -155,6 +159,7 @@ class Message(models.Model):
     message_id = HeaderFieldModel(db_index=True)
     in_reply_to = HeaderFieldModel(blank=True, db_index=True)
     date = models.DateTimeField(db_index=True)
+    last_reply_date = models.DateTimeField(db_index=True, null=True)
     subject = HeaderFieldModel()
     stripped_subject = HeaderFieldModel(db_index=True)
     version = models.PositiveSmallIntegerField(default=0)
