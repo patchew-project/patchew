@@ -107,26 +107,26 @@ class ImportCommand(SubCommand):
     def arguments(self, parser):
         parser.add_argument("file", nargs="*", type=str, help="object to list")
 
-    def import_one(self, fn):
-        if os.path.isdir(fn):
-            for p in os.listdir(fn):
-                self.import_one(os.path.join(fn, p))
-            return
-        f = open(fn, "r")
-        if f.readline().startswith("From "):
-            for m in mailbox.mbox(fn):
-                ms = m.as_string()
-                self.api_do("import", mboxes=[ms])
-        else:
-            f.seek(0)
-            self.api_do("import", mboxes=[f.read()])
-
     def do(self, args, argv):
         import mailbox
+
+        def import_one(fn):
+            if os.path.isdir(fn):
+                for p in os.listdir(fn):
+                    import_one(os.path.join(fn, p))
+                return
+            f = open(fn, "r")
+            if f.readline().startswith("From "):
+                for m in mailbox.mbox(fn):
+                    ms = m.as_string()
+                    self.api_do("import", mboxes=[ms])
+            else:
+                f.seek(0)
+                self.api_do("import", mboxes=[f.read()])
         r = 0
         for f in args.file:
             try:
-                self.import_one(f)
+                import_one(f)
             except Exception as e:
                 print "Error in importing:", f
                 traceback.print_exc(e)
