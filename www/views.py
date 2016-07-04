@@ -106,6 +106,15 @@ def prepare_navigate_list(cur, *path):
     return r
 
 def render_series_list_page(request, query, search, project=None, keywords=[]):
+    sort = request.GET.get("sort")
+    if sort == "replied":
+        sortfield = "-last_reply_date"
+        order_by_reply = True
+    else:
+        sortfield = "-date"
+        order_by_reply = False
+    if sortfield:
+        query = query.order_by(sortfield)
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
     series = query[start:start + PAGE_SIZE]
@@ -121,6 +130,7 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
                        search=search,
                        keywords=keywords,
                        project_column=project==None,
+                       order_by_reply=order_by_reply,
                        navigate_links=nav_path)
 
 def view_search_help(request):
@@ -153,7 +163,7 @@ def view_search(request):
 def view_series_list(request, project):
     if not api.models.Project.has_project(project):
         raise Http404("Project not found")
-    search = "project:%s " % project
+    search = "project:%s" % project
     query = api.models.Message.objects.series_heads(project)
     return render_series_list_page(request, query, search, project=project)
 
