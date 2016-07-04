@@ -146,6 +146,8 @@ def view_project_detail(request, project):
         raise Http404("Project not found")
     nav_path = prepare_navigate_list("Information",
                         ("project_detail", {"project": project}, project))
+    po.extra_info = []
+    dispatch_module_hook("prepare_project_hook", request=request, project=po)
     return render_page(request, "project-detail.html",
                        project=po,
                        navigate_links=nav_path,
