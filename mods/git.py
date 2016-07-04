@@ -141,7 +141,8 @@ class GitModule(PatchewModule):
                 subprocess.call(["git", "push", "push_remote", base_branch],
                                 cwd=repo,
                                 stdout=logf, stderr=logf)
-            s.set_property("git.repo", self.get_project_config(s.project, "public_repo"))
+            public_repo = self.get_project_config(s.project, "public_repo")
+            s.set_property("git.repo", public_repo)
             s.set_property("git.tag", new_branch)
             s.set_property("git.base", base)
             s.set_property("git.url",
@@ -159,7 +160,7 @@ class GitModule(PatchewModule):
             logf.seek(0)
             log = logf.read()
             if push_to:
-                log = log.replace(push_to, "$PUSH_TO")
+                log = log.replace(push_to, public_repo)
             s.set_property("git.apply-log", log)
 
     def prepare_message_hook(self, message):
