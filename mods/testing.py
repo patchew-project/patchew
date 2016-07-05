@@ -2,6 +2,7 @@ from django.conf.urls import url
 from django.http import HttpResponse, HttpResponseForbidden, Http404, \
                         HttpResponseRedirect
 from django.core.urlresolvers import reverse
+from django.template import Template, Context
 from mod import PatchewModule
 import time
 import smtplib
@@ -11,79 +12,50 @@ from api.views import APILoginRequiredView
 from api.models import Message, Project
 from api.search import SearchEngine
 from event import emit_event, declare_event
-
-_default_config = """
-[test a]
-project = QEMU
-command = true
-
-[test b]
-project = QEMU
-command-asset = test_b
-requirements = docker
-user = fam
-tester = debug
-
-[capability docker]
-project = QEMU
-probe = docker ps || sudo -n docker ps
-
-"""
+from schema import *
 
 _instance = None
 
 class TestingModule(PatchewModule):
-    """
-
-Documentation
--------------
-
-This module is configured in "INI" style.
-
-Each section named like 'test FOO' is a test case
-that will be distributed to testers. For example:
-
-    [test a]
-    project = BAR
-    command = true
-    timeout = 1000
-
-defines a test called "a" that will be run against each new series of project
-BAR. The testing command to run is 'true' which will already pass. The timeout
-specifies for how long the tester should wait for the command to execute,
-before aborting and reporting a timeout error.
-
-Other supported options are:
-
-  * **command-asset**: Instead of using a one liner command as given in
-    `command` option, this option refers to a named "module asset" and treat it
-    as a script in any format.
-
-  * **user**: Limit the accepted user name that can run this test.
-
-  * **tester**: Limit the accepted tester name that can run this test.
-
-  * **requirements**: Limit the accepted tester to those that has these
-    capabilities. Multiple requirements are separeted with comma. See
-    following for capability probing with `[capability ...]` sections.
-
-Capability probing methods are configured with a `[capability ...]` section,
-where `...` is the name of the capability to be referenced by the
-`requirements` field in a test config. Example:
-
-    [capability clang]
-    project = BAR
-    probe = clang
-
-  * **project**: Limit to only the project to which this capability probing
-  should be applied.
-
-  * **probe**: The probing command.
-
-"""
+    """Testing module"""
 
     name = "testing"
-    default_config = _default_config
+
+    test_schema = \
+        ArraySchema("{name}", "Test", desc="Test spec",
+                    members=[
+                        StringSchema("users", "Users",
+                                     desc="List of allowed users to run this test"),
+                        StringSchema("testers", "Testers",
+                                     desc="List of allowed testers to run this test"),
+                        StringSchema("requirements", "Requirements",
+                                     desc="List of requirements of the test"),
+                        StringSchema("script", "Test script",
+                                     desc="The testing script",
+                                     default="#!/bin/bash\ntrue",
+                                     multiline=True,
+                                     required=True),
+                    ])
+
+    requirement_schema = \
+        ArraySchema("{name}", "Requirement", desc="Test requirement spec",
+                    members=[
+                        StringSchema("script", "Probe script",
+                                     desc="The probing script for this requirement",
+                                     multiline=True,
+                                     required=True),
+                    ])
+
+    project_property_schema = \
+        ArraySchema("testing", desc="Configuration for testing module",
+                    members=[
+                        MapSchema("tests", "Tests",
+                                   desc="Testing specs",
+                                   item=test_schema),
+                        MapSchema("requirements", "Requirements",
+                                   desc="Requirement specs",
+                                   item=requirement_schema),
+                   ])
 
     def __init__(self):
         global _instance
@@ -172,32 +144,20 @@ where `...` is the name of the capability to be referenced by the
 
     def get_tests(self, project):
         ret = {}
-        conf = self.get_config_obj()
-        for sec in filter(lambda x: x.lower().startswith("test "),
-                          conf.sections()):
-            if conf.get(sec, "project") != project:
+        for k, v in project.get_properties().iteritems():
+            if not k.startswith("testing.test."):
                 continue
-            try:
-                name = sec[len("test "):]
-                t = {"name": name}
-                fields = [x for x, y in conf.items(sec)]
-                if "command" in fields:
-                    t["commands"] = "#!/bin/bash\n" + conf.get(sec, "command")
-                elif "command-asset" in fields:
-                    t["commands"] = self.get_asset(conf.get(sec, "command-asset")).\
-                                    replace("\r\n", "\n")
-                if "requirements" in fields:
-                    t["requirements"] = [x.strip() for x in conf.get(sec, "requirements").split()]
-                if "timeout" in fields:
-                    t["timeout"] = conf.getint(sec, "timeout")
-                else:
-                    t["timeout"] = 3600
-                if "tester" in fields:
-                    t["tester"] = conf.get(sec, "tester")
-                ret[name] = t
-            except Exception as e:
-                print "Error while parsing test config:"
-                traceback.print_exc(e)
+            tn = k[len("testing.test."):]
+            ret[tn] = v
+        return ret
+
+    def get_requirements(self, project):
+        ret = {}
+        for k, v in project.get_properties().iteritems():
+            if not k.startswith("testing.requirement."):
+                continue
+            tn = k[len("testing.requirement."):]
+            ret[tn] = v
         return ret
 
     def prepare_message_hook(self, message):
@@ -233,6 +193,13 @@ where `...` is the name of the capability to be referenced by the
                 "char": "T",
                 })
 
+    def prepare_project_hook(self, request, project):
+        if not project.maintained_by(request.user):
+            return
+        project.extra_info.append({"title": "Tests",
+                                   "content": self.build_config_html(request,
+                                                                     project)})
+
     def get_capability_probes(self, project):
         ret = {}
         conf = self.get_config_obj()
@@ -247,7 +214,6 @@ where `...` is the name of the capability to be referenced by the
                 print "Error while parsing capability config:"
                 traceback.print_exc(e)
         return ret
-
 
 class TestingGetView(APILoginRequiredView):
     name = "testing-get"
