@@ -30,7 +30,9 @@
 
     {% for info in project.extra_info %}
     <div class="panel {% if info.is_error %}panel-danger{% else %}panel-default{% endif %}">
-        <div class="panel-heading panel-toggler">{{ info.title }}</div>
+        <div class="panel-heading panel-toggler" onclick="$(this).parent().find('.panel-toggle').toggle()">
+            {{ info.title }}
+        </div>
         <div class="panel-body panel-toggle panel-hidden">
             {{ info.content | safe }}
         </div>
@@ -41,12 +43,6 @@
 <script type="text/javascript">
 
 function main() {
-    $(".panel-toggler").click(function () {
-        $(this).parent().find(".panel-toggle").toggle();
-    });
-    $(".timestamp").each(function (i, o) {
-        $(o).attr("title", new Date(1000 * $(o).attr("title")));
-    });
     $("#btn-expand-all").click(function () {
         $(".panel-toggle").show();
     });
