@@ -9,12 +9,26 @@ from django.template import Context, Template
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Project
+from schema import *
 
 _instance = None
 
 class GitModule(PatchewModule):
     """Git module"""
     name = "git"
+
+    project_property_schema = \
+        ArraySchema("git", desc="Configuration for git module",
+                    members=[
+                        StringSchema("push_to", "Push remote",
+                                     desc="Remote to push to",
+                                     required=True),
+                        StringSchema("public_repo", "Public repo",
+                                     desc="Publicly visible repo URL"),
+                        StringSchema("url_template", "URL template",
+                                     desc="Publicly visible URL template for applied branch",
+                                     required=True),
+                   ])
 
     def __init__(self):
         global _instance
@@ -177,80 +191,12 @@ class GitModule(PatchewModule):
                     "char": "G",
                     })
 
-    def _get_config_html(self, request, project):
-        tmpl = """
-<form>
-  <input type="hidden" name="project" value="{{ project.name }}" >
-  <div class="form-group">
-    <label for="git-input-push-remote">Push remote:</label>
-    <input type="text" class="form-control" id="git-input-push-remote"
-     name="push_to"
-     placeholder="Git push URL"
-     value="{{ push_to }}">
-  </div>
-  <div class="form-group">
-    <label for="git-input-public-repo">Public repo:</label>
-    <input type="text" class="form-control" id="git-input-public-repo"
-     name="public_repo"
-     placeholder="Git clone URL for the push remote"
-     value="{{ public_repo }}">
-  </div>
-  <div class="form-group">
-    <label for="git-input-url-template">URL template:</label>
-    <input type="text" class="form-control" id="git-input-url-template"
-     name="url_template"
-     placeholder="Git URL to generate link"
-     value="{{ url_template }}">
-  </div>
-  <div id="git-save-message" class="alert hidden"></div>
-  <div class="form-group">
-    <button type="button" id="git-save" class="btn btn-default">Save</button>
-  </div>
-</form>
-<script type="text/javascript">
-$("#git-save").click(function () {
-    $(this).addClass("disabled");
-    $(this).text("Saving...");
-    $("#git-save-message").addClass("hidden");
-    patchew_api_do("set-project-properties",
-                   { project: "{{ project.name }}",
-                     properties: {
-                        "git.push_to": $("#git-input-push-remote").val(),
-                        "git.public_repo": $("#git-input-public-repo").val(),
-                        "git.url_template": $("#git-input-public-repo").val(),
-                    }})
-        .done(function (data) {
-            $("#git-save-message").text("Saved");
-            $("#git-save-message").removeClass("alert-dander");
-            $("#git-save-message").addClass("alert-success");
-        })
-        .fail(function (data, text, error) {
-            $("#git-save-message").text("Failed: " + error);
-            $("#git-save-message").removeClass("alert-success");
-            $("#git-save-message").addClass("alert-danger");
-        })
-        .always(function (data) {
-            $("#git-save-message").removeClass("hidden");
-            $("#git-save").removeClass("disabled");
-            $("#git-save").text("Save");
-        });
-})
-</script>
-"""
-        template = Template(tmpl)
-        c = Context({"project": project,
-                     "push_to": project.get_property("git.push_to", ""),
-                     "public_repo": project.get_property("git.public_repo", ""),
-                     "url_template": project.get_property("git.url_template", ""),
-                    })
-        return template.render(c)
-
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
             return
-        project.extra_info.append({"title": "Git configuration",
-                                   "content": self._get_config_html(request,
-                                                                    project)})
+        project.extra_info.append({"title": "Git config",
+                                   "content": self.build_config_html(request,
+                                                                     project)})
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
