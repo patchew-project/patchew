@@ -356,6 +356,10 @@ function map_add_item(btn) {
         alert(test_name + " already exists.");
         return;
     }
+    if (name.indexOf(".") >= 0) {
+        alert("Invalid name, no dot is allowed.");
+        return;
+    }
     container = $(btn).parent().parent();
     tmpl = container.find("#item-template").html();
     nt = $(tmpl)
