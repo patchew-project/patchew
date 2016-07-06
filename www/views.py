@@ -32,7 +32,8 @@ def prepare_message(request, m):
                 })
     m.extra_info = []
     m.extra_headers = []
-    dispatch_module_hook("prepare_message_hook", message=m)
+    m.extra_ops = []
+    dispatch_module_hook("prepare_message_hook", request=request, message=m)
     return m
 
 def prepare_series(request, s):
@@ -186,10 +187,6 @@ def view_series_detail(request, project, message_id):
                     ("series_list", {"project": project}, "Patches"))
     search = "id:" + message_id
     ops = []
-    dispatch_module_hook("www_series_operations_hook",
-                         request=request,
-                         series=s,
-                         operations=ops)
     return render_page(request, 'series-detail.html',
                        series=prepare_message(request, s),
                        project=project,

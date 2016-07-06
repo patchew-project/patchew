@@ -93,13 +93,6 @@ class TestingModule(PatchewModule):
                                self.www_view_testing_reset,
                                name="testing-reset"))
 
-    def www_series_operations_hook(self, request, series, operations):
-        if request.user.is_authenticated() \
-                and series.get_property("testing.started"):
-            operations.append({"url": reverse("testing-reset",
-                              kwargs={"message_id": series.message_id}),
-                              "title": "Reset testing states"})
-
     def add_test_report(self, user, project, tester, test, head, base, identity, passed, log):
         # Find a project or series depending on the test type and assign it to obj
         if identity["type"] == "project":
@@ -160,19 +153,31 @@ class TestingModule(PatchewModule):
             ret[tn] = v
         return ret
 
-    def prepare_message_hook(self, message):
-        if not message.is_series_head:
-            return
-        for pn, p in message.get_properties().iteritems():
+    def prepare_testing_report(self, obj):
+        for pn, p in obj.get_properties().iteritems():
             if not pn.startswith("testing.report."):
                 continue
             tn = pn[len("testing.report."):]
-            log = message.get_property("testing.log." + tn)
+            log = obj.get_property("testing.log." + tn)
             failed = not p["passed"]
             passed_str = "failed" if failed else "passed"
-            message.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
-                                       "class": 'danger' if failed else 'success',
-                                       "content": log})
+            obj.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
+                                  "class": 'danger' if failed else 'success',
+                                  "content": '<pre class="body-full">%s</pre>' % log})
+
+    def prepare_message_hook(self, request, message):
+        if not message.is_series_head:
+            return
+        self.prepare_testing_report(message)
+
+        if message.project.maintained_by(request.user) \
+                and message.get_property("testing.started"):
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": message.message_id})
+            url += "?type=message"
+            message.extra_ops.append({"url": url,
+                                      "title": "Reset testing states",
+                                     })
 
         if message.get_property("testing.failed"):
             message.status_tags.append({

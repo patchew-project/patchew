@@ -161,7 +161,7 @@ class GitModule(PatchewModule):
                 log = log.replace(push_to, public_repo)
             s.set_property("git.apply-log", log)
 
-    def prepare_message_hook(self, message):
+    def prepare_message_hook(self, request, message):
         if not message.is_series_head:
             return
         l = message.get_property("git.apply-log")
