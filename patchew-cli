@@ -233,6 +233,8 @@ class TesterCommand(SubCommand):
                             help="which project to run test")
         parser.add_argument("--name", "-n",
                             help="name of this tester (default is the logged in username)")
+        parser.add_argument("--num", "-N", type=int, default=0,
+                            help="max number of tests to run")
         parser.add_argument("--cache-repo", "-C",
                             default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
                             help="local git repo for fast clone")
@@ -365,6 +367,8 @@ class TesterCommand(SubCommand):
                 if self.test_one(args, capabilities=capabilities):
                     rest = False
                     continue
+                if count == args.num:
+                    break
                 if not rest:
                     print "No more work, having a rest..."
                     rest = True
