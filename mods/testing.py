@@ -363,7 +363,8 @@ class TestingReportView(APILoginRequiredView):
     allowed_groups = ["testers"]
 
     def handle(self, request, tester, project, test, head, base, passed, log, identity):
-        _instance.add_test_report(request.user, project, tester, test, head, base, identity, passed, log)
+        _instance.add_test_report(request.user, project, tester,
+                                  test, head, base, identity, passed, log)
 
 class TestingCapabilitiesView(APILoginRequiredView):
     name = "testing-capabilities"
