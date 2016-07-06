@@ -189,7 +189,7 @@ class ProjectCommand(SubCommand):
 
     def do(self, args, argv):
         if not argv:
-            r = self.api_do("list-projects")
+            r = self.api_do("list-projects") or []
             print "\n".join(r)
             return 0
         elif argv[0] == "add":
