@@ -16,8 +16,9 @@ class StringSchema(Schema):
         self.default = default
 
 class IntegerSchema(Schema):
-    def __init__(self, name, title=None, desc=None, required=False):
+    def __init__(self, name, title=None, desc=None, required=False, default=0):
         super(IntegerSchema, self).__init__(name, title, desc, required)
+        self.default = default
 
 class MapSchema(Schema):
     """Homogeneous map from string to items"""
