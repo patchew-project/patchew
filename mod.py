@@ -81,7 +81,7 @@ class PatchewModule(object):
                           }
             return r.values()
 
-        schema_html = self._build_one(request, project, "",
+        schema_html = self._build_one(request, project, prefix,
                                       scm.item)
         item = {"html": schema_html}
         items = _build_map_items()
@@ -326,7 +326,7 @@ function map_add_item(btn) {
     nt = $(tmpl)
     nt.find("#item-name").html(name);
     old = nt.find("#property-prefix").val();
-    nt.find("#property-prefix").val(old.replace("{name}", name));
+    nt.find("#property-prefix").val(old + name + ".");
     container.find(".items").append(nt);
 }
 function map_delete_item(btn) {
