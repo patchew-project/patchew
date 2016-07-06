@@ -377,6 +377,7 @@ class TesterCommand(SubCommand):
                 traceback.print_exc(e)
                 # Wait longer in case of an exception
                 time.sleep(600)
+        return 0
 
 class ApplyCommand(SubCommand):
     name = "apply"
