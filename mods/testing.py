@@ -171,7 +171,7 @@ class TestingModule(PatchewModule):
             failed = not p["passed"]
             passed_str = "failed" if failed else "passed"
             message.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
-                                       "is_error": failed,
+                                       "class": 'danger' if failed else 'success',
                                        "content": log})
 
         if message.get_property("testing.failed"):

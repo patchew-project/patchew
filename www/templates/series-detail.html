@@ -44,7 +44,7 @@
     {% endif %}
 
     {% for info in series.extra_info %}
-    <div class="panel {% if info.is_error %}panel-danger{% else %}panel-default{% endif %}">
+    <div class="panel panel-{{ info.class }}">
         <div class="panel-heading panel-toggler">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden">
             <pre class="body-full">{{ info.content }}</pre>
