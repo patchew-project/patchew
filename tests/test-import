@@ -21,6 +21,16 @@ class ImportTest(PatchewTestCase):
         self.assertIn('[Qemu-devel] [PATCH] quorum: Only compile when supported',
                       a.splitlines())
 
+    def test_import_belong_to_multiple_projects(self):
+        self.check_cli_command("project", "add", "QEMU",
+                               "--mailing-list", "qemu-devel@nongnu.org")
+        self.check_cli_command("project", "add", "QEMU2",
+                               "--mailing-list", "qemu-devel@nongnu.org")
+        self.check_cli_command("import", self.get_data_path("0001-simple-patch.mbox.gz"))
+        a, b = self.check_cli_command("search")
+        self.assertEqual(2,
+            a.splitlines().count('[Qemu-devel] [PATCH] quorum: Only compile when supported'))
+
     def test_case_insensitive(self):
         self.check_cli_command("project", "add", "QEMU",
                                "--mailing-list", "qemu-devel@nongnu.org")
