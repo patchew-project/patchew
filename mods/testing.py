@@ -149,21 +149,27 @@ class TestingModule(PatchewModule):
                                                test=test,
                                                log=log)
 
-    def get_tests(self, project):
+    def get_tests(self, obj):
         ret = {}
-        for k, v in project.get_properties().iteritems():
-            if not k.startswith("testing.test."):
+        for k, v in obj.get_properties().iteritems():
+            if not k.startswith("testing.tests."):
                 continue
-            tn = k[len("testing.test."):]
-            ret[tn] = v
+            tn = k[len("testing.tests."):]
+            if "." not in tn:
+                continue
+            an = tn[tn.find(".") + 1:]
+            tn = tn[:tn.find(".")]
+            ret.setdefault(tn, {})
+            ret[tn][an] = v
+            ret[tn]["name"] = tn
         return ret
 
     def get_requirements(self, project):
         ret = {}
         for k, v in project.get_properties().iteritems():
-            if not k.startswith("testing.requirement."):
+            if not k.startswith("testing.requirements."):
                 continue
-            tn = k[len("testing.requirement."):]
+            tn = k[len("testing.requirements."):]
             ret[tn] = v
         return ret
 
@@ -215,9 +221,12 @@ class TestingModule(PatchewModule):
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
             return
-        project.extra_info.append({"title": "Tests",
+        project.extra_info.append({"title": "Testing configuration",
+                                   "class": "info",
                                    "content": self.build_config_html(request,
                                                                      project)})
+        self.prepare_testing_report(project)
+
         if project.maintained_by(request.user) \
                 and project.get_property("testing.started"):
             url = reverse("testing-reset",
@@ -300,28 +309,26 @@ class TestingGetView(APILoginRequiredView):
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
 
-    def _handle_project(self, request, project, tester, capabilities):
-        po = Project.objects.get(name=project)
-        test = self._find_applicable_test(request.user, project,
+    def _find_project_test(self, request, po, tester, capabilities):
+        head = po.get_property("git.head")
+        repo = po.git
+        tested = po.get_property("testing.tested-head")
+        if not head or not repo:
+            return
+        test = self._find_applicable_test(request.user, po,
                                           tester, capabilities, po)
         if not test:
             return
-        head = po.get_property("git.head")
-        repo = po.get_property("git.repo")
-        tested = po.get_property("testing.tested-head")
-        td = self._generate_project_test_data(project, repo, head, tested, test)
-        return td
+        td = self._generate_project_test_data(po.name, repo, head, tested, test)
+        return po, td
 
-    def handle(self, request, project, tester, capabilities):
-        # Try project head test first
-        r = self._handle_project(request, project, tester, capabilities)
-        if r:
-            return r
+    def _find_series_test(self, request, po, tester, capabilities):
         se = SearchEngine()
-        q = se.search_series("is:applied", "not:old", "not:tested", "project:" + project)
+        q = se.search_series("is:applied", "not:old", "not:tested",
+                             "project:" + po.name)
         candidate = None
         for s in q:
-            test = self._find_applicable_test(request.user, project,
+            test = self._find_applicable_test(request.user, po,
                                               tester, capabilities, s)
             if not test:
                 continue
@@ -333,12 +340,23 @@ class TestingGetView(APILoginRequiredView):
                     s.get_property("testing.start-time") < \
                     candidate[0].get_property("testing.start-time"):
                 candidate = s, test
-        if candidate:
-            s.set_property("testing.started", True)
-            s.set_property("testing.start-time", time.time())
-            return self._generate_series_test_data(candidate[0], candidate[1])
-        else:
+        if not candidate:
+            return None
+        return candidate[0], \
+               self._generate_series_test_data(candidate[0], candidate[1])
+
+    def handle(self, request, project, tester, capabilities):
+        # Try project head test first
+        po = Project.objects.get(name=project)
+        candidate = self._find_project_test(request, po, tester, capabilities)
+        if not candidate:
+            candidate = self._find_series_test(request, po, tester, capabilities)
+        if not candidate:
             return
+        obj, test_data = candidate
+        obj.set_property("testing.started", True)
+        obj.set_property("testing.start-time", time.time())
+        return test_data
 
 class TestingReportView(APILoginRequiredView):
     name = "testing-report"
