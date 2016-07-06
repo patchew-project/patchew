@@ -11,7 +11,7 @@ def render_page(request, template_name, **data):
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
 
-def prepare_message(m):
+def prepare_message(request, m):
     name, addr = m.get_sender()
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
@@ -35,12 +35,12 @@ def prepare_message(m):
     dispatch_module_hook("prepare_message_hook", message=m)
     return m
 
-def prepare_series(s):
+def prepare_series(request, s):
     r = []
     def add_msg_recurse(m, depth=0):
-        a = prepare_message(m)
+        a = prepare_message(request, m)
         a.indent_level = min(depth, 4)
-        r.append(prepare_message(m))
+        r.append(prepare_message(request, m))
         replies = m.get_replies()
         non_patches = [x for x in replies if not x.is_patch]
         patches = [x for x in replies if x.is_patch]
@@ -50,8 +50,8 @@ def prepare_series(s):
     add_msg_recurse(s)
     return r
 
-def prepare_series_list(sl):
-    return [prepare_message(s) for s in sl]
+def prepare_series_list(request, sl):
+    return [prepare_message(request, s) for s in sl]
 
 def prepare_projects():
     return api.models.Project.objects.all()
@@ -125,7 +125,7 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
     else:
         nav_path = prepare_navigate_list('search "%s"' % search)
     return render_page(request, 'series-list.html',
-                       series=prepare_series_list(series),
+                       series=prepare_series_list(request, series),
                        page_links=page_links,
                        search=search,
                        keywords=keywords,
@@ -173,7 +173,7 @@ def view_series_mbox(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
     if not s:
         raise Http404("Series not found")
-    r = prepare_series(s)
+    r = prepare_series(request, s)
     mbox = "\n".join([x.get_mbox() for x in r])
     return HttpResponse(mbox, content_type="text/plain")
 
@@ -191,9 +191,9 @@ def view_series_detail(request, project, message_id):
                          series=s,
                          operations=ops)
     return render_page(request, 'series-detail.html',
-                       series=prepare_message(s),
+                       series=prepare_message(request, s),
                        project=project,
                        navigate_links=nav_path,
                        search=search,
                        series_operations=ops,
-                       messages=prepare_series(s))
+                       messages=prepare_series(request, s))
