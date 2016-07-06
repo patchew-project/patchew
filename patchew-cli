@@ -286,19 +286,19 @@ class TesterCommand(SubCommand):
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print "  Workdir:", wd
         logf = open(os.path.join(wd, "log"), "w+b")
-        test_cmd = r["test"]["commands"]
+        test_cmd = r["test"]["script"]
         test_script = os.path.join(wd, "run")
         tf = open(test_script, "wb")
-        commands = r["test"]["commands"].strip() + "\n"
+        script = r["test"]["script"].strip() + "\n"
         for k, v in r["identity"].iteritems():
             logf.write(" %s: %s\n" % (k.capitalize(), v))
         logf.write("\n")
         logf.write("=== TEST SCRIPT BEGIN ===\n")
-        logf.write(commands)
+        logf.write(script)
         logf.write("=== TEST SCRIPT END ===\n")
         logf.write("\n")
         logf.flush()
-        tf.write(commands)
+        tf.write(script)
         tf.close()
         subprocess.check_output(["chmod", "+x", test_script])
         rc = 1
