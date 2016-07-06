@@ -320,7 +320,7 @@ class TesterCommand(SubCommand):
                                   stdout=logf, stderr=logf)
             rc = None
             timeout = r["test"]["timeout"]
-            while time.time() - start_time < timeout:
+            while timeout <= 0 or time.time() - start_time < timeout:
                 rc = tp.poll()
                 if rc != None:
                     break
