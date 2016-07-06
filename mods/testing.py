@@ -30,6 +30,8 @@ class TestingModule(PatchewModule):
                                      desc="List of allowed testers to run this test"),
                         StringSchema("requirements", "Requirements",
                                      desc="List of requirements of the test"),
+                        IntegerSchema("timeout", "Timeout",
+                                      desc="Timeout for the test"),
                         StringSchema("script", "Test script",
                                      desc="The testing script",
                                      default="#!/bin/bash\ntrue",
