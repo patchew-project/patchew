@@ -273,7 +273,6 @@ function collect_properties(btn) {
     prefix = $(btn).parent().parent().find("#property-prefix").val();
     properties = {};
     $(btn).parent().parent().find(".project-property").each(function () {
-        console.log(this);
         if (this.required && !this.value) {
             alert($(this).parent().find("label").html() + " is required!");
             $(this).focus();
