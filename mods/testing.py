@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from django.http import HttpResponse, HttpResponseForbidden, Http404, \
                         HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
 from django.template import Template, Context
 from mod import PatchewModule
@@ -79,19 +80,30 @@ class TestingModule(PatchewModule):
                       test="test name",
                       log="test log")
 
-    def www_view_testing_reset(self, request, message_id):
+    def www_view_testing_reset(self, request, project_or_series):
         if not request.user.is_authenticated():
             return HttpResponseForbidden()
-        m = Message.objects.find_series(message_id)
-        if not m:
-            raise Http404("Series not found: " + message_id)
-        for k in m.get_properties().keys():
-            if k.startswith("testing."):
-                m.set_property(k, None)
+        if request.GET.get("type") == "project":
+            obj = Project.objects.filter(name=project_or_series).first()
+            if not obj.maintained_by(request.user):
+                raise PermissionDenied()
+        else:
+            obj = Message.objects.find_series(project_or_series)
+        if not obj:
+            raise Http404("Not found: " + project_or_series)
+        for k in obj.get_properties().keys():
+            if k == "testing.started" or \
+               k == "testing.start-time" or \
+               k == "testing.failed" or \
+               k == "testing.done" or \
+               k == "testing.tested-head" or \
+               k.startswith("testing.report.") or \
+               k.startswith("testing.log."):
+                obj.set_property(k, None)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^testing-reset/(?P<message_id>.*)/",
+        urlpatterns.append(url(r"^testing-reset/(?P<project_or_series>.*)/",
                                self.www_view_testing_reset,
                                name="testing-reset"))
 
@@ -119,7 +131,7 @@ class TestingModule(PatchewModule):
         reports = filter(lambda x: x.startswith("testing.report."),
                         obj.get_properties())
         done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set(self.get_tests(project).keys())
+        all_tests = set(self.get_tests(obj).keys())
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
@@ -206,6 +218,13 @@ class TestingModule(PatchewModule):
         project.extra_info.append({"title": "Tests",
                                    "content": self.build_config_html(request,
                                                                      project)})
+        if project.maintained_by(request.user) \
+                and project.get_property("testing.started"):
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": project.name})
+            url += "?type=project"
+            project.extra_ops.append({"url": url,
+                                      "title": "Reset testing states"})
 
     def get_capability_probes(self, project):
         ret = {}
