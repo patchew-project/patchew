@@ -291,7 +291,7 @@ class TesterCommand(SubCommand):
         tf = open(test_script, "wb")
         script = r["test"]["script"].strip() + "\n"
         for k, v in r["identity"].iteritems():
-            logf.write(" %s: %s\n" % (k.capitalize(), v))
+            logf.write("%s: %s\n" % (k.capitalize(), v))
         logf.write("\n")
         logf.write("=== TEST SCRIPT BEGIN ===\n")
         logf.write(script)
