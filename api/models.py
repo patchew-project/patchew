@@ -21,17 +21,6 @@ class Project(models.Model):
         return self.name
 
     @classmethod
-    def find_message_project(self, m):
-        q = []
-        for name, addr in m.get_receivers():
-            q += self.objects.filter(mailing_list__contains=addr)
-        if not q:
-            raise Exception("Cannot find project for message: %s" % m)
-        if len(q) > 1:
-            raise Exception("Found more than one project for message: %s" % m)
-        return q[0]
-
-    @classmethod
     def has_project(self, project):
         return self.objects.filter(name=project).exists()
 
@@ -130,31 +119,41 @@ class MessageManager(models.Manager):
         msg.delete()
 
     def add_message_from_mbox(self, mbox, user, project_name=None):
+
+        def find_message_projects(m):
+            q = []
+            for name, addr in m.get_to() + m.get_cc():
+                q += Project.objects.filter(mailing_list__contains=addr)
+            if not q:
+                raise Exception("Cannot find project for message: %s" % m)
+            return q
+
         m = MboxMessage(mbox)
         msgid = m.get_message_id()
-        msg = Message(message_id=msgid,
-                      in_reply_to=m.get_in_reply_to() or "",
-                      date=m.get_date(),
-                      subject=m.get_subject(),
-                      stripped_subject=m.get_subject(strip_tags=True),
-                      version=m.get_version(),
-                      sender=json.dumps(m.get_from()),
-                      receivers=json.dumps(m.get_to() + m.get_cc()),
-                      prefixes=json.dumps(m.get_prefixes()),
-                      is_series_head=m.is_series_head(),
-                      is_patch=m.is_patch(),
-                      patch_num=m.get_num()[0])
         if project_name:
-            p = Project.object.get(name=project_name)
+            projects = [Project.object.get(name=project_name)]
         else:
-            p = Project.find_message_project(msg)
-        msg.project = p
-        if self.filter(message_id=msgid, project__name=p.name).first():
-            raise self.DuplicateMessageError(msgid)
-        msg.save_mbox(mbox)
-        msg.save()
-        emit_event("MessageAdded", message=msg)
-        self.update_series(msg)
+            projects = find_message_projects(m)
+        for p in projects:
+            msg = Message(message_id=msgid,
+                          in_reply_to=m.get_in_reply_to() or "",
+                          date=m.get_date(),
+                          subject=m.get_subject(),
+                          stripped_subject=m.get_subject(strip_tags=True),
+                          version=m.get_version(),
+                          sender=json.dumps(m.get_from()),
+                          receivers=json.dumps(m.get_to() + m.get_cc()),
+                          prefixes=json.dumps(m.get_prefixes()),
+                          is_series_head=m.is_series_head(),
+                          is_patch=m.is_patch(),
+                          patch_num=m.get_num()[0])
+            msg.project = p
+            if self.filter(message_id=msgid, project__name=p.name).first():
+                raise self.DuplicateMessageError(msgid)
+            msg.save_mbox(mbox)
+            msg.save()
+            emit_event("MessageAdded", message=msg)
+            self.update_series(msg)
 
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
