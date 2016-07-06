@@ -116,11 +116,22 @@ class PatchewModule(object):
                                      prefix=prefix,
                                      value=prop_value)
 
+    def _build_integer_scm(self, request, project, prefix, scm):
+        prop_name = prefix + scm.name
+        prop_value = project.get_property(prop_name)
+        return self._render_template(request, project, TMPL_INTEGER,
+                                     schema=scm,
+                                     name=scm.name,
+                                     prefix=prefix,
+                                     value=prop_value)
+
     def _build_one(self, request, project, prefix, scm):
-        if type(scm) ==  MapSchema:
+        if type(scm) == MapSchema:
             return self._build_map_scm(request, project, prefix, scm)
-        elif type(scm) ==  StringSchema:
+        elif type(scm) == StringSchema:
             return self._build_string_scm(request, project, prefix, scm)
+        elif type(scm) == IntegerSchema:
+            return self._build_integer_scm(request, project, prefix, scm)
         elif type(scm) == ArraySchema:
             return self._build_array_scm(request, project, prefix, scm)
         assert False
@@ -192,6 +203,20 @@ TMPL_STRING = """
         <input
     {% endif %}
     type="text" class="form-control project-property"
+    id="{{ module.name }}-input-{{ schema.name }}" {% if schema.required %}required{%endif%}
+    name="{{ name }}" placeholder="{{ schema.desc }}"
+    {% if schema.multiline %}
+        >{{ value | default_if_none:schema.default }}</textarea>
+    {% else %}
+        value="{{ value | default_if_none:"" }}">
+    {% endif %}
+</div>
+"""
+
+TMPL_INTEGER = """
+<div class="form-group">
+    <label for="{{ module.name }}-input-{{ schema.name }}">{{ schema.title }}</label>
+    <input type="number" class="form-control project-property"
     id="{{ module.name }}-input-{{ schema.name }}" {% if schema.required %}required{%endif%}
     name="{{ name }}" placeholder="{{ schema.desc }}"
     {% if schema.multiline %}
@@ -279,7 +304,18 @@ function collect_properties(btn) {
             properties = false;
             return false;
         }
-        properties[prefix + this.name] = this.value;
+        if (this.type == "number") {
+            val = parseInt(this.value);
+            if (isNaN(val)) {
+                alert("Invalid number for " + this.name);
+                $(this).focus();
+                properties = false;
+                return false;
+            }
+        } else {
+            val = this.value;
+        }
+        properties[prefix + this.name] = val;
     });
     return properties;
 }
