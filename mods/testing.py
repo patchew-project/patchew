@@ -67,18 +67,10 @@ class TestingModule(PatchewModule):
         global _instance
         assert _instance == None
         _instance = self
-        declare_event("SeriesTestingReport",
+        declare_event("TestingReport",
                       user="the user's name that runs this tester",
                       tester="the name of the tester",
-                      project="the project's name in which the test is for",
-                      series="the series object this test was run against",
-                      passed="True if the test is passed",
-                      test="test name",
-                      log="test log")
-        declare_event("ProjectTestingReport",
-                      user="the user's name that runs this tester",
-                      tester="the name of the tester",
-                      project="the project's name in which the test is for",
+                      obj="the object (series or project) which the test is for",
                       passed="True if the test is passed",
                       test="test name",
                       log="test log")
@@ -139,18 +131,8 @@ class TestingModule(PatchewModule):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
-        if is_proj_report:
-            emit_event("SeriesTestingReport", tester=tester, user=user.username,
-                                              project=project,
-                                              series=obj, passed=passed,
-                                              test=test,
-                                              log=log)
-        else:
-            emit_event("ProjectTestingReport", tester=tester, user=user.username,
-                                               project=project,
-                                               passed=passed,
-                                               test=test,
-                                               log=log)
+        emit_event("TestingReport", tester=tester, user=user.username,
+                    obj=obj, passed=passed, test=test, log=log)
 
     def get_tests(self, obj):
         ret = {}
