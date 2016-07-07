@@ -124,11 +124,11 @@ The meaning of each option is:
                                self.www_view_email_bounce,
                                name="email-bounce"))
 
-    def www_series_operations_hook(self, request, series, operations):
-        if request.user.is_authenticated():
-            operations.append({"url": reverse("email-bounce",
-                              kwargs={"message_id": series.message_id}),
-                               "title": "Bounce to me"})
+    def prepare_message_hook(self, request, message):
+        if message.is_series_head and request.user.is_authenticated():
+            message.extra_ops.append({"url": reverse("email-bounce",
+                                     kwargs={"message_id": message.message_id}),
+                                            "title": "Bounce to me"})
 
     def _sections_by_event(self, event):
         conf = self.get_config_obj()

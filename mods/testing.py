@@ -1,7 +1,9 @@
 from django.conf.urls import url
 from django.http import HttpResponse, HttpResponseForbidden, Http404, \
                         HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
+from django.template import Template, Context
 from mod import PatchewModule
 import time
 import smtplib
@@ -11,79 +13,52 @@ from api.views import APILoginRequiredView
 from api.models import Message, Project
 from api.search import SearchEngine
 from event import emit_event, declare_event
-
-_default_config = """
-[test a]
-project = QEMU
-command = true
-
-[test b]
-project = QEMU
-command-asset = test_b
-requirements = docker
-user = fam
-tester = debug
-
-[capability docker]
-project = QEMU
-probe = docker ps || sudo -n docker ps
-
-"""
+from schema import *
 
 _instance = None
 
 class TestingModule(PatchewModule):
-    """
-
-Documentation
--------------
-
-This module is configured in "INI" style.
-
-Each section named like 'test FOO' is a test case
-that will be distributed to testers. For example:
-
-    [test a]
-    project = BAR
-    command = true
-    timeout = 1000
-
-defines a test called "a" that will be run against each new series of project
-BAR. The testing command to run is 'true' which will already pass. The timeout
-specifies for how long the tester should wait for the command to execute,
-before aborting and reporting a timeout error.
-
-Other supported options are:
-
-  * **command-asset**: Instead of using a one liner command as given in
-    `command` option, this option refers to a named "module asset" and treat it
-    as a script in any format.
-
-  * **user**: Limit the accepted user name that can run this test.
-
-  * **tester**: Limit the accepted tester name that can run this test.
-
-  * **requirements**: Limit the accepted tester to those that has these
-    capabilities. Multiple requirements are separeted with comma. See
-    following for capability probing with `[capability ...]` sections.
-
-Capability probing methods are configured with a `[capability ...]` section,
-where `...` is the name of the capability to be referenced by the
-`requirements` field in a test config. Example:
-
-    [capability clang]
-    project = BAR
-    probe = clang
-
-  * **project**: Limit to only the project to which this capability probing
-  should be applied.
-
-  * **probe**: The probing command.
-
-"""
+    """Testing module"""
 
     name = "testing"
-    default_config = _default_config
+
+    test_schema = \
+        ArraySchema("{name}", "Test", desc="Test spec",
+                    members=[
+                        StringSchema("users", "Users",
+                                     desc="List of allowed users to run this test"),
+                        StringSchema("testers", "Testers",
+                                     desc="List of allowed testers to run this test"),
+                        StringSchema("requirements", "Requirements",
+                                     desc="List of requirements of the test"),
+                        IntegerSchema("timeout", "Timeout",
+                                      desc="Timeout for the test"),
+                        StringSchema("script", "Test script",
+                                     desc="The testing script",
+                                     default="#!/bin/bash\ntrue",
+                                     multiline=True,
+                                     required=True),
+                    ])
+
+    requirement_schema = \
+        ArraySchema("{name}", "Requirement", desc="Test requirement spec",
+                    members=[
+                        StringSchema("script", "Probe script",
+                                     desc="The probing script for this requirement",
+                                     multiline=True,
+                                     required=True),
+                    ])
+
+    project_property_schema = \
+        ArraySchema("testing", desc="Configuration for testing module",
+                    members=[
+                        MapSchema("tests", "Tests",
+                                   desc="Testing specs",
+                                   item=test_schema),
+                        MapSchema("requirements", "Requirements",
+                                   desc="Requirement specs",
+                                   item=requirement_schema),
+                   ])
 
     def __init__(self):
         global _instance
@@ -105,28 +80,32 @@ where `...` is the name of the capability to be referenced by the
                       test="test name",
                       log="test log")
 
-    def www_view_testing_reset(self, request, message_id):
+    def www_view_testing_reset(self, request, project_or_series):
         if not request.user.is_authenticated():
             return HttpResponseForbidden()
-        m = Message.objects.find_series(message_id)
-        if not m:
-            raise Http404("Series not found: " + message_id)
-        for k in m.get_properties().keys():
-            if k.startswith("testing."):
-                m.set_property(k, None)
+        if request.GET.get("type") == "project":
+            obj = Project.objects.filter(name=project_or_series).first()
+            if not obj.maintained_by(request.user):
+                raise PermissionDenied()
+        else:
+            obj = Message.objects.find_series(project_or_series)
+        if not obj:
+            raise Http404("Not found: " + project_or_series)
+        for k in obj.get_properties().keys():
+            if k == "testing.started" or \
+               k == "testing.start-time" or \
+               k == "testing.failed" or \
+               k == "testing.done" or \
+               k == "testing.tested-head" or \
+               k.startswith("testing.report.") or \
+               k.startswith("testing.log."):
+                obj.set_property(k, None)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^testing-reset/(?P<message_id>.*)/",
+        urlpatterns.append(url(r"^testing-reset/(?P<project_or_series>.*)/",
                                self.www_view_testing_reset,
                                name="testing-reset"))
-
-    def www_series_operations_hook(self, request, series, operations):
-        if request.user.is_authenticated() \
-                and series.get_property("testing.started"):
-            operations.append({"url": reverse("testing-reset",
-                              kwargs={"message_id": series.message_id}),
-                              "title": "Reset testing states"})
 
     def add_test_report(self, user, project, tester, test, head, base, identity, passed, log):
         # Find a project or series depending on the test type and assign it to obj
@@ -152,7 +131,7 @@ where `...` is the name of the capability to be referenced by the
         reports = filter(lambda x: x.startswith("testing.report."),
                         obj.get_properties())
         done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set(self.get_tests(project).keys())
+        all_tests = set(self.get_tests(obj).keys())
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
@@ -170,49 +149,55 @@ where `...` is the name of the capability to be referenced by the
                                                test=test,
                                                log=log)
 
-    def get_tests(self, project):
+    def get_tests(self, obj):
         ret = {}
-        conf = self.get_config_obj()
-        for sec in filter(lambda x: x.lower().startswith("test "),
-                          conf.sections()):
-            if conf.get(sec, "project") != project:
+        for k, v in obj.get_properties().iteritems():
+            if not k.startswith("testing.tests."):
                 continue
-            try:
-                name = sec[len("test "):]
-                t = {"name": name}
-                fields = [x for x, y in conf.items(sec)]
-                if "command" in fields:
-                    t["commands"] = "#!/bin/bash\n" + conf.get(sec, "command")
-                elif "command-asset" in fields:
-                    t["commands"] = self.get_asset(conf.get(sec, "command-asset")).\
-                                    replace("\r\n", "\n")
-                if "requirements" in fields:
-                    t["requirements"] = [x.strip() for x in conf.get(sec, "requirements").split()]
-                if "timeout" in fields:
-                    t["timeout"] = conf.getint(sec, "timeout")
-                else:
-                    t["timeout"] = 3600
-                if "tester" in fields:
-                    t["tester"] = conf.get(sec, "tester")
-                ret[name] = t
-            except Exception as e:
-                print "Error while parsing test config:"
-                traceback.print_exc(e)
+            tn = k[len("testing.tests."):]
+            if "." not in tn:
+                continue
+            an = tn[tn.find(".") + 1:]
+            tn = tn[:tn.find(".")]
+            ret.setdefault(tn, {})
+            ret[tn][an] = v
+            ret[tn]["name"] = tn
         return ret
 
-    def prepare_message_hook(self, message):
-        if not message.is_series_head:
-            return
-        for pn, p in message.get_properties().iteritems():
+    def get_requirements(self, project):
+        ret = {}
+        for k, v in project.get_properties().iteritems():
+            if not k.startswith("testing.requirements."):
+                continue
+            tn = k[len("testing.requirements."):]
+            ret[tn] = v
+        return ret
+
+    def prepare_testing_report(self, obj):
+        for pn, p in obj.get_properties().iteritems():
             if not pn.startswith("testing.report."):
                 continue
             tn = pn[len("testing.report."):]
-            log = message.get_property("testing.log." + tn)
+            log = obj.get_property("testing.log." + tn)
             failed = not p["passed"]
             passed_str = "failed" if failed else "passed"
-            message.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
-                                       "is_error": failed,
-                                       "content": log})
+            obj.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
+                                  "class": 'danger' if failed else 'success',
+                                  "content": '<pre class="body-full">%s</pre>' % log})
+
+    def prepare_message_hook(self, request, message):
+        if not message.is_series_head:
+            return
+        self.prepare_testing_report(message)
+
+        if message.project.maintained_by(request.user) \
+                and message.get_property("testing.started"):
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": message.message_id})
+            url += "?type=message"
+            message.extra_ops.append({"url": url,
+                                      "title": "Reset testing states",
+                                     })
 
         if message.get_property("testing.failed"):
             message.status_tags.append({
@@ -233,6 +218,23 @@ where `...` is the name of the capability to be referenced by the
                 "char": "T",
                 })
 
+    def prepare_project_hook(self, request, project):
+        if not project.maintained_by(request.user):
+            return
+        project.extra_info.append({"title": "Testing configuration",
+                                   "class": "info",
+                                   "content": self.build_config_html(request,
+                                                                     project)})
+        self.prepare_testing_report(project)
+
+        if project.maintained_by(request.user) \
+                and project.get_property("testing.started"):
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": project.name})
+            url += "?type=project"
+            project.extra_ops.append({"url": url,
+                                      "title": "Reset testing states"})
+
     def get_capability_probes(self, project):
         ret = {}
         conf = self.get_config_obj()
@@ -247,7 +249,6 @@ where `...` is the name of the capability to be referenced by the
                 print "Error while parsing capability config:"
                 traceback.print_exc(e)
         return ret
-
 
 class TestingGetView(APILoginRequiredView):
     name = "testing-get"
@@ -308,28 +309,26 @@ class TestingGetView(APILoginRequiredView):
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
 
-    def _handle_project(self, request, project, tester, capabilities):
-        po = Project.objects.get(name=project)
-        test = self._find_applicable_test(request.user, project,
+    def _find_project_test(self, request, po, tester, capabilities):
+        head = po.get_property("git.head")
+        repo = po.git
+        tested = po.get_property("testing.tested-head")
+        if not head or not repo:
+            return
+        test = self._find_applicable_test(request.user, po,
                                           tester, capabilities, po)
         if not test:
             return
-        head = po.get_property("git.head")
-        repo = po.get_property("git.repo")
-        tested = po.get_property("testing.tested-head")
-        td = self._generate_project_test_data(project, repo, head, tested, test)
-        return td
+        td = self._generate_project_test_data(po.name, repo, head, tested, test)
+        return po, td
 
-    def handle(self, request, project, tester, capabilities):
-        # Try project head test first
-        r = self._handle_project(request, project, tester, capabilities)
-        if r:
-            return r
+    def _find_series_test(self, request, po, tester, capabilities):
         se = SearchEngine()
-        q = se.search_series("is:applied", "not:old", "not:tested", "project:" + project)
+        q = se.search_series("is:applied", "not:old", "not:tested",
+                             "project:" + po.name)
         candidate = None
         for s in q:
-            test = self._find_applicable_test(request.user, project,
+            test = self._find_applicable_test(request.user, po,
                                               tester, capabilities, s)
             if not test:
                 continue
@@ -341,19 +340,31 @@ class TestingGetView(APILoginRequiredView):
                     s.get_property("testing.start-time") < \
                     candidate[0].get_property("testing.start-time"):
                 candidate = s, test
-        if candidate:
-            s.set_property("testing.started", True)
-            s.set_property("testing.start-time", time.time())
-            return self._generate_series_test_data(candidate[0], candidate[1])
-        else:
+        if not candidate:
+            return None
+        return candidate[0], \
+               self._generate_series_test_data(candidate[0], candidate[1])
+
+    def handle(self, request, project, tester, capabilities):
+        # Try project head test first
+        po = Project.objects.get(name=project)
+        candidate = self._find_project_test(request, po, tester, capabilities)
+        if not candidate:
+            candidate = self._find_series_test(request, po, tester, capabilities)
+        if not candidate:
             return
+        obj, test_data = candidate
+        obj.set_property("testing.started", True)
+        obj.set_property("testing.start-time", time.time())
+        return test_data
 
 class TestingReportView(APILoginRequiredView):
     name = "testing-report"
     allowed_groups = ["testers"]
 
     def handle(self, request, tester, project, test, head, base, passed, log, identity):
-        _instance.add_test_report(request.user, project, tester, test, head, base, identity, passed, log)
+        _instance.add_test_report(request.user, project, tester,
+                                  test, head, base, identity, passed, log)
 
 class TestingCapabilitiesView(APILoginRequiredView):
     name = "testing-capabilities"

@@ -97,7 +97,7 @@ series cover letter, patch mail body and their replies.
             r += self.get_tags(x)
         return r
 
-    def prepare_message_hook(self, message):
+    def prepare_message_hook(self, request, message):
         if not message.is_series_head:
             return
         if message.get_property("reviewed"):

@@ -233,6 +233,8 @@ class TesterCommand(SubCommand):
                             help="which project to run test")
         parser.add_argument("--name", "-n",
                             help="name of this tester (default is the logged in username)")
+        parser.add_argument("--num", "-N", type=int, default=0,
+                            help="max number of tests to run")
         parser.add_argument("--cache-repo", "-C",
                             default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
                             help="local git repo for fast clone")
@@ -284,19 +286,19 @@ class TesterCommand(SubCommand):
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print "  Workdir:", wd
         logf = open(os.path.join(wd, "log"), "w+b")
-        test_cmd = r["test"]["commands"]
+        test_cmd = r["test"]["script"]
         test_script = os.path.join(wd, "run")
         tf = open(test_script, "wb")
-        commands = r["test"]["commands"].strip() + "\n"
+        script = r["test"]["script"].strip() + "\n"
         for k, v in r["identity"].iteritems():
-            logf.write(" %s: %s\n" % (k.capitalize(), v))
+            logf.write("%s: %s\n" % (k.capitalize(), v))
         logf.write("\n")
         logf.write("=== TEST SCRIPT BEGIN ===\n")
-        logf.write(commands)
+        logf.write(script)
         logf.write("=== TEST SCRIPT END ===\n")
         logf.write("\n")
         logf.flush()
-        tf.write(commands)
+        tf.write(script)
         tf.close()
         subprocess.check_output(["chmod", "+x", test_script])
         rc = 1
@@ -318,7 +320,7 @@ class TesterCommand(SubCommand):
                                   stdout=logf, stderr=logf)
             rc = None
             timeout = r["test"]["timeout"]
-            while time.time() - start_time < timeout:
+            while timeout <= 0 or time.time() - start_time < timeout:
                 rc = tp.poll()
                 if rc != None:
                     break
@@ -365,6 +367,8 @@ class TesterCommand(SubCommand):
                 if self.test_one(args, capabilities=capabilities):
                     rest = False
                     continue
+                if count == args.num:
+                    break
                 if not rest:
                     print "No more work, having a rest..."
                     rest = True
@@ -373,6 +377,7 @@ class TesterCommand(SubCommand):
                 traceback.print_exc(e)
                 # Wait longer in case of an exception
                 time.sleep(600)
+        return 0
 
 class ApplyCommand(SubCommand):
     name = "apply"

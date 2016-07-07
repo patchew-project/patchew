@@ -66,9 +66,9 @@ crossorigin="anonymous"></script>
                     Hi {{ user.username }} <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a href="#">Action</a></li>
-                    <li><a href="#">Another action</a></li>
-                    <li><a href="#">Something else here</a></li>
+                    {% if request.user.is_superuser %}
+                    <li><a href="/admin" target="blank">Admin</a></li>
+                    {% endif %}
                     <li role="separator" class="divider"></li>
                     <li><a href="{% url "logout" %}?next={{ request.path }}">Logout</a></li>
                 </ul>
