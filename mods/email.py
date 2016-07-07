@@ -71,7 +71,7 @@ Email information is configured in "INI" style:
     def __init__(self):
         register_handler("NewEvent", self.on_new_event)
 
-    def on_new_event(self, name, params):
+    def on_new_event(self, event, name, params):
         if name == "NewEvent":
             return
         register_handler(name, self.on_event)
