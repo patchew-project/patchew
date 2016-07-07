@@ -373,11 +373,11 @@ function save_done(btn, succeeded, error) {
     info.insertBefore($(btn));
 }
 
-function collect_properties(btn) {
+function collect_properties(btn, check_required) {
     prefix = $(btn).parent().parent().find("#property-prefix").val();
     properties = {};
     $(btn).parent().parent().find(".project-property").each(function () {
-        if (this.required && !this.value) {
+        if (check_required && this.required && !this.value) {
             alert($(this).parent().find("label").html() + " is required!");
             $(this).focus();
             properties = false;
@@ -409,7 +409,7 @@ function properties_save(btn) {
     if ($(btn).hasClass("disabled")) {
         return;
     }
-    props = collect_properties(btn);
+    props = collect_properties(btn, true);
     if (!props) {
         return;
     }
@@ -458,7 +458,7 @@ function map_delete_item(btn) {
     if (!window.confirm("Really delete" + name +"?")) {
         return;
     }
-    props = collect_properties(btn);
+    props = collect_properties(btn, false);
     for (var k in props) {
         props[k] = null;
     }
