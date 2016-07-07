@@ -125,6 +125,24 @@ class PatchewModule(object):
                                      prefix=prefix,
                                      value=prop_value)
 
+    def _build_boolean_scm(self, request, project, prefix, scm):
+        prop_name = prefix + scm.name
+        prop_value = project.get_property(prop_name)
+        return self._render_template(request, project, TMPL_BOOLEAN,
+                                     schema=scm,
+                                     name=scm.name,
+                                     prefix=prefix,
+                                     value=prop_value)
+
+    def _build_enum_scm(self, request, project, prefix, scm):
+        prop_name = prefix + scm.name
+        prop_value = project.get_property(prop_name)
+        return self._render_template(request, project, TMPL_ENUM,
+                                     schema=scm,
+                                     name=scm.name,
+                                     prefix=prefix,
+                                     value=prop_value)
+
     def _build_one(self, request, project, prefix, scm):
         if type(scm) == MapSchema:
             return self._build_map_scm(request, project, prefix, scm)
@@ -132,6 +150,10 @@ class PatchewModule(object):
             return self._build_string_scm(request, project, prefix, scm)
         elif type(scm) == IntegerSchema:
             return self._build_integer_scm(request, project, prefix, scm)
+        elif type(scm) == BooleanSchema:
+            return self._build_boolean_scm(request, project, prefix, scm)
+        elif type(scm) == EnumSchema:
+            return self._build_enum_scm(request, project, prefix, scm)
         elif type(scm) == ArraySchema:
             return self._build_array_scm(request, project, prefix, scm)
         assert False
@@ -227,6 +249,63 @@ TMPL_INTEGER = """
 </div>
 """
 
+TMPL_BOOLEAN = """
+<div class="checkbox">
+<label>
+  <input class="project-property" type="checkbox" name="{{ name }}"
+  {% if value == None %}
+    {% if schema.default %}
+      checked
+    {% endif %}
+  {% elif value %}
+      checked
+  {% endif %}
+  >
+    <span title="{{ schema.desc }}">{{ schema.title }}</span>
+</label>
+</div>
+"""
+TMPL_ENUM_DESC = """
+<div class="well" style="margin-top: 10px;">
+    <h4>Available variables in template</h4>
+    {% for k, v in desc.items %}
+        <p><strong>{{ k }}</strong>: {{ v }}</p>
+    {% endfor %}
+</div>
+"""
+
+TMPL_ENUM = """
+<div class="form-group">
+    <label for="{{ module.name }}-input-{{ schema.name }}">{{ schema.title }}</label>
+    <select class="form-control project-property"
+    id="{{ module.name }}-input-{{ schema.name }}"
+    onchange="enum_change(this)"
+    {% if schema.required %}required{%endif%}
+    name="{{ name }}">
+        <option disabled selected value=""> -- select an event type -- </option>
+        {% for opt in schema.enums %}
+          {% if opt == value %}
+            <option selected value="{{ opt }}">{{ opt }}</option>
+          {% else %}
+            <option value="{{ opt }}">{{ opt }}</option>
+          {% endif %}
+        {% endfor %}
+    </select>
+    <div class="form-group" id="enum-desc">
+    {% for opt, desc in schema.enums.items %}
+      {% if opt == value %}
+""" + TMPL_ENUM_DESC + """
+      {% endif %}
+    {% endfor %}
+    </div>
+    {% for opt, desc in schema.enums.items %}
+        <div class="hidden" id="enum-desc-{{ opt }}">
+""" + TMPL_ENUM_DESC + """
+        </div>
+    {% endfor %}
+</div>
+"""
+
 TMPL_ARRAY = """
 <input type="hidden" name="property-prefix" id="property-prefix" value="{{ prefix }}">
 {% for schema in members %}
@@ -312,6 +391,12 @@ function collect_properties(btn) {
                 properties = false;
                 return false;
             }
+        } else if (this.type == "checkbox") {
+            if (this.checkeck) {
+                val = true;
+            } else {
+                val = false;
+            }
         } else {
             val = this.value;
         }
@@ -394,6 +479,11 @@ function map_delete_item(btn) {
             info.html("Error: " + error);
             info.insertBefore($(btn));
         });
+}
+function enum_change(which) {
+    val = $(which).val();
+    desc = $(which).parent().find("#enum-desc-" + val).html();
+    $(which).parent().find("#enum-desc").html(desc);
 }
 </script>
 """
