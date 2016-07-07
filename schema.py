@@ -20,6 +20,17 @@ class IntegerSchema(Schema):
         super(IntegerSchema, self).__init__(name, title, desc, required)
         self.default = default
 
+class EnumSchema(Schema):
+    def __init__(self, name, title=None, desc=None, required=False,
+                 enums=lambda: []):
+        super(EnumSchema, self).__init__(name, title, desc, required)
+        self.enums = enums
+
+class BooleanSchema(Schema):
+    def __init__(self, name, title=None, desc=None, required=False, default=0):
+        super(BooleanSchema, self).__init__(name, title, desc, required)
+        self.default = default
+
 class MapSchema(Schema):
     """Homogeneous map from string to items"""
     def __init__(self, name, title=None, desc=None, required=False,
