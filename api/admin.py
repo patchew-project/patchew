@@ -22,13 +22,8 @@ class MessageAdmin(admin.ModelAdmin):
         ]
     list_filter = [('is_series_head')]
 
-class ModuleAssetInline(admin.TabularInline):
-    model = ModuleAsset
-    extra = 0
-
 class ModuleAdmin(admin.ModelAdmin):
     inlines = [
-            ModuleAssetInline
         ]
 
     def get_fieldsets(self, request, obj=None):

@@ -358,25 +358,6 @@ class MessageProperty(models.Model):
         unique_together = ('message', 'name',)
         verbose_name_plural = "Message Properties"
 
-class ModuleAsset(models.Model):
-    """ Module asset """
-    module = models.ForeignKey('Module', blank=True, on_delete=models.CASCADE)
-    name = models.CharField(max_length=256, unique=True, db_index=True)
-    text = models.TextField(blank=True)
-    file = models.ImageField(blank=True, upload_to="module-asset")
-
-    class Meta:
-        unique_together = ('module', 'name',)
-
-class ModuleData(models.Model):
-    """ Module data """
-    module = models.ForeignKey('Module', blank=True, on_delete=models.CASCADE)
-    name = models.CharField(max_length=1024, unique=True, db_index=True)
-    text = models.TextField(blank=True)
-
-    class Meta:
-        unique_together = ('module', 'name',)
-
 class Module(models.Model):
     """ Module information """
     name = models.CharField(max_length=128, unique=True)
