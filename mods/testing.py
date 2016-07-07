@@ -25,6 +25,9 @@ class TestingModule(PatchewModule):
     test_schema = \
         ArraySchema("{name}", "Test", desc="Test spec",
                     members=[
+                        BooleanSchema("enabled", "Enabled",
+                                      desc="Whether this test is enabled",
+                                      default=True),
                         StringSchema("users", "Users",
                                      desc="List of allowed users to run this test"),
                         StringSchema("testers", "Testers",
@@ -131,7 +134,7 @@ class TestingModule(PatchewModule):
         reports = filter(lambda x: x.startswith("testing.report."),
                         obj.get_properties())
         done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set(self.get_tests(obj).keys())
+        all_tests = set([k for k, v in self.get_tests(obj).iteritems() if v["enabled"]])
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
@@ -289,6 +292,8 @@ class TestingGetView(APILoginRequiredView):
         all_tests = set()
         done_tests = set()
         for tn, t in _instance.get_tests(project).iteritems():
+            if not t["enabled"]:
+                continue
             all_tests.add(tn)
             if obj.get_property("testing.report." + tn):
                 done_tests.add(tn)
