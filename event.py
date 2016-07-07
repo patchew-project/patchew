@@ -17,6 +17,7 @@ def declare_event(event, **params):
     the event argument names, and values as the descriptions."""
     assert event not in _events
     _events[event] = params
+    emit_event("NewEvent", name=event, params=params)
 
 def emit_event(event, **params):
     """Emit an event that was previously declared, and call all the registered
@@ -31,3 +32,9 @@ def emit_event(event, **params):
             import traceback
             traceback.print_exc(e)
 
+def get_events_info():
+    return _events.copy()
+
+declare_event("NewEvent",
+              name="The name of the newly declared event",
+              params="The params dict")

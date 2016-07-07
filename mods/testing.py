@@ -25,6 +25,9 @@ class TestingModule(PatchewModule):
     test_schema = \
         ArraySchema("{name}", "Test", desc="Test spec",
                     members=[
+                        BooleanSchema("enabled", "Enabled",
+                                      desc="Whether this test is enabled",
+                                      default=True),
                         StringSchema("users", "Users",
                                      desc="List of allowed users to run this test"),
                         StringSchema("testers", "Testers",
@@ -64,18 +67,10 @@ class TestingModule(PatchewModule):
         global _instance
         assert _instance == None
         _instance = self
-        declare_event("SeriesTestingReport",
+        declare_event("TestingReport",
                       user="the user's name that runs this tester",
                       tester="the name of the tester",
-                      project="the project's name in which the test is for",
-                      series="the series object this test was run against",
-                      passed="True if the test is passed",
-                      test="test name",
-                      log="test log")
-        declare_event("ProjectTestingReport",
-                      user="the user's name that runs this tester",
-                      tester="the name of the tester",
-                      project="the project's name in which the test is for",
+                      obj="the object (series or project) which the test is for",
                       passed="True if the test is passed",
                       test="test name",
                       log="test log")
@@ -131,23 +126,13 @@ class TestingModule(PatchewModule):
         reports = filter(lambda x: x.startswith("testing.report."),
                         obj.get_properties())
         done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set(self.get_tests(obj).keys())
+        all_tests = set([k for k, v in self.get_tests(obj).iteritems() if v["enabled"]])
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
-        if is_proj_report:
-            emit_event("SeriesTestingReport", tester=tester, user=user.username,
-                                              project=project,
-                                              series=obj, passed=passed,
-                                              test=test,
-                                              log=log)
-        else:
-            emit_event("ProjectTestingReport", tester=tester, user=user.username,
-                                               project=project,
-                                               passed=passed,
-                                               test=test,
-                                               log=log)
+        emit_event("TestingReport", tester=tester, user=user.username,
+                    obj=obj, passed=passed, test=test, log=log)
 
     def get_tests(self, obj):
         ret = {}
@@ -289,6 +274,8 @@ class TestingGetView(APILoginRequiredView):
         all_tests = set()
         done_tests = set()
         for tn, t in _instance.get_tests(project).iteritems():
+            if not t["enabled"]:
+                continue
             all_tests.add(tn)
             if obj.get_property("testing.report." + tn):
                 done_tests.add(tn)

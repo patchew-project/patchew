@@ -2,14 +2,15 @@ from django.conf.urls import url
 from django.http import HttpResponse, Http404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
+from django.template import Template, Context
 from mod import PatchewModule
 import smtplib
 import email
 import uuid
 import traceback
-from string import Template
 from api.models import Message
-from event import register_handler
+from event import register_handler, get_events_info
+from schema import *
 
 _default_config = """
 [smtp]
@@ -20,14 +21,6 @@ username = youruser
 password = yourpassword
 from = your@email.com
 
-[mail a]
-enabled = false
-event = SeriesTestingReport
-passed = false
-project = QEMU
-to = your@email.com
-template = template_a
-
 """
 class EmailModule(PatchewModule):
     """
@@ -35,47 +28,53 @@ class EmailModule(PatchewModule):
 Documentation
 -------------
 
-This module is configured in "INI" style.
+Email information is configured in "INI" style:
 
-It has a global `[smtp]` section and one or more `[mail XXX]` sections. The
-`[smtp]` section stores the usual SMTP information for sending emails:
+""" + _default_config
 
-    [smtp]
-    server = smtp.example.com
-    ssl = True
-    port = 465
-    username = youruser
-    password = yourpassword
-    from = your@email.com
-
-Each `[mail XXX]` section stores a scenario for the system to send out email:
-
-    [mail a]
-    enabled = false
-    event = SeriesTestingReport
-    template = template_a
-    to = your@email.com
-    passed = false
-    project = QEMU
-
-The meaning of each option is:
-
-  * **enabled**: Whether the email should be sent.
-
-  * **event**: The event type of the scenario.
-
-  * **to**: The address to which the email should be sent.
-
-  * **template**: The email message text template.
-
-  * Other fields are supported depending on the type of event.
-
-"""
     name = "email" # The notify method name
     default_config = _default_config
 
+    email_schema = \
+        ArraySchema("email_notification", "Email Notification",
+                    desc="Email notification",
+                    members=[
+                        BooleanSchema("enabled", "Enabled",
+                                      desc="Whether this event is enabled",
+                                      default=True),
+                        BooleanSchema("reply_to_all", "Reply to all",
+                                      desc='Whether to "reply to all" if the event has an associated email message',
+                                      default=False),
+                        StringSchema("to", "To", desc="Send email to"),
+                        EnumSchema("event", "Event",
+                                   enums=lambda: get_events_info(),
+                                   required=True,
+                                   desc="Which event to trigger the email notification"),
+                        StringSchema("subject_template", "Subject template",
+                                     desc="""The django template for subject""",
+                                     required=True),
+                        StringSchema("body_template", "Body template",
+                                     desc="""The django template for email body.
+                                     If rendered to empty, the email will not be sent""",
+                                     multiline=True,
+                                     required=True),
+                    ])
+
+    project_property_schema = \
+        ArraySchema("email", desc="Configuration for email module",
+                    members=[
+                        MapSchema("notifications", "Email notifications",
+                                   desc="Email notifications",
+                                   item=email_schema),
+                   ])
+
     def __init__(self):
-        register_handler("SeriesTestingReport", self.on_series_testing_report)
+        register_handler("NewEvent", self.on_new_event)
+
+    def on_new_event(self, name, params):
+        if name == "NewEvent":
+            return
+        register_handler(name, self.on_event)
 
     def _get_smtp(self):
         server = self.get_config("smtp", "server")
@@ -136,49 +135,64 @@ The meaning of each option is:
             if sec.startswith("mail ") and conf.get(sec, "event") == event:
                 yield sec
 
-    def _send_email(self, to, cc, headers, template, context={}):
-        t = Template(template)
+    def _send_email(self, to, cc, headers, body):
         message = email.message.Message()
         for k, v in headers.iteritems():
             message[k] = v
-        pld = t.safe_substitute(context)
-        print pld
-        message.set_payload(pld)
+        message.set_payload(body)
 
         self._smtp_send(to, cc, message)
 
     def gen_message_id(self):
         return "<%s@patchew.org>" % uuid.uuid1()
 
-    def on_series_testing_report(self, event,\
-                                user, tester, project,
-                                series, passed, test, log):
-        conf = self.get_config_obj()
-        for sec in self._sections_by_event(event):
-            if not self.get_config(sec, "enabled", "getboolean", True):
+    def get_notifications(self, project):
+        ret = {}
+        for k, v in project.get_properties().iteritems():
+            if not k.startswith("email.notifictions."):
                 continue
-            if not passed == self.get_config(sec, "passed", "getboolean"):
+            tn = k[len("email.notifications."):]
+            if "." not in tn:
                 continue
-            if not project == project:
-                continue
-            try:
-                ctx = {
-                        "log": log,
-                        "test": test,
-                        "tester": tester,
-                        "user": user,
-                        "project": project,
-                        "series": series,
-                        "passed": passed}
+            an = tn[tn.find(".") + 1:]
+            tn = tn[:tn.find(".")]
+            ret.setdefault(tn, {})
+            ret[tn][an] = v
+            ret[tn]["name"] = tn
+        return ret
 
-                self._send_email(self.get_config(sec, "to"),
-                                 self.get_config(sec, "cc"),
-                                 {
-                                     "In-Reply-To": "<%s>" % series.message_id,
-                                     "Message-Id": self.gen_message_id(),
-                                     "Subject": "Re: " +series.subject,
-                                 },
-                                 self.get_asset(self.get_config(sec, "template")),
-                                 ctx)
-            except Exception as e:
-                traceback.print_exc(e)
+    def on_event(self, **params):
+        obj = params.get("obj")
+        headers = {}
+        msg_to = []
+        msg_cc = []
+        if isinstance(obj, Project):
+            po = obj
+        elif isinstance(obj, Message) and obj.is_series_head:
+            headers["In-Reply-To"] = "<%s>" % obj.message_id
+            po = obj.project
+            msg_to = obj.get_sender()
+            msg_cc = obj.get_receivers()
+        else:
+            return
+        for nt in self.get_notifications(po):
+            if not nt.enabled:
+                continue
+            ctx = Context(params)
+            subject = Template(nt.subject_template, ctx)
+            body = Template(nt.body_template, ctx)
+            to = nt.to.split(",") + msg_to
+            cc = msg_cc
+            if not (subject or body or to):
+                continue
+            headers["Subject"] = subject
+            print to, cc, headers, body
+            #self._send_email(to, cc, headers, body)
+
+    def prepare_project_hook(self, request, project):
+        if not project.maintained_by(request.user):
+            return
+        project.extra_info.append({"title": "Email notifications",
+                                   "class": "info",
+                                   "content": self.build_config_html(request,
+                                                                     project)})
