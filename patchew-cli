@@ -75,10 +75,16 @@ class LoginCommand(SubCommand):
 
     def arguments(self, parser):
         parser.add_argument("username", type=str, help="username for login")
-        parser.add_argument("password", type=str, help="password for login")
+        parser.add_argument("password", nargs="?",
+                            type=str, help="password for login")
 
     def do(self, args, argv):
+        import getpass
         try:
+            if not args.password:
+                args.password = getpass.getpass("Password: ")
+            if not args.password:
+                return 1
             self.api_do("login", username=args.username,
                                  password=args.password)
         except Exception as e:
