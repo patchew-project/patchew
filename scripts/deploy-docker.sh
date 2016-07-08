@@ -1,4 +1,13 @@
 #!/bin/bash
+#
+# Copyright 2016 Red Hat, Inc.
+#
+# Authors:
+#     Fam Zheng <famz@redhat.com>
+#
+# This work is licensed under the MIT License.  Please see the LICENSE file or
+# http://opensource.org/licenses/MIT.
+
 set -e
 if [ $# -lt 2 ]; then
     echo "usage: $0 <remote> <type>"

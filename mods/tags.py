@@ -1,3 +1,13 @@
+#!/usr/bin/env python2
+#
+# Copyright 2016 Red Hat, Inc.
+#
+# Authors:
+#     Fam Zheng <famz@redhat.com>
+#
+# This work is licensed under the MIT License.  Please see the LICENSE file or
+# http://opensource.org/licenses/MIT.
+
 from mod import PatchewModule
 from mbox import parse_address
 from event import register_handler, emit_event, declare_event
