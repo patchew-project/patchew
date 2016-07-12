@@ -37,6 +37,7 @@ crossorigin="anonymous"></script>
 
 </head>
 <body>
+<div class="wrapper">
 <nav class="navbar navbar-default">
   <div class="container-fluid">
     <!-- Brand and toggle get grouped for better mobile display -->
@@ -97,6 +98,14 @@ crossorigin="anonymous"></script>
     {% block content %}
     {% endblock %}
 
+</div>
+
+<div class="push"></div>
+</div>
+
+<div class="footer">
     {{ footer | safe }}
+    <p>Patchew {{ patchew_version }}</p>
+    <p>© 2016 Red Hat, Inc. </p>
 </div>
 </body>

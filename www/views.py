@@ -12,12 +12,14 @@ from django.shortcuts import render
 from django.template import Context
 from django.http import HttpResponse, Http404
 from django.core.urlresolvers import reverse
+from django.conf import settings
 import api
 from mod import dispatch_module_hook
 
 PAGE_SIZE = 50
 
 def render_page(request, template_name, **data):
+    data["patchew_version"] = settings.VERSION
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
 

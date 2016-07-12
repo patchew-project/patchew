@@ -1,3 +1,22 @@
+html, body {
+    height: 100%;
+}
+.wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -40px; /* the bottom margin is the negative value of the footer's height */
+}
+.footer, .push {
+    height: 40px; /* .push must be the same height as .footer */
+}
+.footer {
+    text-align: center;
+    color: #888;
+}
+.footer p {
+    margin-bottom: 0;
+}
 .smiley {
     color: #008900;
 }
