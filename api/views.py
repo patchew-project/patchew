@@ -62,7 +62,7 @@ class APILoginRequiredView(APIView):
         if request.user.is_superuser:
             return
         for grp in request.user.groups.all():
-            if grp.is_superuser or grp.name in self.allowed_groups or \
+            if grp.name in self.allowed_groups or \
                     self.check_permission(request):
                 return
         raise PermissionDenied()
