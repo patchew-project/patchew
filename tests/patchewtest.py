@@ -90,8 +90,16 @@ class PatchewTestCase(unittest.TestCase):
             self.assertEqual(r, 0)
         return a, b
 
-    def login(self):
-        r, a, b = self.cli_command("login", self.superuser, self.password)
+    def login(self, username=None, password=None):
+        if not username:
+            username = self.superuser
+        if not password:
+            password = self.password
+        r, a, b = self.cli_command("login", username, password)
+        self.assertEqual(r, 0)
+
+    def logout(self):
+        r, a, b = self.cli_command("logout")
         self.assertEqual(r, 0)
 
     def get_data_path(self, fname):
