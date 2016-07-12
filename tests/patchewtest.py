@@ -44,13 +44,14 @@ class PatchewTestCase(unittest.TestCase):
                                           stdout=_logf, stderr=_logf)
         ok = False
         for i in range(20):
+            devnull = open("/dev/null", "w")
             rc = subprocess.call(["curl", self.server_url],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=devnull, stderr=devnull)
             if rc == 0:
                 ok = True
                 break
             time.sleep(0.05)
-        assert ok
+        self.assertTrue(ok)
         self.assert_server_running()
 
     def create_user(self, username, password, is_superuser=False, groups=[]):
