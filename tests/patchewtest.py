@@ -36,18 +36,8 @@ class PatchewTestCase(unittest.TestCase):
     def start_server(self):
         os.environ["PATCHEW_DATA_DIR"] = tempfile.mkdtemp(dir=RUN_DIR,
                                                           prefix="data-")
-        p = subprocess.check_output([self.manage_py, "migrate"])
-        p = subprocess.Popen([self.manage_py, "shell"],
-                             stdin=subprocess.PIPE, stdout=_logf,
-                             stderr=_logf)
-        p.stdin.write("from django.contrib.auth.models import User\n")
-        p.stdin.write("user=User.objects.create_user('%s', password='%s')\n" % \
-                      (self.superuser, self.password))
-        p.stdin.write("user.is_superuser=True\n")
-        p.stdin.write("user.is_staff=True\n")
-        p.stdin.write("user.save()\n")
-        p.stdin.close()
-        p.wait()
+        subprocess.check_output([self.manage_py, "migrate"])
+        self.create_user(self.superuser, self.password, True)
         self._server_p = subprocess.Popen([self.manage_py, "runserver",
                                            "--noreload",
                                            str(self.server_port)],
@@ -62,6 +52,23 @@ class PatchewTestCase(unittest.TestCase):
             time.sleep(0.05)
         assert ok
         self.assert_server_running()
+
+    def create_user(self, username, password, is_superuser=False, groups=[]):
+        p = subprocess.Popen([self.manage_py, "shell"],
+                             stdin=subprocess.PIPE, stdout=_logf,
+                             stderr=_logf)
+        p.stdin.write("from django.contrib.auth.models import User, Group\n")
+        p.stdin.write("user=User.objects.create_user('%s', password='%s')\n" % \
+                      (username, password))
+        p.stdin.write("user.is_superuser=%s\n" % is_superuser)
+        p.stdin.write("user.is_staff=True\n")
+        if groups:
+            groups_str = ", ".join('"%s"' % s for s in groups)
+            p.stdin.write("user.groups = [Group.objects.get(name=x) for x in [%s]]\n" \
+                          % groups_str)
+        p.stdin.write("user.save()\n")
+        p.stdin.close()
+        p.wait()
 
     def stop_server(self):
         self._server_p.terminate()
