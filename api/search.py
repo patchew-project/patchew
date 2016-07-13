@@ -167,7 +167,7 @@ Search text keyword in the email message. Example:
             elif cond == "applied":
                 q = self._property_q("git.tag")
             elif cond == "tested":
-                q = self._property_q("tested")
+                q = self._property_q("testing.done")
             else:
                 raise NotImplementedError("flag not recognized: %s" % cond)
             if lneg:
