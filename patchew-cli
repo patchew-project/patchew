@@ -453,6 +453,7 @@ def args_merge_config(args):
         for fp in [".patchew-cli.conf", os.path.expanduser("~/.patchew-cli.conf")]:
             if os.path.isfile(fp):
                 args.config = fp
+                break
     if not args.config:
         return
     cp = ConfigParser.ConfigParser()
