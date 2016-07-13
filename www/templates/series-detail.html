@@ -2,6 +2,8 @@
 
 {% block header %}
 <link rel="stylesheet" href="/static/css/thread.css">
+<link rel="stylesheet" href="/static/highlight/default.css">
+<script src="/static/highlight/highlight.pack.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -72,7 +74,11 @@
                 </h3>
             </div>
             <div class="panel-body panel-toggle panel-hidden">
+                {% if msg.is_patch %}
+                <pre class="body-full"><code class="diff">{{ msg.get_body }}</code></pre>
+                {% else %}
                 <pre class="body-full">{{ msg.get_body }}</pre>
+                {% endif %}
             </div>
         </div>
     {% endfor %}
@@ -106,6 +112,11 @@ function main() {
     });
     $("#btn-fold-all").click(function () {
         $(".panel-toggle").hide();
+    });
+    $(document).ready(function() {
+        $('pre code').each(function(i, block) {
+            hljs.highlightBlock(block);
+        });
     });
 }
 
