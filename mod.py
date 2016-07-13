@@ -380,7 +380,7 @@ function collect_properties(btn, check_required) {
                 return false;
             }
         } else if (this.type == "checkbox") {
-            if (this.checkeck) {
+            if (this.checked) {
                 val = true;
             } else {
                 val = false;
