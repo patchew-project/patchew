@@ -284,7 +284,7 @@ class TestingGetView(APILoginRequiredView):
         all_tests = set()
         done_tests = set()
         for tn, t in _instance.get_tests(project).iteritems():
-            if not t["enabled"]:
+            if not t.get("enabled"):
                 continue
             all_tests.add(tn)
             if obj.get_property("testing.report." + tn):
