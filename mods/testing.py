@@ -86,6 +86,17 @@ class TestingModule(PatchewModule):
                       test="test name",
                       log="test log")
 
+    def remove_testing_properties(self, obj):
+        for k in obj.get_properties().keys():
+            if k == "testing.started" or \
+               k == "testing.start-time" or \
+               k == "testing.failed" or \
+               k == "testing.done" or \
+               k == "testing.tested-head" or \
+               k.startswith("testing.report.") or \
+               k.startswith("testing.log."):
+                obj.set_property(k, None)
+
     def www_view_testing_reset(self, request, project_or_series):
         if not request.user.is_authenticated():
             return HttpResponseForbidden()
@@ -97,15 +108,7 @@ class TestingModule(PatchewModule):
             obj = Message.objects.find_series(project_or_series)
         if not obj:
             raise Http404("Not found: " + project_or_series)
-        for k in obj.get_properties().keys():
-            if k == "testing.started" or \
-               k == "testing.start-time" or \
-               k == "testing.failed" or \
-               k == "testing.done" or \
-               k == "testing.tested-head" or \
-               k.startswith("testing.report.") or \
-               k.startswith("testing.log."):
-                obj.set_property(k, None)
+        self.remove_testing_properties(obj)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
