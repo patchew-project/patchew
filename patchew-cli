@@ -216,7 +216,6 @@ class ProjectCommand(SubCommand):
 
 class SearchCommand(SubCommand):
     name = "search"
-    want_argv = True
 
     def arguments(self, parser):
         parser.add_argument("--output", "-o", default="subject", type=str,
