@@ -36,9 +36,10 @@ def prepare_message(request, m):
         else:
             m.total_patches = 1
         if m.num_patches < m.total_patches:
+            missing = m.total_patches - m.num_patches
             m.status_tags.append({
-                "title": "Series not complete (%d patches not received)" % \
-                        (m.total_patches - m.num_patches),
+                "title": "Series not complete (%d %s not received)" % \
+                        (missing, "patches" if missing > 1 else "patch"),
                 "type": "warning",
                 "char": "P",
                 })
