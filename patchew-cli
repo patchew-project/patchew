@@ -393,50 +393,6 @@ class TesterCommand(SubCommand):
                 time.sleep(600)
         return 0
 
-class ApplyCommand(SubCommand):
-    name = "apply"
-    want_argv = True
-
-    def arguments(self, parser):
-        parser.add_argument("term", nargs="*", help="the query to indicate which series to apply")
-        parser.add_argument("--git", "-C", type=str, default=".",
-                            help="the path to git repo")
-        parser.add_argument("--branch", "-b", type=str,
-                            help="Create a new branch to apply (default is on current branch")
-        parser.add_argument("--base", "-B", type=str,
-                            help="Base branch (default is HEAD)")
-
-    def do(self, args, argv):
-        r = self.api_do("query", terms=args.term)
-        if len(r) == 0:
-            print "Series not found"
-        elif len(r) > 1:
-            print "Multiple series found:"
-            for i in range(len(r)):
-                print "%4d. %s" % (i, r[i]["subject"])
-            choice = raw_input("which one to apply?")
-            s = r[int(choice)]
-        else:
-            s = r[0]
-        if args.base:
-            subprocess.check_output(["git", "checkout",
-                                     args.base],
-                                     cwd=args.git)
-        if args.branch:
-            subprocess.check_output(["git", "checkout",
-                                     "-b", args.branch],
-                                     cwd=args.git)
-        for m in s["patches"]:
-            p = subprocess.Popen(["git", "am", "-m"] + argv,
-                                 stdin=subprocess.PIPE,
-                                 cwd=args.git)
-            p.stdin.write(m)
-            p.stdin.close()
-            r = p.wait()
-            if r != 0:
-                break
-        return 0
-
 def global_args(parser):
     parser.add_argument("-d", "--debug", action="store_true", default=None,
                         help="Enable debug output")
