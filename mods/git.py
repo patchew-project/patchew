@@ -179,7 +179,7 @@ class GitModule(PatchewModule):
             failed = message.get_property("git.apply-failed")
             message.extra_info.append({"title": "Git apply log",
                                        "class": 'danger' if failed else 'default',
-                                       "content": l})
+                                       "content": '<pre>%s</pre>' % l})
             git_url = message.get_property("git.url")
             git_repo = message.get_property("git.repo")
             git_tag = message.get_property("git.tag")

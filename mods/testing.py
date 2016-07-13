@@ -170,7 +170,7 @@ class TestingModule(PatchewModule):
             passed_str = "failed" if failed else "passed"
             obj.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
                                   "class": 'danger' if failed else 'success',
-                                  "content": '<pre class="body-full">%s</pre>' % log})
+                                  "content": '<pre>%s</pre>' % log})
 
     def prepare_message_hook(self, request, message):
         if not message.is_series_head:

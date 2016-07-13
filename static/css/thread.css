@@ -8,7 +8,7 @@
 .panel-hidden {
     display: none;
 }
-.panel-body .body-full {
+.panel-body pre {
     background-color: #fff;
     border: none;
     padding: 5px;
