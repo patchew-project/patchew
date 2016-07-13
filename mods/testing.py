@@ -325,7 +325,7 @@ class TestingGetView(APILoginRequiredView):
             if not ok:
                 continue
             return t
-        if all_tests.issubset(done_tests):
+        if len(all_tests) and all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
 
     def _find_project_test(self, request, po, tester, capabilities):
