@@ -159,15 +159,6 @@ class TestingModule(PatchewModule):
             ret[tn]["name"] = tn
         return ret
 
-    def get_requirements(self, project):
-        ret = {}
-        for k, v in project.get_properties().iteritems():
-            if not k.startswith("testing.requirements."):
-                continue
-            tn = k[len("testing.requirements."):]
-            ret[tn] = v
-        return ret
-
     def prepare_testing_report(self, obj):
         for pn, p in obj.get_properties().iteritems():
             if not pn.startswith("testing.report."):
