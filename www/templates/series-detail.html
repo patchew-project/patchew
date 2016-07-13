@@ -83,19 +83,6 @@
         </div>
     {% endfor %}
     </div>
-
-    <div id="testings">
-        {% for t in testings %}
-            <div class="panel panel-{{ t.class }}" id="testing-{{ t.name }}">
-                <div class="panel-heading panel-toggler">
-                Test &quot;{{ t.name }}&quot; - {{ t.result }}
-                </div>
-                <div class="panel-body panel-toggle">
-                    <pre class="body-full">{{ t.log | safe }}</pre>
-                </div>
-            </div>
-        {% endfor %}
-    </div>
 </div>
 
 <script type="text/javascript">
