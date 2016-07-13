@@ -49,7 +49,7 @@
     <div class="panel panel-{{ info.class }}">
         <div class="panel-heading panel-toggler">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden">
-            <pre class="body-full">{{ info.content }}</pre>
+            {{ info.content | safe }}
         </div>
     </div>
     {% endfor %}
