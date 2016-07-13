@@ -236,6 +236,15 @@ class TestingModule(PatchewModule):
                 traceback.print_exc(e)
         return ret
 
+    def tester_check_in(self, project, tester):
+        assert project
+        assert tester
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            return
+        print "check in"
+        po.set_property('testing.check_in.' + tester, time.time())
+
 class TestingGetView(APILoginRequiredView):
     name = "testing-get"
     allowed_groups = ["testers"]
@@ -335,6 +344,7 @@ class TestingGetView(APILoginRequiredView):
 
     def handle(self, request, project, tester, capabilities):
         # Try project head test first
+        _instance.tester_check_in(project, tester or request.user.username)
         po = Project.objects.get(name=project)
         candidate = self._find_project_test(request, po, tester, capabilities)
         if not candidate:
@@ -351,6 +361,7 @@ class TestingReportView(APILoginRequiredView):
     allowed_groups = ["testers"]
 
     def handle(self, request, tester, project, test, head, base, passed, log, identity):
+        _instance.tester_check_in(project, tester or request.user.username)
         _instance.add_test_report(request.user, project, tester,
                                   test, head, base, identity, passed, log)
 
@@ -359,5 +370,6 @@ class TestingCapabilitiesView(APILoginRequiredView):
     allowed_groups = ["testers"]
 
     def handle(self, request, tester, project):
+        _instance.tester_check_in(project, tester or request.user.username)
         probes = _instance.get_capability_probes(project)
         return probes
