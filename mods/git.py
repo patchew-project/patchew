@@ -127,8 +127,14 @@ class GitModule(PatchewModule):
                 subprocess.check_call(["git", "am", p.get_mbox_path()],
                                       cwd=repo, stdout=logf, stderr=logf)
                 filter_cmd = ""
+                commit_message_lines = \
+                        subprocess.check_output(["git", "log", "-n", "1",
+                                                 "--format=%b"], cwd=repo)\
+                                               .splitlines()
                 for t in ["Message-id: %s" % p.message_id] + \
                          p.get_property("tags", []):
+                    if t in commit_message_lines:
+                        continue
                     filter_cmd += "echo '%s';" % t
                 if filter_cmd:
                     subprocess.check_output(["git", "filter-branch", "-f",
