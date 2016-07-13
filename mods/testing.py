@@ -395,3 +395,12 @@ class TestingCapabilitiesView(APILoginRequiredView):
         _instance.tester_check_in(project, tester or request.user.username)
         probes = _instance.get_capability_probes(project)
         return probes
+
+class UntestView(APILoginRequiredView):
+    name = "untest"
+
+    def handle(self, request, terms):
+        se = SearchEngine()
+        q = se.search_series(*terms)
+        for s in q:
+            _instance.remove_testing_properties(s)

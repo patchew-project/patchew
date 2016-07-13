@@ -237,6 +237,16 @@ class SearchCommand(SubCommand):
                 print
         return 0
 
+class UntestCommand(SubCommand):
+    name = "untest"
+
+    def arguments(self, parser):
+        parser.add_argument("term", nargs="*", type=str)
+
+    def do(self, args, argv):
+        self.api_do("untest", terms=args.term)
+        return 0
+
 class TesterCommand(SubCommand):
     name = "tester"
     want_argv = True
