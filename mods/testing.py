@@ -300,7 +300,7 @@ class TestingGetView(APILoginRequiredView):
                                         test=test)
 
     def _find_applicable_test(self, user, project, tester, capabilities, obj):
-        all_tests = set()
+        all_tests = set([k for k, v in _instance.get_tests(obj).iteritems() if v["enabled"]])
         done_tests = set()
         for tn, t in _instance.get_tests(project).iteritems():
             if not t.get("enabled"):
