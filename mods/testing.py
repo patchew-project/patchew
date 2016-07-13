@@ -19,6 +19,7 @@ import time
 import smtplib
 import email
 import traceback
+import math
 from api.views import APILoginRequiredView
 from api.models import Message, Project
 from api.search import SearchEngine
@@ -204,6 +205,21 @@ class TestingModule(PatchewModule):
                 "char": "T",
                 })
 
+    def _testers_info(self, project):
+        at = []
+        for k, v in project.get_properties().iteritems():
+            prefix = "testing.check_in."
+            if not k.startswith(prefix):
+                continue
+            age = time.time() - v
+            if age > 10 * 60:
+                continue
+            tn = k[len(prefix):]
+            at.append("%s (%dmin)" % (tn, math.ceil(age / 60)))
+        if not at:
+            return
+        return "Active testers: " + ", ".join(at)
+
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
             return
@@ -211,6 +227,9 @@ class TestingModule(PatchewModule):
                                    "class": "info",
                                    "content": self.build_config_html(request,
                                                                      project)})
+        ti = self._testers_info(project)
+        if ti:
+            project.extra_headers.append(ti)
         self.prepare_testing_report(project)
 
         if project.maintained_by(request.user) \
