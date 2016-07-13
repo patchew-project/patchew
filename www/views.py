@@ -160,6 +160,7 @@ def view_project_detail(request, project):
     nav_path = prepare_navigate_list("Information",
                         ("project_detail", {"project": project}, project))
     po.extra_info = []
+    po.extra_headers = []
     po.extra_ops = []
     dispatch_module_hook("prepare_project_hook", request=request, project=po)
     return render_page(request, "project-detail.html",
