@@ -116,7 +116,7 @@ class GitModule(PatchewModule):
         try:
             upstream, base_branch = self._get_project_repo_and_branch(s.project)
             repo = self._clone_repo(project_name, wd, upstream, base_branch, logf)
-            new_branch = s.message_id
+            new_branch = "patchew/" + s.message_id
             subprocess.check_call(["git", "checkout", "-q", "-b", new_branch],
                                   cwd=repo, stdout=logf, stderr=logf)
             base = subprocess.check_output(["git", "log", '-n', '1', "--format=%H"],
