@@ -84,13 +84,9 @@ crossorigin="anonymous"></script>
 <div class="col-lg-12 container-fluid">
 
     {% if navigate_links %}
-        <ol class="breadcrumb">
+        <ol class="breadcrumb navigate">
         {% for n in navigate_links %}
-                {% if n.url %}
-                    <li><a href="{{ n.url }}">{{ n.title }}</a></li>
-                {% else %}
-                    <li class="active">{{ n.title }}</li>
-                {% endif %}
+            <li class="{{ n.class }}"><a href="{{ n.url }}">{{ n.title }}</a></li>
         {% endfor %}
         </ol>
     {% endif %}

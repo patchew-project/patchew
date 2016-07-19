@@ -116,7 +116,7 @@ def prepare_navigate_list(cur, *path):
     for it in path:
         r.append({"url": reverse(it[0], kwargs=it[1]),
                   "title": it[2]})
-    r.append({"title": cur})
+    r.append({"title": cur, "url": "", "class": "active"})
     return r
 
 def render_series_list_page(request, query, search, project=None, keywords=[]):

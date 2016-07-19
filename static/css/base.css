@@ -43,6 +43,11 @@ html, body {
     background: none;
 }
 
+.navigate > .active a {
+    text-decoration: none;
+    color: #666;
+}
+
 .search-help {
     color: #ccc;
 }
