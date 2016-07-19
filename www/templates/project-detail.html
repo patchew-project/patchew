@@ -25,6 +25,7 @@
             Project: <strong>{{ project.name }}</strong></li>
         {% if project.description %}<li class="list-group-item">{{ project.description }}</li>{% endif %}
         {% if project.url %}<li class="list-group-item">URL: <strong><a href="{{ project.url }}">{{ project.url }}</a></strong></li>{% endif %}
+        {% if project.git %}<li class="list-group-item">Git: <strong><a href="{{ project.git }}">{{ project.git }}</a></strong></li>{% endif %}
         <li class="list-group-item">Total series: <a href="{% url "series_list" project=project %}">{{ project.total_series_count }}</a></li>
         {% for header in project.extra_headers %}
             <li class="list-group-item">{{ header }}</li>
