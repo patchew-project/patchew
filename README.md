@@ -17,7 +17,7 @@ It can:
  - Recognize various statuses (picking up "Reviewed-by", "Tested-by", etc.) of
    the patch series from the patch email and replies.
  - Search or apply series from the command line.
- - Deployed your server to [openshift](https://openshift.redhat.com) instantly.
+ - Deploy your server to [openshift](https://openshift.redhat.com) instantly.
  - Manage multiple projects with separate configurations.
 
 ## Submit a feature request or a bug report
