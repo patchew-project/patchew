@@ -66,10 +66,8 @@
                     <div class="col-md-3 message-age">
                         <small>Posted by</small>
                         <span class="message-author" title="{{ msg.sender_full_name }}">
-                            {{ msg.sender_display_name }}
-                        </span>
-                        <small>at</small>
-                        <span class="timestamp" title="{{ msg.date }}">
+                            {{ msg.sender_display_name }}</span><small>,</small>
+                        <span class="age" title="{{ msg.date }}">
                             {{ msg.get_age }}
                         </span>
                         <small>ago</small>

@@ -21,6 +21,10 @@
     text-align: right;
 }
 
+.message-age > .message-author {
+    font-weight: bold;
+}
+
 .reply-lvl-0 {
 }
 .reply-lvl-1 {
