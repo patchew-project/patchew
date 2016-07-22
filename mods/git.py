@@ -204,7 +204,7 @@ class GitModule(PatchewModule):
             else:
                 html = 'Git: <a href="%s">%s</a>' % (git_url, git_url)
                 message.extra_headers.append(html)
-                title = "Applied as tag %s in repo %s" % (git_tag, git_url)
+                title = "Applied as tag %s in repo %s" % (git_tag, git_repo)
                 message.status_tags.append({
                     "url": git_url,
                     "title": title,
