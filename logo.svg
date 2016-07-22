@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64"
+   height="64"
+   id="svg3440"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   viewBox="0 0 64 64"
+   sodipodi:docname="logo.svg">
+  <defs
+     id="defs3442" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="4"
+     inkscape:cx="38.231736"
+     inkscape:cy="47.200513"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:document-units="px"
+     inkscape:grid-bbox="true"
+     inkscape:window-width="1916"
+     inkscape:window-height="1040"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata3445">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer">
+    <rect
+       style="fill:#006c00"
+       id="rect3496"
+       width="64"
+       height="64"
+       x="0"
+       y="0"
+       ry="8"
+       rx="8" />
+    <g
+       style="font-style:normal;font-weight:normal;font-size:61.77132416px;line-height:129.99999523%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       id="text3448">
+      <path
+         d="m 15.728777,20.307929 c 2.161997,0 3.70628,-1.606054 3.70628,-3.706279 0,-2.100226 -1.544283,-3.70628 -3.70628,-3.70628 -2.161996,0 -3.706279,1.606054 -3.706279,3.70628 0,2.100225 1.544283,3.706279 3.706279,3.706279 z m 0,23.720188 c 2.161997,0 3.70628,-1.606054 3.70628,-3.706279 0,-2.100225 -1.544283,-3.706279 -3.70628,-3.706279 -2.161996,0 -3.706279,1.606054 -3.706279,3.706279 0,2.100225 1.544283,3.706279 3.706279,3.706279 z"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:61.77132416px;line-height:129.99999523%;font-family:Cantarell;-inkscape-font-specification:Cantarell;fill:#ffffff"
+         id="path3511" />
+      <path
+         d="m 55.200653,28.029344 c 0,-8.647985 -4.756392,-15.133974 -13.960319,-15.133974 -3.088566,0 -5.930047,0.864799 -8.462671,2.656167 l -1.050113,-1.914911 -3.644508,0 0,46.081408 5.12702,0 0,-17.172428 c 2.285539,0.988341 4.756392,1.482511 7.289016,1.482511 8.956842,0 14.701575,-6.733074 14.701575,-15.998773 z M 39.943136,17.157591 c 6.609532,0 9.821641,4.694621 9.821641,11.427695 0,6.424218 -3.459194,11.365924 -9.883412,11.365924 -2.409082,0 -4.632849,-0.494171 -6.671303,-1.42074 l 0,-19.58151 c 2.100225,-1.297198 3.520965,-1.791369 6.733074,-1.791369 z"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:61.77132416px;line-height:129.99999523%;font-family:Cantarell;-inkscape-font-specification:Cantarell;fill:#ffffff"
+         id="path3513" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="104.54545"
+       y="-6"
+       id="text3480"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3482"
+         x="104.54545"
+         y="-6"></tspan></text>
+  </g>
+</svg>
