@@ -109,6 +109,9 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
+    def _template_render(self, tmpl, **data):
+        return Template(tmpl).render(Context(data))
+
     def _update_series(self, wd, s):
         logf = tempfile.NamedTemporaryFile()
         project_name = s.project.name
@@ -159,9 +162,9 @@ class GitModule(PatchewModule):
             s.set_property("git.repo", public_repo)
             s.set_property("git.tag", new_branch)
             s.set_property("git.base", base)
-            s.set_property("git.url",
-                           self.get_project_config(s.project, "url_template")\
-                                   .format(tag_name=new_branch))
+            s.set_property("git.url", self._template_render(
+                           self.get_project_config(s.project, "url_template"),
+                           tag_name=new_branch))
             s.set_property("git.apply-failed", False)
         except Exception as e:
             logf.write(str(e))
