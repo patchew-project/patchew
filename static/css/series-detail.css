@@ -17,6 +17,10 @@
     margin-bottom: 5px;
 }
 
+.message-age {
+    text-align: right;
+}
+
 .reply-lvl-0 {
 }
 .reply-lvl-1 {

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/thread.css">
+<link rel="stylesheet" href="/static/css/series-detail.css">
 <link rel="stylesheet" href="/static/highlight/default.css">
 <script src="/static/highlight/highlight.pack.js"></script>
 {% endblock %}
@@ -58,20 +58,23 @@
     {% for msg in messages %}
         <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
             <div class="panel-heading panel-toggler">
-                <h3 class="panel-title">
-                {{ msg.subject }}
-                <span class="pull-right">
-                    <small>Posted by</small>
-                    <span class="message-author" title="{{ msg.sender_full_name }}">
-                        {{ msg.sender_display_name }}
-                    </span>
-                    <small>at</small>
-                    <span class="timestamp" title="{{ msg.date }}">
-                        {{ msg.get_age }}
-                    </span>
-                    <small>ago</small>
-                </span>
-                </h3>
+                <div class="row">
+                    <div class="col-md-9 panel-title">
+                        {{ msg.subject }}
+                    </div>
+
+                    <div class="col-md-3 message-age">
+                        <small>Posted by</small>
+                        <span class="message-author" title="{{ msg.sender_full_name }}">
+                            {{ msg.sender_display_name }}
+                        </span>
+                        <small>at</small>
+                        <span class="timestamp" title="{{ msg.date }}">
+                            {{ msg.get_age }}
+                        </span>
+                        <small>ago</small>
+                    </div>
+                </div>
             </div>
             <div class="panel-body panel-toggle panel-hidden">
                 {% if msg.is_patch %}
