@@ -36,7 +36,7 @@ class GitModule(PatchewModule):
                         StringSchema("public_repo", "Public repo",
                                      desc="Publicly visible repo URL"),
                         StringSchema("url_template", "URL template",
-                                     desc="Publicly visible URL template for applied branch",
+                                     desc="Publicly visible URL template for applied branch, where {{ tag_name }} will be replaced by the applied tag name",
                                      required=True),
                    ])
 
