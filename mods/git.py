@@ -14,11 +14,13 @@ import tempfile
 import shutil
 import hashlib
 from django.conf.urls import url
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.template import Context, Template
+from django.core.urlresolvers import reverse
+from django.core.exceptions import PermissionDenied
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Project
+from api.models import Project, Message
 from schema import *
 
 _instance = None
@@ -209,6 +211,12 @@ class GitModule(PatchewModule):
                     "type": "info",
                     "char": "G",
                     })
+        if request.user.is_authenticated():
+            url = reverse("git_apply",
+                          kwargs={"series": message.message_id})
+            message.extra_ops.append({"url": url,
+                                      "title": "Git apply",
+                                     })
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
@@ -239,5 +247,17 @@ class GitModule(PatchewModule):
                 self._poll_project(p)
         return HttpResponse()
 
+    def www_view_git_apply(self, request, series):
+        if not request.user.is_authenticated():
+            raise PermissionDenied
+        obj = Message.objects.find_series(series)
+        if not obj:
+            raise Http404("Not found: " + series)
+        self.on_series_update("GitApply", obj)
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^git-poll/", self.www_view_git_poll))
+        urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
+                               self.www_view_git_apply,
+                               name="git_apply"))
