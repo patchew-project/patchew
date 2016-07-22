@@ -84,7 +84,7 @@ imported()
 import()
 {
     echo import $@
-    if $PATCHEW_CLI -s "$PATCHEW_SERVER" import $@; then
+    if $PATCHEW_CLI --nodebug -s "$PATCHEW_SERVER" import $@; then
         if test -n "$IMAP_DELETE_AFTER_IMPORT"; then
             rm $f
         fi
@@ -95,7 +95,7 @@ import()
     fi
 }
 
-$PATCHEW_CLI -s "$PATCHEW_SERVER" login "$PATCHEW_UESR" "$PATCHEW_PASS"
+$PATCHEW_CLI --nodebug -s "$PATCHEW_SERVER" login "$PATCHEW_UESR" "$PATCHEW_PASS"
 
 while :; do
     if ! timeout -k 2000 1800 offlineimap -c $offlineimap_rc; then
