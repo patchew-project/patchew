@@ -262,7 +262,6 @@ class TestingModule(PatchewModule):
         po = Project.objects.filter(name=project).first()
         if not po:
             return
-        print "check in"
         po.set_property('testing.check_in.' + tester, time.time())
 
 class TestingGetView(APILoginRequiredView):
