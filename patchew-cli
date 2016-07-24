@@ -356,10 +356,10 @@ class TesterCommand(SubCommand):
                 time.sleep(0.1)
             logf.write("=== OUTPUT END ===\n")
             logf.write("\n")
-            if rc:
-                logf.write("Test command exited with code: %d" % rc)
-            else:
+            if rc == None:
                 logf.write("Abort: command timeout (>%d seconds)" % timeout)
+            else:
+                logf.write("Test command exited with code: %d" % rc)
             logf.flush()
         except Exception as e:
             traceback.print_exc(e, logf)
