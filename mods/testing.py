@@ -247,17 +247,13 @@ class TestingModule(PatchewModule):
 
     def get_capability_probes(self, project):
         ret = {}
-        conf = self.get_config_obj()
-        for sec in filter(lambda x: x.lower().startswith("capability "),
-                          conf.sections()):
-            if conf.get(sec, "project") and conf.get(sec, "project") != project:
+        for k, v in project.get_properties().iteritems():
+            prefix = "testing.requirements."
+            if not k.startswith(prefix):
                 continue
-            try:
-                name = sec[len("capability "):]
-                ret[name] = dict(conf.items(sec))
-            except Exception as e:
-                print "Error while parsing capability config:"
-                traceback.print_exc(e)
+            name = k[len(prefix):]
+            name = name[:name.find(".")]
+            ret[name] = v
         return ret
 
     def tester_check_in(self, project, tester):
@@ -395,7 +391,10 @@ class TestingCapabilitiesView(APILoginRequiredView):
 
     def handle(self, request, tester, project):
         _instance.tester_check_in(project, tester or request.user.username)
-        probes = _instance.get_capability_probes(project)
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Http404("Project '%s' not found" % project)
+        probes = _instance.get_capability_probes(po)
         return probes
 
 class UntestView(APILoginRequiredView):
