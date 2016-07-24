@@ -232,7 +232,7 @@ TMPL_INTEGER = """
     {% if schema.multiline %}
         >{{ value | default_if_none:schema.default }}</textarea>
     {% else %}
-        value="{{ value | default_if_none:"" }}">
+        value="{{ value | default_if_none:schema.default }}">
     {% endif %}
 </div>
 """
