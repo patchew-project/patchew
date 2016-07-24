@@ -46,6 +46,7 @@ class TestingModule(PatchewModule):
                         StringSchema("requirements", "Requirements",
                                      desc="List of requirements of the test"),
                         IntegerSchema("timeout", "Timeout",
+                                      default=3600,
                                       desc="Timeout for the test"),
                         StringSchema("script", "Test script",
                                      desc="The testing script",
@@ -59,6 +60,7 @@ class TestingModule(PatchewModule):
                     members=[
                         StringSchema("script", "Probe script",
                                      desc="The probing script for this requirement",
+                                     default="#!/bin/bash\ntrue",
                                      multiline=True,
                                      required=True),
                     ])
