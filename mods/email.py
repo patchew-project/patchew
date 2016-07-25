@@ -18,7 +18,7 @@ import smtplib
 import email
 import uuid
 import traceback
-from api.models import Message
+from api.models import Message, Project
 from event import register_handler, get_events_info
 from schema import *
 
@@ -49,6 +49,10 @@ Email information is configured in "INI" style:
         ArraySchema("email_notification", "Email Notification",
                     desc="Email notification",
                     members=[
+                        EnumSchema("event", "Event",
+                                   enums=lambda: get_events_info(),
+                                   required=True,
+                                   desc="Which event to trigger the email notification"),
                         BooleanSchema("enabled", "Enabled",
                                       desc="Whether this event is enabled",
                                       default=True),
@@ -56,16 +60,12 @@ Email information is configured in "INI" style:
                                       desc='Whether to "reply to all" if the event has an associated email message',
                                       default=False),
                         StringSchema("to", "To", desc="Send email to"),
-                        EnumSchema("event", "Event",
-                                   enums=lambda: get_events_info(),
-                                   required=True,
-                                   desc="Which event to trigger the email notification"),
+                        StringSchema("cc", "Cc", desc="Cc list"),
                         StringSchema("subject_template", "Subject template",
                                      desc="""The django template for subject""",
                                      required=True),
                         StringSchema("body_template", "Body template",
-                                     desc="""The django template for email body.
-                                     If rendered to empty, the email will not be sent""",
+                                     desc="The django template for email body.",
                                      multiline=True,
                                      required=True),
                     ])
@@ -79,12 +79,7 @@ Email information is configured in "INI" style:
                    ])
 
     def __init__(self):
-        register_handler("NewEvent", self.on_new_event)
-
-    def on_new_event(self, event, name, params):
-        if name == "NewEvent":
-            return
-        register_handler(name, self.on_event)
+        register_handler(None, self.on_event)
 
     def _get_smtp(self):
         server = self.get_config("smtp", "server")
@@ -159,7 +154,7 @@ Email information is configured in "INI" style:
     def get_notifications(self, project):
         ret = {}
         for k, v in project.get_properties().iteritems():
-            if not k.startswith("email.notifictions."):
+            if not k.startswith("email.notifications."):
                 continue
             tn = k[len("email.notifications."):]
             if "." not in tn:
@@ -171,33 +166,48 @@ Email information is configured in "INI" style:
             ret[tn]["name"] = tn
         return ret
 
-    def on_event(self, **params):
-        obj = params.get("obj")
+    def on_event(self, event, **params):
+        po = None
+        mo = None
         headers = {}
-        msg_to = []
-        msg_cc = []
-        if isinstance(obj, Project):
-            po = obj
-        elif isinstance(obj, Message) and obj.is_series_head:
-            headers["In-Reply-To"] = "<%s>" % obj.message_id
-            po = obj.project
-            msg_to = obj.get_sender()
-            msg_cc = obj.get_receivers()
-        else:
+        for v in params.values():
+            if isinstance(v, Message):
+                mo = v
+                po = mo.project
+                break
+            elif isinstance(v, Project):
+                po = v
+                break
+        if not po:
             return
-        for nt in self.get_notifications(po):
-            if not nt.enabled:
+        if mo:
+            headers["In-Reply-To"] = "<%s>" % mo.message_id
+        for nt in self.get_notifications(po).values():
+            if not nt["enabled"]:
                 continue
+            if nt["event"] != event:
+                continue
+            # Try to find a message box
+
+            # Provide a "cancel_email" method for the template
+            params["cancelled"] = False
+            def cancel_email():
+                params["cancelled"] = True
+            params["cancel_email"] = cancel_email
+
             ctx = Context(params)
-            subject = Template(nt.subject_template, ctx)
-            body = Template(nt.body_template, ctx)
-            to = nt.to.split(",") + msg_to
-            cc = msg_cc
-            if not (subject or body or to):
+
+            subject = Template(nt["subject_template"]).render(ctx)
+            body = Template(nt["body_template"]).render(ctx)
+            to = [x.strip() for x in Template(nt["to"]).render(ctx).split()]
+            cc = []
+            if nt["reply_to_all"] and mo:
+                to += [mo.get_sender_addr()]
+                cc = [x[1] for x in mo.get_receivers()]
+            if params["cancelled"] or not (subject and body and to):
                 continue
             headers["Subject"] = subject
-            print to, cc, headers, body
-            #self._send_email(to, cc, headers, body)
+            self._send_email(to, cc, headers, body)
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
