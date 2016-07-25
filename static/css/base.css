@@ -68,3 +68,18 @@ html, body {
     margin: 8px 0px 8px 0px;
 }
 
+.panel-toggler {
+    cursor: pointer;
+}
+.panel-body {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+.panel-hidden {
+    display: none;
+}
+.panel-body pre {
+    background-color: #fff;
+    border: none;
+    padding: 5px;
+}
