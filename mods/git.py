@@ -169,7 +169,8 @@ class GitModule(PatchewModule):
                            tag_name=new_branch))
             s.set_property("git.apply-failed", False)
         except Exception as e:
-            logf.write(str(e))
+            import traceback
+            traceback.print_exc(e, logf)
             s.set_property("git.apply-failed", True)
             s.set_property("git.repo", None)
             s.set_property("git.tag", None)
