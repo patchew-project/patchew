@@ -266,6 +266,7 @@ class TesterCommand(SubCommand):
         clone = os.path.join(wd, "src")
         if not os.path.isdir(cache_repo):
             # Clone upstream to local cache
+            subprocess.check_call(["mkdir", "-p", cache_repo])
             subprocess.check_output(["git", "init", "--bare",
                                      cache_repo])
         remote_name = hashlib.sha1(remote).hexdigest()
