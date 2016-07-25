@@ -1,0 +1,12 @@
+[Unit]
+Description=Patchew Tester
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/patchew-tester
+Restart=always
+User=patchew
+
+[Install]
+WantedBy=multi-user.target
+
