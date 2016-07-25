@@ -183,28 +183,32 @@ Email information is configured in "INI" style:
         if mo:
             headers["In-Reply-To"] = "<%s>" % mo.message_id
         for nt in self.get_notifications(po).values():
+
+            class GitEmailCancelled(Exception):
+                pass
+
             if not nt["enabled"]:
                 continue
             if nt["event"] != event:
                 continue
-            # Try to find a message box
 
-            # Provide a "cancel_email" method for the template
-            params["cancelled"] = False
             def cancel_email():
-                params["cancelled"] = True
-            params["cancel_email"] = cancel_email
+                raise GitEmailCancelled
+            params["cancel"] = cancel_email
 
             ctx = Context(params)
 
-            subject = Template(nt["subject_template"]).render(ctx)
-            body = Template(nt["body_template"]).render(ctx)
-            to = [x.strip() for x in Template(nt["to"]).render(ctx).split()]
+            try:
+                subject = Template(nt["subject_template"]).render(ctx)
+                body = Template(nt["body_template"]).render(ctx)
+                to = [x.strip() for x in Template(nt["to"]).render(ctx).split()]
+            except GitEmailCancelled:
+                continue
             cc = []
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
                 cc = [x[1] for x in mo.get_receivers()]
-            if params["cancelled"] or not (subject and body and to):
+            if not (subject and body and to):
                 continue
             headers["Subject"] = subject
             self._send_email(to, cc, headers, body)
