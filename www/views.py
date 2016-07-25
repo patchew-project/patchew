@@ -8,6 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+import urllib
 from django.shortcuts import render
 from django.template import Context
 from django.http import HttpResponse, Http404
@@ -73,7 +74,7 @@ def prepare_projects():
 def view_project_list(request):
     return render_page(request, "project-list.html", projects=prepare_projects)
 
-def gen_page_links(total, cur_page, pagesize):
+def gen_page_links(total, cur_page, pagesize, extra_params):
     max_page = (total + pagesize - 1) / pagesize
     ret = []
     ddd = False
@@ -81,7 +82,7 @@ def gen_page_links(total, cur_page, pagesize):
         if i == cur_page:
             ret.append({
                 "title": str(i),
-                "url": "?page=" + str(i),
+                "url": "?page=" + str(i) + extra_params,
                 "class": "active",
                 "url": "#"
                 })
@@ -89,7 +90,7 @@ def gen_page_links(total, cur_page, pagesize):
         elif i < 10 or abs(i - cur_page) < 3 or max_page - i < 3:
             ret.append({
                 "title": str(i),
-                "url": "?page=" + str(i),
+                "url": "?page=" + str(i) + extra_params,
                 })
             ddd = False
         else:
@@ -132,7 +133,12 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
     series = query[start:start + PAGE_SIZE]
-    page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE)
+    params = ""
+    if sort:
+        params += "&" + urllib.urlencode({"sort": sort})
+    if search:
+        params += "&" + urllib.urlencode({"q": search})
+    page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
     if project:
         nav_path = prepare_navigate_list("Patches",
                                          ("project_detail", {"project": project}, project))
