@@ -68,7 +68,7 @@ class Project(models.Model):
 
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
-    name = models.CharField(max_length=1024, unique=True, db_index=True)
+    name = models.CharField(max_length=1024, db_index=True)
     value = models.TextField(blank=True)
 
     class Meta:
