@@ -91,8 +91,7 @@ class GitModule(PatchewModule):
                               stdout=logf, stderr=logf)
         return cache_repo
 
-    def _clone_repo(self, project_name, wd, repo, branch, logf):
-        cache_repo = self._update_cache_repo(project_name, repo, branch, logf)
+    def _clone_repo(self, wd, cache_repo, branch, logf):
         clone = os.path.join(wd, "src")
         subprocess.check_call(["git", "clone", "-q", "--branch", branch,
                               cache_repo, clone],
@@ -120,7 +119,8 @@ class GitModule(PatchewModule):
         push_to = None
         try:
             upstream, base_branch = self._get_project_repo_and_branch(s.project)
-            repo = self._clone_repo(project_name, wd, upstream, base_branch, logf)
+            cache_repo = self._poll_project(s.project)
+            repo = self._clone_repo(wd, cache_repo, base_branch, logf)
             new_branch = "patchew/" + s.message_id
             subprocess.check_call(["git", "checkout", "-q", "-b", new_branch],
                                   cwd=repo, stdout=logf, stderr=logf)
@@ -236,16 +236,7 @@ class GitModule(PatchewModule):
             po.set_property("git.head", head)
             po.set_property("git.repo", repo)
             emit_event("ProjectGitUpdate", project=po.name)
-
-    def www_view_git_poll(self, request):
-        project = request.GET.get("project")
-        if project:
-            po = Project.objects.get(name=project)
-            self._poll_project(po)
-        else:
-            for p in Project.objects.all():
-                self._poll_project(p)
-        return HttpResponse()
+        return cache_repo
 
     def www_view_git_apply(self, request, series):
         if not request.user.is_authenticated():
@@ -257,7 +248,6 @@ class GitModule(PatchewModule):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^git-poll/", self.www_view_git_poll))
         urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
                                self.www_view_git_apply,
                                name="git_apply"))
