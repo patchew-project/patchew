@@ -17,7 +17,8 @@ _handlers = {}
 _events = {}
 
 def register_handler(event, handler):
-    """Register an event hander. It will be called when the event is emitted."""
+    """Register an event hander. It will be called when the event is emitted.
+    If event is None, all events will be dispatched to the handler"""
     _handlers.setdefault(event, [])
     _handlers[event].append(handler)
 
@@ -26,7 +27,6 @@ def declare_event(event, **params):
     the event argument names, and values as the descriptions."""
     assert event not in _events
     _events[event] = params
-    emit_event("NewEvent", name=event, params=params)
 
 def emit_event(event, **params):
     """Emit an event that was previously declared, and call all the registered
@@ -34,7 +34,7 @@ def emit_event(event, **params):
     assert event in _events
     for keyword in params:
         assert keyword in _events[event]
-    for handler in _handlers.get(event, []):
+    for handler in _handlers.get(event, []) + _handlers.get(None, []):
         try:
             handler(event, **params)
         except Exception as e:
@@ -43,7 +43,3 @@ def emit_event(event, **params):
 
 def get_events_info():
     return _events.copy()
-
-declare_event("NewEvent",
-              name="The name of the newly declared event",
-              params="The params dict")
