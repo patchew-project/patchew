@@ -49,6 +49,7 @@ class GitModule(PatchewModule):
         # Make sure git is available
         subprocess.check_output(["git", "version"])
         declare_event("ProjectGitUpdate", project="the updated project name")
+        declare_event("SeriesApplied", series="the object of applied series")
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_series_update)
 
@@ -168,6 +169,7 @@ class GitModule(PatchewModule):
                            self.get_project_config(s.project, "url_template"),
                            tag_name=new_branch))
             s.set_property("git.apply-failed", False)
+            emit_event("SeriesApplied", series=s)
         except Exception as e:
             import traceback
             traceback.print_exc(e, logf)
