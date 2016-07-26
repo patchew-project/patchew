@@ -1,6 +1,9 @@
 html, body {
     height: 100%;
 }
+textarea {
+    font-family: monospace;
+}
 .wrapper {
     min-height: 100%;
     height: auto !important;
