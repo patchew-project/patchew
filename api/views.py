@@ -118,6 +118,7 @@ def render_series(s):
          "message-id": s.message_id,
          "patches": [x.get_mbox() for x in s.get_patches()],
          "properties": s.get_properties(),
+         "is_complete": s.is_complete,
          }
     return r
 
