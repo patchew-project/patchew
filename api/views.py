@@ -112,11 +112,19 @@ class SetProjectPropertiesView(APILoginRequiredView):
         for k, v in properties.iteritems():
             po.set_property(k, v)
 
+def render_patch(p):
+    r = {"subject": p.subject,
+         "message-id": p.message_id,
+         "mbox": p.get_mbox(),
+         "properties": p.get_properties(),
+         }
+    return r
+
 def render_series(s):
     r = {"subject": s.subject,
          "project": s.project.name,
          "message-id": s.message_id,
-         "patches": [x.get_mbox() for x in s.get_patches()],
+         "patches": [render_patch(x) for x in s.get_patches()],
          "properties": s.get_properties(),
          "is_complete": s.is_complete,
          }
