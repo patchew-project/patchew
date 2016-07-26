@@ -169,6 +169,8 @@ def _init_module(cls):
     if name in _loaded_modules:
         raise Exception("The module named '%s' is already loaded" % name)
     pc = _module_init_config(cls)
+    if not pc.enabled:
+        return None
     i = cls()
     # TODO: let i.enabled follows pc.enabled
     i.enabled = pc.enabled
@@ -187,6 +189,8 @@ def load_modules():
     for cls in PatchewModule.__subclasses__():
         try:
             i = _init_module(cls)
+            if not i:
+                continue
             _loaded_modules[cls.name] = i
             print "Loaded module:", cls.name
         except Exception as e:
