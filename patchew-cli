@@ -24,7 +24,7 @@ import traceback
 import time
 import hashlib
 
-COOKIE_FILENAME = os.path.expanduser("~/.patchew-cli.cookie")
+COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 
 class APIError(Exception):
     pass
@@ -469,7 +469,7 @@ def global_args(parser):
 
 def args_merge_config(args):
     if not args.config:
-        for fp in [".patchew-cli.conf", os.path.expanduser("~/.patchew-cli.conf")]:
+        for fp in [".patchew.cfg", os.path.expanduser("~/.patchew.cfg")]:
             if os.path.isfile(fp):
                 args.config = fp
                 break
