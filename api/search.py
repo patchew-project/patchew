@@ -130,6 +130,10 @@ Search text keyword in the email message. Example:
 
     def _process_term(self, query, term, neg=False):
         """ Return a Q object that will be applied to the query """
+        def as_keywords(t):
+            self._last_keywords.append(t)
+            return Q(subject__icontains=t)
+
         if term.startswith("!"):
             return self._process_term(query, term[1:], not neg)
         if term.startswith("age:"):
@@ -169,7 +173,7 @@ Search text keyword in the email message. Example:
             elif cond == "tested":
                 q = self._property_q("testing.done")
             else:
-                raise NotImplementedError("flag not recognized: %s" % cond)
+                q = as_keywords(term)
             if lneg:
                 neg = not neg
         elif term.startswith("has:"):
@@ -180,8 +184,7 @@ Search text keyword in the email message. Example:
             q = Q(project__name=cond)
         else:
             # Keyword in subject is the default
-            self._last_keywords.append(term)
-            q = Q(subject__icontains=term)
+            q = as_keywords(term)
         if neg:
             return query.exclude(pk__in=query.filter(q))
         else:
