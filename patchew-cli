@@ -409,6 +409,53 @@ class TesterCommand(SubCommand):
                 time.sleep(600)
         return 0
 
+class ApplyCommand(SubCommand):
+    name = "apply"
+
+    def arguments(self, parser):
+        parser.add_argument("term", nargs="*", type=str)
+        parser.add_argument("--first", "-f", action="store_true",
+                            help="""Apply the first series even if there are more
+                            than one matches""")
+
+    def _apply(self, s):
+        for p in s["patches"]:
+            patchf = tempfile.NamedTemporaryFile()
+            patchf.write(p["mbox"])
+            patchf.flush()
+            if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name]):
+                return 1
+            filter_cmd = ""
+            commit_message_lines = \
+                    subprocess.check_output(["git", "log", "-n", "1",
+                                             "--format=%b"]) \
+                                           .splitlines()
+            for t in set(p["properties"].get("tags", []) + \
+                         s["properties"].get("tags", [])):
+                if t in commit_message_lines:
+                    continue
+                filter_cmd += "echo '%s';" % t
+            if filter_cmd:
+                subprocess.check_output(["git", "filter-branch", "-f",
+                                         "--msg-filter", "cat; " + filter_cmd,
+                                         "HEAD~1.."])
+
+
+    def do(self, args, argv):
+        r = self.api_do("search", terms=args.term)
+        if not r:
+            print "Nothing to apply"
+            return 3
+        if len(r) > 1 and not args.first:
+            print "More than one series matched:"
+            for p in r:
+                print r["project"], r["subject"]
+            return 1
+        if not r[0]["is_complete"]:
+            print "Series not complete"
+            return 1
+        return self._apply(r[0])
+
 def global_args(parser):
     parser.add_argument("-d", "--debug", action="store_true", default=None,
                         help="Enable debug output")
