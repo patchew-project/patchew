@@ -73,11 +73,21 @@ class VersionView(APIView):
     def handle(self, request):
         return settings.VERSION
 
+def render_project(p):
+    ret = {
+        "name": p.name,
+        "mailing_list": p.mailing_list,
+        "url": p.url,
+        "git": p.git,
+        "description": p.description,
+    }
+    return ret
+
 class ListProjectView(APIView):
-    name = "list-projects"
+    name = "get-projects"
 
     def handle(self, request):
-        r = [x.name for x in Project.objects.all()]
+        r = [render_project(x) for x in Project.objects.all()]
         return r
 
 class AddProjectView(APILoginRequiredView):

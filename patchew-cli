@@ -152,6 +152,26 @@ class ProjectCommand(SubCommand):
     name = "project"
     want_argv = True
 
+    def list_projects(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--raw", action="store_true",
+                            help="Show raw json string")
+        parser.add_argument("--verbose", "-v", action="store_true",
+                            help="Show details about projects")
+        args = parser.parse_args(argv)
+        r = self.api_do("get-projects")
+        if args.raw:
+            print r
+            return 0
+        for p in r:
+            print p["name"]
+            if args.verbose:
+                for k, v in p.iteritems():
+                    if k == "name":
+                        continue
+                    print "  %s: %s" % (k, v)
+        return 0
+
     def add_project(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("name", help="Name of the project")
@@ -202,17 +222,12 @@ class ProjectCommand(SubCommand):
                         properties={args.prop: args.value})
 
     def do(self, args, argv):
-        if not argv:
-            r = self.api_do("list-projects") or []
-            print "\n".join(r)
-            return 0
-        elif argv[0] == "add":
-            return self.add_project(argv[1:])
-        elif argv[0] == "property":
-            return self.project_property(argv[1:])
-        else:
-            print "Unknown project command"
-            return 1
+        if argv:
+            if argv[0] == "add":
+                return self.add_project(argv[1:])
+            elif argv[0] == "property":
+                return self.project_property(argv[1:])
+        return self.list_projects(argv)
 
 class SearchCommand(SubCommand):
     name = "search"
