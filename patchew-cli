@@ -417,8 +417,32 @@ class ApplyCommand(SubCommand):
         parser.add_argument("--first", "-f", action="store_true",
                             help="""Apply the first series even if there are more
                             than one matches""")
+        parser.add_argument("--branch", "-b",
+                            help="""Create a branch at current HEAD before
+                            applying, with '%m' replaced with the series'
+                            message id""")
+        parser.add_argument("--force-branch", "-B",
+                            help="""Create a branch, overwrite even if a branch
+                            with the same name already exists, and point to
+                            current HEAD before applying, with '%m' replaced
+                            with the series' message id""")
+        parser.add_argument("--tag", "-t",
+                            help="""Create a tag after applying, with '%m'
+                            replaced with the series' message id. If a tag with
+                            the same name already exists, it will be
+                            updated""")
 
-    def _apply(self, s):
+    def _apply(self, s, branch, force_branch, tag):
+        msgid = s["message-id"]
+        if force_branch:
+            bn = force_branch
+            bo = "-B"
+        elif branch:
+            bn = branch
+            bo = "-b"
+        if bn:
+            bn = bn.replace("%m", msgid)
+            subprocess.check_call(["git", "checkout", bo, bn])
         for p in s["patches"]:
             patchf = tempfile.NamedTemporaryFile()
             patchf.write(p["mbox"])
@@ -439,6 +463,9 @@ class ApplyCommand(SubCommand):
                 subprocess.check_output(["git", "filter-branch", "-f",
                                          "--msg-filter", "cat; " + filter_cmd,
                                          "HEAD~1.."])
+        if tag:
+            subprocess.check_call(["git", "tag", "-f",
+                                  tag.replace("%m", msgid)])
 
 
     def do(self, args, argv):
@@ -454,7 +481,7 @@ class ApplyCommand(SubCommand):
         if not r[0]["is_complete"]:
             print "Series not complete"
             return 1
-        return self._apply(r[0])
+        return self._apply(r[0], args.branch, args.force_branch, args.tag)
 
 def global_args(parser):
     parser.add_argument("-d", "--debug", action="store_true", default=None,
