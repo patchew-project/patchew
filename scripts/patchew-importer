@@ -88,7 +88,8 @@ import()
     echo import $@
     if $PATCHEW_CLI import $@; then
         if test -n "$IMAP_DELETE_AFTER_IMPORT"; then
-            rm $f
+            rm -f $f
+            echo "Deleted $f"
         fi
         touch $IMPORTED_DIR/$(hashstr $@)
     else
