@@ -113,7 +113,7 @@ while :; do
     done
     while :; do
         wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
-        if (cd $wd; $PATCHEW_CLI apply --applier-mode '!has:git.apply-log' is:complete); then
+        if (cd $wd; $PATCHEW_CLI apply --applier-mode); then
             rm -rf $wd
         elif [ $? -eq 3 ]; then
             rm -rf $wd
