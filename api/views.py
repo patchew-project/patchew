@@ -112,6 +112,20 @@ class GetProjectPropertiesView(APILoginRequiredView):
             raise PermissionDenied("Access denied to this project")
         return po.get_properties()
 
+class SetPropertyView(APILoginRequiredView):
+    name = "set-properties"
+
+    def handle(self, request, project, message_id, properties):
+        po = Project.objects.get(name=project)
+        if not po.maintained_by(request.user):
+            raise PermissionDenied("Access denied to this project")
+        mo = Message.objects.filter(project__name=project,
+                                    message_id=message_id).first()
+        if not mo:
+            raise Http404("Message not found")
+        for k, v in properties.iteritems():
+            mo.set_property(k, v)
+
 class SetProjectPropertiesView(APILoginRequiredView):
     name = "set-project-properties"
 
