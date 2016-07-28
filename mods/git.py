@@ -15,7 +15,6 @@ import shutil
 import hashlib
 from django.conf.urls import url
 from django.http import HttpResponse, Http404, HttpResponseRedirect
-from django.template import Context, Template
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from mod import PatchewModule
@@ -38,7 +37,7 @@ class GitModule(PatchewModule):
                         StringSchema("public_repo", "Public repo",
                                      desc="Publicly visible repo URL"),
                         StringSchema("url_template", "URL template",
-                                     desc="Publicly visible URL template for applied branch, where {{ tag_name }} will be replaced by the applied tag name",
+                                     desc="Publicly visible URL template for applied branch, where %t will be replaced by the applied tag name",
                                      required=True),
                    ])
 
@@ -111,9 +110,6 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
-    def _template_render(self, tmpl, **data):
-        return Template(tmpl).render(Context(data))
-
     def _update_series(self, wd, s):
         logf = tempfile.NamedTemporaryFile()
         project_name = s.project.name
@@ -165,9 +161,9 @@ class GitModule(PatchewModule):
             s.set_property("git.repo", public_repo)
             s.set_property("git.tag", new_branch)
             s.set_property("git.base", base)
-            s.set_property("git.url", self._template_render(
-                           self.get_project_config(s.project, "url_template"),
-                           tag_name=new_branch))
+            s.set_property("git.url",
+                           self.get_project_config(s.project, "url_template").\
+                                   replace("%t", tag_name))
             s.set_property("git.apply-failed", False)
             emit_event("SeriesApplied", series=s)
         except Exception as e:
