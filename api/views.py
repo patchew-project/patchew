@@ -115,11 +115,10 @@ class GetProjectPropertiesView(APILoginRequiredView):
 
 class SetPropertyView(APILoginRequiredView):
     name = "set-properties"
+    allowed_groups = ["importers"]
 
     def handle(self, request, project, message_id, properties):
         po = Project.objects.get(name=project)
-        if not po.maintained_by(request.user):
-            raise PermissionDenied("Access denied to this project")
         mo = Message.objects.filter(project__name=project,
                                     message_id=message_id).first()
         if not mo:
