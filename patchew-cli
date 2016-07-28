@@ -30,7 +30,7 @@ class APIError(Exception):
     pass
 
 def git_clone_repo(clone, cache_repo, remote, head, logf):
-    if not os.path.isdir(cache_repo):
+    if not os.path.isdir(cache_repo) or not os.listdir(cache_repo):
         # Clone upstream to local cache
         subprocess.check_call(["mkdir", "-p", cache_repo])
         subprocess.check_output(["git", "init", "--bare",
