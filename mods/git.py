@@ -242,7 +242,6 @@ class GitModule(PatchewModule):
             if po.get_property(prop):
                 response[prop] = po.get_property(prop)
             else:
-                print repo, "not present"
                 response["git-need-apply"] = False
                 break
 
