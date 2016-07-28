@@ -29,6 +29,26 @@ COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 class APIError(Exception):
     pass
 
+def git_clone_repo(clone, cache_repo, remote, head, logf):
+    if not os.path.isdir(cache_repo):
+        # Clone upstream to local cache
+        subprocess.check_call(["mkdir", "-p", cache_repo])
+        subprocess.check_output(["git", "init", "--bare",
+                                 cache_repo])
+    remote_name = hashlib.sha1(remote).hexdigest()
+    subprocess.call(["git", "remote", "remove", remote_name],
+                    cwd=cache_repo,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+    subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
+                          remote_name, remote], cwd=cache_repo,
+                          stdout=logf, stderr=logf)
+    subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
+                          stderr=logf, stdout=logf)
+    subprocess.check_call(["git", "checkout", head, "-b", "test"],
+                          stderr=logf, stdout=logf,
+                          cwd=clone)
+
 class SubCommand(object):
     """ Base class of subcommand"""
     help = ""
@@ -277,28 +297,6 @@ class TesterCommand(SubCommand):
                             default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
                             help="local git repo for fast clone")
 
-    def _clone_repo(self, wd, cache_repo, remote, head, logf):
-        clone = os.path.join(wd, "src")
-        if not os.path.isdir(cache_repo):
-            # Clone upstream to local cache
-            subprocess.check_call(["mkdir", "-p", cache_repo])
-            subprocess.check_output(["git", "init", "--bare",
-                                     cache_repo])
-        remote_name = hashlib.sha1(remote).hexdigest()
-        subprocess.call(["git", "remote", "remove", remote_name],
-                        cwd=cache_repo,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-        subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
-                              remote_name, remote], cwd=cache_repo,
-                              stdout=logf, stderr=logf)
-        subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
-                              stderr=logf, stdout=logf)
-        subprocess.check_call(["git", "checkout", head, "-b", "test"],
-                              stderr=logf, stdout=logf,
-                              cwd=clone)
-        return clone
-
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
         tf = open(filename, "wb")
@@ -348,9 +346,8 @@ class TesterCommand(SubCommand):
         logf.flush()
         rc = 1
         try:
-            repo = os.path.join(wd, "src")
-            clone = self._clone_repo(wd, args.cache_repo, r["repo"], r["head"],
-                                     logf)
+            clone = os.path.join(wd, "src")
+            git_clone_repo(clone, args.cache_repo, r["repo"], r["head"], logf)
             base = r["base"]
             if base:
                 subprocess.check_call(["git", "branch", "base", base],
