@@ -477,6 +477,9 @@ class TesterCommand(SubCommand):
                 time.sleep(600)
         return 0
 
+class AppliFailedException(Exception):
+    pass
+
 class ApplyCommand(SubCommand):
     name = "apply"
 
@@ -528,7 +531,7 @@ class ApplyCommand(SubCommand):
                                     cwd=repo, stdout=logf, stderr=logf):
                 logf.flush()
                 logf.write("Failed to apply patch:\n%s" % p["subject"])
-                raise Exception
+                raise AppliFailedException
             filter_cmd = ""
             commit_message_lines = \
                     subprocess.check_output(["git", "log", "-n", "1",
@@ -598,7 +601,8 @@ class ApplyCommand(SubCommand):
                         })
             return 0
         except Exception, e:
-            traceback.print_exc(e, logf)
+            if not isinstance(e, AppliFailedException):
+                traceback.print_exc(e, logf)
             logf.seek(0)
             log = logf.read().replace(push_repo, public_repo)
             print log
