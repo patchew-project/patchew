@@ -40,6 +40,8 @@ class PatchewModule(object):
 
     def get_config(self, section, field, getmethod="get", default=None):
         cfg = self.get_config_obj()
+        if not section in cfg.sections():
+            return default
         if field in dict(cfg.items(section)):
             return getattr(cfg, getmethod)(section, field)
         else:
