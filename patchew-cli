@@ -142,7 +142,15 @@ class ImportCommand(SubCommand):
         parser.add_argument("file", nargs="*", type=str, help="object to list")
 
     def do(self, args, argv):
+        projects = set()
         import mailbox
+
+        def call_import(mboxes):
+            r = self.api_do("import", mboxes=mboxes)
+            for p in r:
+                if p not in projects:
+                    projects.add(p)
+                    print p
 
         def import_one(fn):
             if os.path.isdir(fn):
@@ -153,10 +161,10 @@ class ImportCommand(SubCommand):
             if f.readline().startswith("From "):
                 for m in mailbox.mbox(fn):
                     ms = m.as_string()
-                    self.api_do("import", mboxes=[ms])
+                    call_import([ms])
             else:
                 f.seek(0)
-                self.api_do("import", mboxes=[f.read()])
+                call_import([f.read()])
         r = 0
         for f in args.file:
             try:
