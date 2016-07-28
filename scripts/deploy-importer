@@ -71,6 +71,7 @@ ssh -t $remote "\
     $DOCKER build -t patchew:importer -f importer.docker .; \
     $DOCKER run --name patchew-importer \
         -d $extra_opts \
+        -v /data:/data \
         patchew:importer; \
     $DOCKER rmi patchew:importer-prev 2>/dev/null;
     cd /;

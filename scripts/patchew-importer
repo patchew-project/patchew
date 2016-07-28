@@ -29,7 +29,8 @@ PATCHEW_CLI="./patchew-cli --nodebug"
 . $CONFIG
 
 offlineimap_rc=$BASEDIR/offlineimap.rc
-maildir=$BASEDIR/maildir
+maildir=/data/patchew-importer-maildir
+mkdir -p $maildir
 
 type offlineimap 1>/dev/null
 type md5sum 1>/dev/null
