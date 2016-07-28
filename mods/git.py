@@ -52,8 +52,11 @@ class GitModule(PatchewModule):
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_series_update)
 
+    def _server_side_apply_enabled(self):
+        return self.get_config("general", "server_side_apply")
+
     def on_series_update(self, event, series, **params):
-        if not series.is_complete:
+        if not self._server_side_apply_enabled():
             return
         wd = tempfile.mkdtemp(prefix="patchew-git-tmp-", dir="/var/tmp")
         try:
@@ -211,11 +214,18 @@ class GitModule(PatchewModule):
                     "char": "G",
                     })
         if request.user.is_authenticated():
-            url = reverse("git_apply",
-                          kwargs={"series": message.message_id})
-            message.extra_ops.append({"url": url,
-                                      "title": "Git apply",
-                                     })
+            if self._server_side_apply_enabled():
+                url = reverse("git_apply",
+                              kwargs={"series": message.message_id})
+                message.extra_ops.append({"url": url,
+                                          "title": "Git apply",
+                                         })
+            elif message.get_property("git.apply-log"):
+                url = reverse("git_reset",
+                              kwargs={"series": message.message_id})
+                message.extra_ops.append({"url": url,
+                                          "title": "Git reset",
+                                         })
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
@@ -257,7 +267,21 @@ class GitModule(PatchewModule):
         self.on_series_update("GitApply", obj)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+    def www_view_git_reset(self, request, series):
+        if not request.user.is_authenticated():
+            raise PermissionDenied
+        obj = Message.objects.find_series(series)
+        if not obj:
+            raise Http404("Not found: " + series)
+        for p in obj.get_properties():
+            if p.startswith("git."):
+                obj.set_property(p, None)
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
                                self.www_view_git_apply,
                                name="git_apply"))
+        urlpatterns.append(url(r"^git-reset/(?P<series>.*)/",
+                               self.www_view_git_reset,
+                               name="git_reset"))
