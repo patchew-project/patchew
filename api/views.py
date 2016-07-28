@@ -45,7 +45,7 @@ class APIView(View):
             params = {}
         self.check_request(request)
         r = self.handle(request, **params)
-        if r:
+        if not r is None:
             return HttpResponse(json.dumps(r))
         else:
             return HttpResponse()
