@@ -482,9 +482,11 @@ class ApplyCommand(SubCommand):
 
     def arguments(self, parser):
         parser.add_argument("term", nargs="*", type=str)
-        parser.add_argument("--first", "-f", action="store_true",
-                            help="""Apply the first series even if there are more
-                            than one matches""")
+        parser.add_argument("-C", dest="repo",
+                            help="The path to the git repo")
+        parser.add_argument("--any", "-a", action="store_true",
+                            help="""Apply any applicable series (e.g. the
+                            first) even if there are more than one matches""")
         parser.add_argument("--branch", "-b",
                             help="""Create a branch at current HEAD before
                             applying, with '%m' replaced with the series'
@@ -499,8 +501,14 @@ class ApplyCommand(SubCommand):
                             replaced with the series' message id. If a tag with
                             the same name already exists, it will be
                             updated""")
+        parser.add_argument("--applier-mode", action="store_true",
+                            help="""Useful for an applier worker of patchew.
+                            Must be run in an empty directory, which will be
+                            used as the working repo. Clone and checkout a
+                            temporary repo, and apply the patch there. Implies
+                            --any, conflicts with -C, -b, -B and -t.""")
 
-    def _apply(self, s, branch, force_branch, tag):
+    def _apply(self, repo, s, branch, force_branch, tag, logf=None):
         msgid = s["message-id"]
         if force_branch:
             bn = force_branch
@@ -510,17 +518,19 @@ class ApplyCommand(SubCommand):
             bo = "-b"
         if bn:
             bn = bn.replace("%m", msgid)
-            subprocess.check_call(["git", "checkout", bo, bn])
+            subprocess.check_call(["git", "checkout", bo, bn], cwd=repo,
+                                  stdout=logf, stderr=logf)
         for p in s["patches"]:
             patchf = tempfile.NamedTemporaryFile()
             patchf.write(p["mbox"])
             patchf.flush()
-            if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name]):
+            if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name],
+                                    cwd=repo, stdout=logf, stderr=logf):
                 return 1
             filter_cmd = ""
             commit_message_lines = \
                     subprocess.check_output(["git", "log", "-n", "1",
-                                             "--format=%b"]) \
+                                             "--format=%b"], cwd=repo) \
                                            .splitlines()
             for t in set(p["properties"].get("tags", []) + \
                          s["properties"].get("tags", [])):
@@ -530,18 +540,85 @@ class ApplyCommand(SubCommand):
             if filter_cmd:
                 subprocess.check_output(["git", "filter-branch", "-f",
                                          "--msg-filter", "cat; " + filter_cmd,
-                                         "HEAD~1.."])
+                                         "HEAD~1.."], cwd=repo)
         if tag:
             subprocess.check_call(["git", "tag", "-f",
-                                  tag.replace("%m", msgid)])
+                                  tag.replace("%m", msgid)], cwd=repo,
+                                  stdout=logf, stderr=logf)
+        return 0
 
+    def _push(self, repo, remote, tag, logf):
+        subprocess.check_call(["git", "remote", "add", "push_to", remote],
+                              cwd=repo, stdout=logf, stderr=logf)
+        subprocess.check_call(["git", "push", "-f", "push_to",
+                               "%s:refs/tags/%s" % (tag, tag)],
+                              cwd=repo, stdout=logf, stderr=logf)
+
+    def _applier_mode(self, r, args):
+        toapply = None
+        for c in r:
+            if c.get("git-need-apply"):
+                toapply = c
+                break
+        if not toapply:
+            print "No series need apply"
+            return 3
+        logf = tempfile.NamedTemporaryFile()
+        try:
+            cache_repo = os.path.expanduser("~/.cache/patchew-repos/" + c["project"])
+            project_git = toapply["project.git"]
+            if " " in project_git:
+                remote, head = project_git.split(" ", 2)
+            else:
+                remote, head = project_git, "master"
+            repo = "."
+            git_clone_repo(repo, cache_repo, remote, head, sys.stdout)
+            branch = toapply["message-id"]
+            force_branch = None
+            tag = "patchew/" + toapply["message-id"]
+            base = subprocess.check_output(["git", "rev-parse", "HEAD"])
+            self._apply(repo, toapply, branch, force_branch, tag, logf)
+            push_repo = toapply["git.push_to"]
+            self._push(repo, push_repo, tag, logf)
+            url = toapply["git.url_template"].replace("%t", tag)
+            logf.seek(0)
+            self.api_do("set-properties",
+                        project=toapply["project"],
+                        message_id=toapply["message-id"],
+                        properties={
+                            "git.tag": tag,
+                            "git.url": url,
+                            "git.base": base,
+                            "git.repo": push_repo,
+                            "git.apply-failed": False,
+                            "git.apply-log": logf.read(),
+                        })
+            return 0
+        except Exception, e:
+            traceback.print_exc(e, logf)
+            logf.seek(0)
+            log = logf.read()
+            print log
+            self.api_do("set-properties",
+                        project=toapply["project"],
+                        message_id=toapply["message-id"],
+                        properties={
+                            "git.apply-failed": True,
+                            "git.apply-log": log,
+                        })
+            return 1
 
     def do(self, args, argv):
+        if args.applier_mode:
+            if args.repo or args.branch or args.force_branch or args.tag:
+                print "--applier-mode conflicts with -C, -b, -B and -t"
+                return 1
+            args.any = True
         r = self.api_do("search", terms=args.term)
         if not r:
             print "Nothing to apply"
             return 3
-        if len(r) > 1 and not args.first:
+        if len(r) > 1 and not args.any:
             print "More than one series matched:"
             for p in r:
                 print r["project"], r["subject"]
@@ -549,7 +626,15 @@ class ApplyCommand(SubCommand):
         if not r[0]["is_complete"]:
             print "Series not complete"
             return 1
-        return self._apply(r[0], args.branch, args.force_branch, args.tag)
+        if args.applier_mode:
+            return self._applier_mode(r, args)
+        def mformat(a):
+            return a.replace("%m", r[0]["message-id"]) if a else a
+        self._apply(args.repo, r[0],
+                    mformat(args.branch),
+                    mformat(args.force_branch),
+                    mformat(args.tag))
+
 
 def global_args(parser):
     parser.add_argument("-d", "--debug", action="store_true", default=None,
