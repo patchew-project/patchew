@@ -309,6 +309,35 @@ class UntestCommand(SubCommand):
         self.api_do("untest", terms=args.term)
         return 0
 
+class SetPropertyCommand(SubCommand):
+    name = "set-property"
+    want_argv = True
+
+    def arguments(self, parser):
+        parser.add_argument("--project", "-p", required=True,
+                            help="Project name")
+        parser.add_argument("--message-id", "-m", required=True,
+                            help="Project name")
+        parser.add_argument("--file", action="store_true",
+                            help="Read property values from given file")
+        parser.add_argument("--json", action="store_true",
+                            help="Read property values as json")
+
+    def do(self, args, argv):
+        if not argv:
+            return 0
+        if len(argv) % 2:
+            print "Name and value unpaired:", argv[-1]
+        props = dict(zip(argv[::2], argv[1::2]))
+        if args.file:
+            props = dict([(k, open(v, "r").read()) for k, v in props.iteritems()])
+        if args.json:
+            props = dict([(k, json.loads(v)) for k, v in props.iteritems()])
+        self.api_do("set-properties", project=args.project,
+                    message_id=args.message_id,
+                    properties=props)
+        return 0
+
 class TesterCommand(SubCommand):
     name = "tester"
     want_argv = True
