@@ -19,6 +19,7 @@ import json
 from search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from mod import dispatch_module_hook
 
 class APIView(View):
     name = None
@@ -147,11 +148,14 @@ def prepare_patch(p):
 def prepare_series(request, s):
     r = {"subject": s.subject,
          "project": s.project.name,
+         "project.git": s.project.git,
          "message-id": s.message_id,
-         "patches": [render_patch(x) for x in s.get_patches()],
+         "patches": [prepare_patch(x) for x in s.get_patches()],
          "properties": s.get_properties(),
          "is_complete": s.is_complete,
          }
+    dispatch_module_hook("prepare_series_hook", request=request, series=s,
+                         response=r)
     return r
 
 class SearchView(APIView):

@@ -229,6 +229,17 @@ class GitModule(PatchewModule):
                                    "content": self.build_config_html(request,
                                                                      project)})
 
+    def prepare_series_hook(self, request, series, response):
+        po = series.project
+        response["git-need-apply"] = True
+        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
+            if po.get_property(prop):
+                response[prop] = po.get_property(prop)
+            else:
+                print repo, "not present"
+                response["git-need-apply"] = False
+                break
+
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
         cache_repo = self._update_cache_repo(po.name, repo, branch)
