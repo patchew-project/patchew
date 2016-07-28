@@ -164,6 +164,7 @@ class MessageManager(models.Manager):
             msg.save()
             emit_event("MessageAdded", message=msg)
             self.update_series(msg)
+        return projects
 
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
