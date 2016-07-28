@@ -167,11 +167,15 @@ class ImportView(APILoginRequiredView):
     allowed_groups = ["importers"]
 
     def handle(self, request, mboxes):
+        projects = set()
         for mbox in mboxes:
             try:
-                Message.objects.add_message_from_mbox(mbox.encode("utf8"), request.user)
+                projects = projects.union([x.name for x in
+                    Message.objects.add_message_from_mbox(mbox.encode("utf8"),
+                                                          request.user)])
             except Message.objects.DuplicateMessageError:
                 pass
+        return list(projects)
 
 class DeletreView(APILoginRequiredView):
     """ Delete messages """
