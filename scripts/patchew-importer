@@ -27,7 +27,7 @@ mkdir -p $BASEDIR
 
 . $CONFIG
 
-PATCHEW_CLI="./patchew-cli --nodebug -s $PATCHEW_SERVER"
+PATCHEW_CLI="$(realpath ./patchew-cli) --nodebug -s $PATCHEW_SERVER"
 
 offlineimap_rc=$BASEDIR/offlineimap.rc
 maildir=/data/patchew-importer-maildir
@@ -110,8 +110,14 @@ while :; do
         fi
         import "$f" || true
     done
-    while $PATCHEW_CLI apply --applier-mode '!has:git.apply-log' is:complete; do
-        :
+    while :; do
+        wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
+        if (cd $wd; $PATCHEW_CLI apply --applier-mode '!has:git.apply-log' is:complete); then
+            rm -rf $wd
+        else
+            rm -rf $wd
+            break
+        fi
     done
     sleep 60
 done
