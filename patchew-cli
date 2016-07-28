@@ -644,8 +644,8 @@ def global_args(parser):
     parser.add_argument("-s", "--server",
                         help="Base URL for patchew server")
     parser.add_argument("-c", "--config",
-                        help="""Config file to use. Default is to look up under
-                        $(pwd) and $HOME""")
+                        help="""Config file to use. Default is to look up
+                        .patchew.cfg under current directory and $HOME""")
 
 def args_merge_config(args):
     if not args.config:
