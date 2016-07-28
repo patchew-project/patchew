@@ -614,6 +614,7 @@ class ApplyCommand(SubCommand):
                 print "--applier-mode conflicts with -C, -b, -B and -t"
                 return 1
             args.any = True
+            args.term = args.term + ["!has:git.apply-log", "is:complete"]
         r = self.api_do("search", terms=args.term)
         if not r:
             print "Nothing to apply"
