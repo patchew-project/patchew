@@ -526,7 +526,9 @@ class ApplyCommand(SubCommand):
             patchf.flush()
             if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name],
                                     cwd=repo, stdout=logf, stderr=logf):
-                return 1
+                logf.flush()
+                logf.write("Failed to apply patch:\n%s" % p["subject"])
+                raise Exception
             filter_cmd = ""
             commit_message_lines = \
                     subprocess.check_output(["git", "log", "-n", "1",
@@ -545,7 +547,6 @@ class ApplyCommand(SubCommand):
             subprocess.check_call(["git", "tag", "-f",
                                   tag.replace("%m", msgid)], cwd=repo,
                                   stdout=logf, stderr=logf)
-        return 0
 
     def _push(self, repo, remote, tag, logf):
         subprocess.check_call(["git", "remote", "add", "push_to", remote],
@@ -633,10 +634,14 @@ class ApplyCommand(SubCommand):
             return self._applier_mode(r, args)
         def mformat(a):
             return a.replace("%m", r[0]["message-id"]) if a else a
-        self._apply(args.repo, r[0],
-                    mformat(args.branch),
-                    mformat(args.force_branch),
-                    mformat(args.tag))
+        try:
+            self._apply(args.repo, r[0],
+                        mformat(args.branch),
+                        mformat(args.force_branch),
+                        mformat(args.tag))
+            return 0
+        except:
+            return 1
 
 
 def global_args(parser):
