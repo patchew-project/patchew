@@ -73,7 +73,7 @@ class VersionView(APIView):
     def handle(self, request):
         return settings.VERSION
 
-def render_project(p):
+def prepare_project(p):
     ret = {
         "name": p.name,
         "mailing_list": p.mailing_list,
@@ -87,7 +87,7 @@ class ListProjectView(APIView):
     name = "get-projects"
 
     def handle(self, request):
-        r = [render_project(x) for x in Project.objects.all()]
+        r = [prepare_project(x) for x in Project.objects.all()]
         return r
 
 class AddProjectView(APILoginRequiredView):
@@ -122,7 +122,7 @@ class SetProjectPropertiesView(APILoginRequiredView):
         for k, v in properties.iteritems():
             po.set_property(k, v)
 
-def render_patch(p):
+def prepare_patch(p):
     r = {"subject": p.subject,
          "message-id": p.message_id,
          "mbox": p.get_mbox(),
@@ -130,7 +130,7 @@ def render_patch(p):
          }
     return r
 
-def render_series(s):
+def prepare_series(request, s):
     r = {"subject": s.subject,
          "project": s.project.name,
          "message-id": s.message_id,
@@ -146,7 +146,7 @@ class SearchView(APIView):
     def handle(self, request, terms):
         se = SearchEngine()
         r = se.search_series(*terms)
-        return [render_series(x) for x in r]
+        return [prepare_series(request, x) for x in r]
 
 class ImportView(APILoginRequiredView):
     name = "import"
