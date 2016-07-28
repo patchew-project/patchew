@@ -200,6 +200,23 @@ class ProjectCommand(SubCommand):
                     print "  %s: %s" % (k, v)
         return 0
 
+    def show_project(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("name", nargs="+",
+                            help="The name of project to show info")
+        args = parser.parse_args(argv)
+        r = self.api_do("get-projects")
+        for p in r:
+            if not p["name"] in args.name:
+                continue
+            if len(args.name) > 1:
+                print p["name"]
+            for k, v in p.iteritems():
+                if k == "name":
+                    continue
+                print "  %s: %s" % (k, v)
+        return 0
+
     def add_project(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("name", help="Name of the project")
@@ -255,6 +272,8 @@ class ProjectCommand(SubCommand):
                 return self.add_project(argv[1:])
             elif argv[0] == "property":
                 return self.project_property(argv[1:])
+            elif argv[0] == "info":
+                return self.show_project(argv[1:])
         return self.list_projects(argv)
 
 class SearchCommand(SubCommand):
