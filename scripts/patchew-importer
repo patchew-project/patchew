@@ -108,6 +108,8 @@ while :; do
         fi
         import "$f" || true
     done
-    echo "Done"
+    while $PATCHEW_CLI apply --applier-mode '!has:git.apply-log' is:complete; do
+        :
+    done
     sleep 60
 done
