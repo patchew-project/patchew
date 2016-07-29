@@ -29,7 +29,10 @@ COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 class APIError(Exception):
     pass
 
-def git_clone_repo(clone, cache_repo, remote, head, logf):
+def git_clone_repo(clone, remote, head, logf):
+    cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
+                              filter(lambda x: x.isalnum(), remote) + "-" + \
+                                     str(abs(hash(remote))))
     if not os.path.isdir(cache_repo) or not os.listdir(cache_repo):
         # Clone upstream to local cache
         subprocess.check_call(["mkdir", "-p", cache_repo])
@@ -348,9 +351,6 @@ class TesterCommand(SubCommand):
                             help="name of this tester (default is the logged in username)")
         parser.add_argument("--num", "-N", type=int, default=0,
                             help="max number of tests to run")
-        parser.add_argument("--cache-repo", "-C",
-                            default=os.path.expanduser("~/.cache/patchew-tester/git-cache"),
-                            help="local git repo for fast clone")
 
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
@@ -402,7 +402,7 @@ class TesterCommand(SubCommand):
         rc = 1
         try:
             clone = os.path.join(wd, "src")
-            git_clone_repo(clone, args.cache_repo, r["repo"], r["head"], logf)
+            git_clone_repo(clone, r["repo"], r["head"], logf)
             base = r["base"]
             if base:
                 subprocess.check_call(["git", "branch", "base", base],
@@ -570,14 +570,13 @@ class ApplyCommand(SubCommand):
         push_repo = toapply["git.push_to"]
         public_repo = toapply["git.public_repo"]
         try:
-            cache_repo = os.path.expanduser("~/.cache/patchew-repos/" + c["project"])
             project_git = toapply["project.git"]
             if " " in project_git:
                 remote, head = project_git.split(" ", 2)
             else:
                 remote, head = project_git, "master"
             repo = "."
-            git_clone_repo(repo, cache_repo, remote, head, sys.stdout)
+            git_clone_repo(repo, remote, head, sys.stdout)
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
