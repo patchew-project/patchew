@@ -70,8 +70,7 @@ class SubCommand(object):
         opener = urllib2.build_opener(handler)
         url = self.base_url + "/api/" + cmd + "/"
         if data:
-            post_data = urllib.urlencode({"params":
-                                          json.dumps(data, ensure_ascii=False)})
+            post_data = urllib.urlencode({"params": json.dumps(data)})
         else:
             post_data = ""
         req = urllib2.Request(url, data=post_data)
