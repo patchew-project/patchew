@@ -580,7 +580,7 @@ class ApplyCommand(SubCommand):
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
-            base = subprocess.check_output(["git", "rev-parse", "HEAD"])
+            base = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
             self._apply(repo, toapply, branch, force_branch, tag, logf)
             self._push(repo, push_repo, tag, logf)
             url = toapply["git.url_template"].replace("%t", tag)
