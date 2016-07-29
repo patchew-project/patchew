@@ -69,7 +69,7 @@ def prepare_series_list(request, sl):
     return [prepare_message(request, s) for s in sl]
 
 def prepare_projects():
-    return api.models.Project.objects.all()
+    return api.models.Project.objects.all().order_by('-display_order', 'name')
 
 def view_project_list(request):
     return render_page(request, "project-list.html", projects=prepare_projects)

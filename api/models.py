@@ -27,6 +27,7 @@ class Project(models.Model):
     git = models.CharField(max_length=4096, blank=True)
     description = models.TextField(blank=True)
     logo = models.ImageField(blank=True, upload_to="logo")
+    display_order = models.IntegerField(default=0)
     def __str__(self):
         return self.name
 
