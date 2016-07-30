@@ -38,7 +38,7 @@ def git_clone_repo(clone, remote, head, logf):
         subprocess.check_call(["mkdir", "-p", cache_repo])
         subprocess.check_output(["git", "init", "--bare",
                                  cache_repo])
-    remote_name = hashlib.sha1(remote).hexdigest()
+    remote_name = hashlib.sha1(remote.encode("utf-8")).hexdigest()
     subprocess.call(["git", "remote", "remove", remote_name],
                     cwd=cache_repo,
                     stdout=subprocess.PIPE,
