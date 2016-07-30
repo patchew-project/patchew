@@ -47,6 +47,7 @@ class PatchewTestCase(unittest.TestCase):
             devnull = open("/dev/null", "w")
             rc = subprocess.call(["curl", self.server_url],
                                  stdout=devnull, stderr=devnull)
+            devnull.close()
             if rc == 0:
                 ok = True
                 break
