@@ -59,16 +59,17 @@ class PatchewTestCase(unittest.TestCase):
         p = subprocess.Popen([self.manage_py, "shell"],
                              stdin=subprocess.PIPE, stdout=_logf,
                              stderr=_logf)
-        p.stdin.write("from django.contrib.auth.models import User, Group\n")
-        p.stdin.write("user=User.objects.create_user('%s', password='%s')\n" % \
-                      (username, password))
-        p.stdin.write("user.is_superuser=%s\n" % is_superuser)
-        p.stdin.write("user.is_staff=True\n")
+        cmd = "from django.contrib.auth.models import User, Group\n"
+        cmd += "user=User.objects.create_user('{}', password='{}')\n".\
+                format(username, password)
+        cmd += "user.is_superuser={}\n".format(is_superuser)
+        cmd += "user.is_staff=True\n"
         if groups:
-            groups_str = ", ".join('"%s"' % s for s in groups)
-            p.stdin.write("user.groups = [Group.objects.get(name=x) for x in [%s]]\n" \
-                          % groups_str)
-        p.stdin.write("user.save()\n")
+            groups_str = ", ".join('"{}"'.format(s) for s in groups)
+            cmd += "user.groups = [Group.objects.get(name=x) for x in [{}]]\n".\
+                    format(groups_str)
+        cmd += "user.save()\n"
+        p.stdin.write(bytes(cmd, encoding="ascii"))
         p.stdin.close()
         p.wait()
 
@@ -85,6 +86,8 @@ class PatchewTestCase(unittest.TestCase):
 
     def check_cli_command(self, *argv):
         r, a, b = self.cli_command(*argv)
+        a = a.decode("utf-8")
+        b = b.decode("utf-8")
         if r != 0:
             print(a)
             print(b)
