@@ -523,7 +523,7 @@ class ApplyCommand(SubCommand):
                                   stdout=logf, stderr=logf)
         for p in s["patches"]:
             patchf = tempfile.NamedTemporaryFile()
-            patchf.write(p["mbox"])
+            patchf.write(p["mbox"].encode('utf-8'))
             patchf.flush()
             if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name],
                                     cwd=repo, stdout=logf, stderr=logf):
@@ -599,7 +599,7 @@ class ApplyCommand(SubCommand):
             return 0
         except Exception as e:
             if not isinstance(e, AppliFailedException):
-                traceback.print_exc(file=logf)
+                logf.write(traceback.format_exc().encode("utf-8"))
             logf.seek(0)
             log = logf.read().replace(push_repo, public_repo)
             print(log)
