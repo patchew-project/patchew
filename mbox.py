@@ -17,7 +17,9 @@ import re
 def _parse_header(header):
     r = ''
     for h, c in email.header.decode_header(header):
-        r += str(h, c) if c else h
+        if isinstance(h, bytes):
+            h = h.decode(c or 'utf-8')
+        r += h
     if '\n' in r:
         r = " ".join([x.strip() for x in r.splitlines()])
     return r
