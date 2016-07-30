@@ -17,6 +17,11 @@ class StartStopTest(PatchewTestCase):
         self.start_server()
         self.stop_server()
 
+    def test_login(self):
+        self.start_server()
+        self.login()
+        self.stop_server()
+
 if __name__ == '__main__':
     main()
 
