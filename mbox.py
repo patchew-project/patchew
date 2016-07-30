@@ -17,7 +17,7 @@ import re
 def _parse_header(header):
     r = ''
     for h, c in email.header.decode_header(header):
-        r += unicode(h, c) if c else h
+        r += str(h, c) if c else h
     if '\n' in r:
         r = " ".join([x.strip() for x in r.splitlines()])
     return r
@@ -205,7 +205,7 @@ class MboxMessage(object):
         return self._status.get(st, default)
 
     def get_status_by_prefix(self, pref):
-        return dict([(k, v) for k, v in self._status.iteritems() if k.startswith(pref)])
+        return dict([(k, v) for k, v in self._status.items() if k.startswith(pref)])
 
     def _has_lines(self, text, *lines):
         i = 0

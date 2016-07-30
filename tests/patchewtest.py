@@ -85,8 +85,8 @@ class PatchewTestCase(unittest.TestCase):
     def check_cli_command(self, *argv):
         r, a, b = self.cli_command(*argv)
         if r != 0:
-            print a
-            print b
+            print(a)
+            print(b)
             self.assertEqual(r, 0)
         return a, b
 
@@ -119,7 +119,7 @@ def parse_args():
 def main():
     args, argv = parse_args()
     if args.debug:
-        print RUN_DIR
+        print(RUN_DIR)
     try:
         if args.debug:
             verbosity = 2

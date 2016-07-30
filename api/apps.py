@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from __future__ import unicode_literals
+
 
 from django.apps import AppConfig
 import mod
@@ -27,5 +27,5 @@ class ApiConfig(AppConfig):
         try:
             mod.load_modules()
             create_default_groups()
-        except Exception, e:
-            print "Error while loading modules:", e
+        except Exception as e:
+            print("Error while loading modules:", e)

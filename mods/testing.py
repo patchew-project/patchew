@@ -89,7 +89,7 @@ class TestingModule(PatchewModule):
                       log="test log")
 
     def remove_testing_properties(self, obj):
-        for k in obj.get_properties().keys():
+        for k in list(obj.get_properties().keys()):
             if k == "testing.started" or \
                k == "testing.start-time" or \
                k == "testing.failed" or \
@@ -139,10 +139,9 @@ class TestingModule(PatchewModule):
         obj.set_property("testing.log." + test, log)
         if not passed:
             obj.set_property("testing.failed", True)
-        reports = filter(lambda x: x.startswith("testing.report."),
-                        obj.get_properties())
-        done_tests = set(map(lambda x: x[len("testing.report."):], reports))
-        all_tests = set([k for k, v in self.get_tests(obj).iteritems() if v["enabled"]])
+        reports = [x for x in obj.get_properties() if x.startswith("testing.report.")]
+        done_tests = set([x[len("testing.report."):] for x in reports])
+        all_tests = set([k for k, v in self.get_tests(obj).items() if v["enabled"]])
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
         if all_tests.issubset(done_tests):
@@ -152,7 +151,7 @@ class TestingModule(PatchewModule):
 
     def get_tests(self, obj):
         ret = {}
-        for k, v in obj.get_properties().iteritems():
+        for k, v in obj.get_properties().items():
             if not k.startswith("testing.tests."):
                 continue
             tn = k[len("testing.tests."):]
@@ -166,7 +165,7 @@ class TestingModule(PatchewModule):
         return ret
 
     def prepare_testing_report(self, obj):
-        for pn, p in obj.get_properties().iteritems():
+        for pn, p in obj.get_properties().items():
             if not pn.startswith("testing.report."):
                 continue
             tn = pn[len("testing.report."):]
@@ -212,7 +211,7 @@ class TestingModule(PatchewModule):
 
     def _testers_info(self, project):
         at = []
-        for k, v in project.get_properties().iteritems():
+        for k, v in project.get_properties().items():
             prefix = "testing.check_in."
             if not k.startswith(prefix):
                 continue
@@ -247,7 +246,7 @@ class TestingModule(PatchewModule):
 
     def get_capability_probes(self, project):
         ret = {}
-        for k, v in project.get_properties().iteritems():
+        for k, v in project.get_properties().items():
             prefix = "testing.requirements."
             if not k.startswith(prefix):
                 continue
@@ -300,9 +299,9 @@ class TestingGetView(APILoginRequiredView):
                                         test=test)
 
     def _find_applicable_test(self, user, project, tester, capabilities, obj):
-        all_tests = set([k for k, v in _instance.get_tests(obj).iteritems() if v["enabled"]])
+        all_tests = set([k for k, v in _instance.get_tests(obj).items() if v["enabled"]])
         done_tests = set()
-        for tn, t in _instance.get_tests(project).iteritems():
+        for tn, t in _instance.get_tests(project).items():
             if not t.get("enabled"):
                 continue
             all_tests.add(tn)

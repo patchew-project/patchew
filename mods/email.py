@@ -142,7 +142,7 @@ Email information is configured in "INI" style:
 
     def _send_email(self, to, cc, headers, body):
         message = email.message.Message()
-        for k, v in headers.iteritems():
+        for k, v in headers.items():
             message[k] = v
         message.set_payload(body)
 
@@ -153,7 +153,7 @@ Email information is configured in "INI" style:
 
     def get_notifications(self, project):
         ret = {}
-        for k, v in project.get_properties().iteritems():
+        for k, v in project.get_properties().items():
             if not k.startswith("email.notifications."):
                 continue
             tn = k[len("email.notifications."):]
@@ -170,7 +170,7 @@ Email information is configured in "INI" style:
         po = None
         mo = None
         headers = {}
-        for v in params.values():
+        for v in list(params.values()):
             if isinstance(v, Message):
                 mo = v
                 po = mo.project
@@ -182,7 +182,7 @@ Email information is configured in "INI" style:
             return
         if mo:
             headers["In-Reply-To"] = "<%s>" % mo.message_id
-        for nt in self.get_notifications(po).values():
+        for nt in list(self.get_notifications(po).values()):
 
             class GitEmailCancelled(Exception):
                 pass

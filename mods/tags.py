@@ -77,9 +77,7 @@ series cover letter, patch mail body and their replies.
         num_reviewed = 0
         def _find_reviewers(what):
             ret = set()
-            for rev_tag in filter(lambda x: \
-                                  x.lower().startswith(REV_BY_PREFIX.lower()),
-                                  what.get_property("tags", [])):
+            for rev_tag in [x for x in what.get_property("tags", []) if x.lower().startswith(REV_BY_PREFIX.lower())]:
                 ret.add(parse_address(rev_tag[len(REV_BY_PREFIX):]))
             return ret
         for p in series.get_patches():

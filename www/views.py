@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from django.shortcuts import render
 from django.template import Context
 from django.http import HttpResponse, Http404
@@ -135,9 +135,9 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
     series = query[start:start + PAGE_SIZE]
     params = ""
     if sort:
-        params += "&" + urllib.urlencode({"sort": sort})
+        params += "&" + urllib.parse.urlencode({"sort": sort})
     if search:
-        params += "&" + urllib.urlencode({"q": search})
+        params += "&" + urllib.parse.urlencode({"q": search})
     page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
     if project:
         nav_path = prepare_navigate_list("Patches",

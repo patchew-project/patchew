@@ -14,7 +14,7 @@ import sys
 from django.conf import settings
 from django.template import Template, Context
 import traceback
-import ConfigParser
+import configparser
 import io
 import json
 from schema import *
@@ -34,7 +34,7 @@ class PatchewModule(object):
         return self.get_model().config
 
     def get_config_obj(self):
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.readfp(io.BytesIO(str(self.get_config_raw())))
         return config
 
@@ -56,7 +56,7 @@ class PatchewModule(object):
         prefix = prefix + scm.name + "."
         def _build_map_items():
             r = {}
-            for p, v in project.get_properties().iteritems():
+            for p, v in project.get_properties().items():
                 if not p.startswith(prefix):
                     continue
                 name = p[len(prefix):]
@@ -69,7 +69,7 @@ class PatchewModule(object):
                           "html": self._build_one(request, project,
                                                   pref, scm.item)
                           }
-            return r.values()
+            return list(r.values())
 
         schema_html = self._build_one(request, project, prefix,
                                       scm.item)
@@ -83,9 +83,8 @@ class PatchewModule(object):
                                      item=item)
 
     def _build_array_scm(self, request, project, prefix, scm):
-        members = map(lambda x: self._build_one(request, project,
-                                                prefix, x),
-                      scm.members)
+        members = [self._build_one(request, project,
+                                                prefix, x) for x in scm.members]
         show_save_button = False
         for m in scm.members:
             if type(m) == StringSchema:
@@ -194,17 +193,17 @@ def load_modules():
             if not i:
                 continue
             _loaded_modules[cls.name] = i
-            print "Loaded module:", cls.name
+            print("Loaded module:", cls.name)
         except Exception as e:
-            print "Cannot load module '%s':" % cls, e
+            print("Cannot load module '%s':" % cls, e)
 
 def dispatch_module_hook(hook_name, **params):
-    for i in filter(lambda x: x.enabled, _loaded_modules.values()):
+    for i in [x for x in list(_loaded_modules.values()) if x.enabled]:
         if hasattr(i, hook_name):
             try:
                 getattr(i, hook_name)(**params)
             except Exception as e:
-                print "Cannot invoke module hook: %s.%s" % (i, hook_name)
+                print("Cannot invoke module hook: %s.%s" % (i, hook_name))
                 traceback.print_exc(e)
 
 def get_module(name):

@@ -16,7 +16,7 @@ from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from .models import Project, Message
 import json
-from search import SearchEngine
+from .search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from mod import dispatch_module_hook
@@ -123,7 +123,7 @@ class SetPropertyView(APILoginRequiredView):
                                     message_id=message_id).first()
         if not mo:
             raise Http404("Message not found")
-        for k, v in properties.iteritems():
+        for k, v in properties.items():
             mo.set_property(k, v)
 
 class SetProjectPropertiesView(APILoginRequiredView):
@@ -133,7 +133,7 @@ class SetProjectPropertiesView(APILoginRequiredView):
         po = Project.objects.get(name=project)
         if not po.maintained_by(request.user):
             raise PermissionDenied("Access denied to this project")
-        for k, v in properties.iteritems():
+        for k, v in properties.items():
             po.set_property(k, v)
 
 def prepare_patch(p):

@@ -12,11 +12,11 @@ import logging
 import os
 import sys
 import argparse
-import ConfigParser
+import configparser
 import json
-import urllib
-import urllib2
-import cookielib
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
+import http.cookiejar
 import subprocess
 import tempfile
 import shutil
@@ -31,7 +31,7 @@ class APIError(Exception):
 
 def git_clone_repo(clone, remote, head, logf):
     cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
-                              filter(lambda x: x.isalnum(), remote) + "-" + \
+                              [x for x in remote if x.isalnum()] + "-" + \
                                      str(abs(hash(remote))))
     if not os.path.isdir(cache_repo) or not os.listdir(cache_repo):
         # Clone upstream to local cache
@@ -61,22 +61,22 @@ class SubCommand(object):
         """Do server api call"""
         logging.debug("API call '%s':" % cmd)
         logging.debug("data:\n%s" % data)
-        cookie = cookielib.MozillaCookieJar(COOKIE_FILENAME)
+        cookie = http.cookiejar.MozillaCookieJar(COOKIE_FILENAME)
         try:
             cookie.load()
         except IOError:
             pass
-        except cookielib.LoadError:
-            print "Error while loading cookie", COOKIE_FILENAME
+        except http.cookiejar.LoadError:
+            print("Error while loading cookie", COOKIE_FILENAME)
             pass
-        handler = urllib2.HTTPCookieProcessor(cookie)
-        opener = urllib2.build_opener(handler)
+        handler = urllib.request.HTTPCookieProcessor(cookie)
+        opener = urllib.request.build_opener(handler)
         url = self.base_url + "/api/" + cmd + "/"
         if data:
-            post_data = urllib.urlencode({"params": json.dumps(data)})
+            post_data = urllib.parse.urlencode({"params": json.dumps(data)})
         else:
             post_data = ""
-        req = urllib2.Request(url, data=post_data)
+        req = urllib.request.Request(url, data=post_data)
         # insert data
         resp = opener.open(req)
         cookie.save(ignore_discard=True, ignore_expires=True)
@@ -110,7 +110,7 @@ class LoginCommand(SubCommand):
             self.api_do("login", username=args.username,
                                  password=args.password)
         except Exception as e:
-            print "Login failed:", e
+            print("Login failed:", e)
             return 1
         return 0
 
@@ -131,7 +131,7 @@ class DeleteCommand(SubCommand):
 
     def do(self, args, argv):
         if not argv and not args.all:
-            print "Must specify --all to delete all patches"
+            print("Must specify --all to delete all patches")
             return 1
         self.api_do("delete", terms=argv)
         return 0
@@ -152,7 +152,7 @@ class ImportCommand(SubCommand):
             for p in r:
                 if p not in projects:
                     projects.add(p)
-                    print p
+                    print(p)
 
         def import_one(fn):
             if os.path.isdir(fn):
@@ -172,7 +172,7 @@ class ImportCommand(SubCommand):
             try:
                 import_one(f)
             except Exception as e:
-                print "Error in importing:", f
+                print("Error in importing:", f)
                 traceback.print_exc(e)
                 r = 1
                 pass
@@ -191,15 +191,15 @@ class ProjectCommand(SubCommand):
         args = parser.parse_args(argv)
         r = self.api_do("get-projects")
         if args.raw:
-            print r
+            print(r)
             return 0
         for p in r:
-            print p["name"]
+            print(p["name"])
             if args.verbose:
-                for k, v in p.iteritems():
+                for k, v in p.items():
                     if k == "name":
                         continue
-                    print "  %s: %s" % (k, v)
+                    print("  %s: %s" % (k, v))
         return 0
 
     def show_project(self, argv):
@@ -212,11 +212,11 @@ class ProjectCommand(SubCommand):
             if not p["name"] in args.name:
                 continue
             if len(args.name) > 1:
-                print p["name"]
-            for k, v in p.iteritems():
+                print(p["name"])
+            for k, v in p.items():
                 if k == "name":
                     continue
-                print "  %s: %s" % (k, v)
+                print("  %s: %s" % (k, v))
         return 0
 
     def add_project(self, argv):
@@ -252,15 +252,15 @@ class ProjectCommand(SubCommand):
             r = self.api_do("get-project-properties",
                             project=args.name)
             if not args.prop:
-                for k, v in r.iteritems() if r else []:
-                    print k, v
+                for k, v in iter(r.items()) if r else []:
+                    print(k, v)
             else:
                 if r and args.prop in r:
-                    print args.prop, r[args.prop]
+                    print(args.prop, r[args.prop])
                 else:
-                    print "Property Not found:", args.prop
-                    if r and r.keys():
-                        print "There are:", ", ".join(r.keys())
+                    print("Property Not found:", args.prop)
+                    if r and list(r.keys()):
+                        print("There are:", ", ".join(list(r.keys())))
         else:
             if args.delete:
                 args.value = None
@@ -293,12 +293,12 @@ class SearchCommand(SubCommand):
         if not r:
             return 0
         if args.raw:
-            print json.dumps(r, indent=2, separators=",:")
+            print(json.dumps(r, indent=2, separators=",:"))
         else:
             for x in r:
                 for a in args.output.split(","):
-                    print x[a],
-                print
+                    print(x[a], end=' ')
+                print()
         return 0
 
 class UntestCommand(SubCommand):
@@ -329,12 +329,12 @@ class SetPropertyCommand(SubCommand):
         if not argv:
             return 0
         if len(argv) % 2:
-            print "Name and value unpaired:", argv[-1]
-        props = dict(zip(argv[::2], argv[1::2]))
+            print("Name and value unpaired:", argv[-1])
+        props = dict(list(zip(argv[::2], argv[1::2])))
         if args.file:
-            props = dict([(k, open(v, "r").read()) for k, v in props.iteritems()])
+            props = dict([(k, open(v, "r").read()) for k, v in props.items()])
         if args.json:
-            props = dict([(k, json.loads(v)) for k, v in props.iteritems()])
+            props = dict([(k, json.loads(v)) for k, v in props.items()])
         self.api_do("set-properties", project=args.project,
                     message_id=args.message_id,
                     properties=props)
@@ -368,7 +368,7 @@ class TesterCommand(SubCommand):
         if not r:
             return []
         ret = []
-        for name, val in r.iteritems():
+        for name, val in r.items():
             script = self._make_script(wd, "probe", val)
             if 0 == subprocess.call(script,
                                     stdout=subprocess.PIPE,
@@ -381,17 +381,17 @@ class TesterCommand(SubCommand):
                                     capabilities=capabilities)
         if not r:
             return False
-        print "Running test '%s'" % r["test"]["name"]
+        print("Running test '%s'" % r["test"]["name"])
         if r["project"] != args.project:
             return
 
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
-        print "  Workdir:", wd
+        print("  Workdir:", wd)
         logf = open(os.path.join(wd, "log"), "w+b")
         test_cmd = r["test"]["script"]
         script = r["test"]["script"].strip() + "\n"
         test_script = self._make_script(wd, "run", script)
-        for k, v in r["identity"].iteritems():
+        for k, v in r["identity"].items():
             logf.write("%s: %s\n" % (k.capitalize(), v))
         logf.write("\n")
         logf.write("=== TEST SCRIPT BEGIN ===\n")
@@ -435,7 +435,7 @@ class TesterCommand(SubCommand):
             passed = rc == 0
             logf.seek(0)
             log = logf.read()
-            print "  Result:", "Passed" if passed else "Failed"
+            print("  Result:", "Passed" if passed else "Failed")
             logging.debug(log)
             self.api_do("testing-report", project=r["project"],
                                           identity=r["identity"],
@@ -467,7 +467,7 @@ class TesterCommand(SubCommand):
                 if count == args.num:
                     break
                 if not rest:
-                    print "No more work, having a rest..."
+                    print("No more work, having a rest...")
                     rest = True
                 time.sleep(60)
             except Exception as e:
@@ -564,7 +564,7 @@ class ApplyCommand(SubCommand):
                 toapply = c
                 break
         if not toapply:
-            print "No series need apply"
+            print("No series need apply")
             return 3
         logf = tempfile.NamedTemporaryFile()
         push_repo = toapply["git.push_to"]
@@ -598,12 +598,12 @@ class ApplyCommand(SubCommand):
                             "git.apply-log": log,
                         })
             return 0
-        except Exception, e:
+        except Exception as e:
             if not isinstance(e, AppliFailedException):
                 traceback.print_exc(e, logf)
             logf.seek(0)
             log = logf.read().replace(push_repo, public_repo)
-            print log
+            print(log)
             self.api_do("set-properties",
                         project=toapply["project"],
                         message_id=toapply["message-id"],
@@ -616,21 +616,21 @@ class ApplyCommand(SubCommand):
     def do(self, args, argv):
         if args.applier_mode:
             if args.repo or args.branch or args.force_branch or args.tag:
-                print "--applier-mode conflicts with -C, -b, -B and -t"
+                print("--applier-mode conflicts with -C, -b, -B and -t")
                 return 1
             args.any = True
             args.term = args.term + ["!has:git.apply-log", "is:complete"]
         r = self.api_do("search", terms=args.term)
         if not r:
-            print "Nothing to apply"
+            print("Nothing to apply")
             return 3
         if len(r) > 1 and not args.any:
-            print "More than one series matched:"
+            print("More than one series matched:")
             for p in r:
-                print r["project"], r["subject"]
+                print(r["project"], r["subject"])
             return 1
         if not r[0]["is_complete"]:
-            print "Series not complete"
+            print("Series not complete")
             return 1
         if args.applier_mode:
             return self._applier_mode(r, args)
@@ -665,7 +665,7 @@ def args_merge_config(args):
                 break
     if not args.config:
         return
-    cp = ConfigParser.ConfigParser()
+    cp = configparser.ConfigParser()
     cp.read(args.config)
     if args.debug == None:
         args.debug = cp.getboolean("general", "debug")
