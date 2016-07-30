@@ -35,7 +35,7 @@ class PatchewModule(object):
 
     def get_config_obj(self):
         config = configparser.ConfigParser()
-        config.readfp(io.BytesIO(str(self.get_config_raw())))
+        config.read_string(self.get_config_raw())
         return config
 
     def get_config(self, section, field, getmethod="get", default=None):
