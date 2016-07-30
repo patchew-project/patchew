@@ -193,8 +193,8 @@ class Message(models.Model):
     objects = MessageManager()
 
     def save_mbox(self, mbox):
-        f = open(self.get_mbox_path(), "w")
-        f.write(mbox)
+        f = open(self.get_mbox_path(), "wb")
+        f.write(mbox.encode("utf-8"))
         f.close()
 
     def get_mbox_obj(self):
@@ -204,7 +204,7 @@ class Message(models.Model):
     def get_mbox(self):
         if hasattr(self, "mbox"):
             return self.mbox
-        f = open(self.get_mbox_path(), "r")
+        f = open(self.get_mbox_path(), "r", encoding="utf-8")
         self.mbox = f.read()
         self._mbox_obj = MboxMessage(self.mbox)
         f.close()
