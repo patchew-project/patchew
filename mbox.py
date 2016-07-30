@@ -143,7 +143,7 @@ class MboxMessage(object):
     def get_body(self):
         payload = self._m.get_payload(decode=not self._m.is_multipart())
         body = ''
-        if isinstance(payload, str):
+        if isinstance(payload, bytes):
             body = payload
         elif isinstance(payload, list):
             for p in payload:
