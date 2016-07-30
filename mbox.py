@@ -153,7 +153,7 @@ class MboxMessage(object):
                     body += str(p.get_payload(decode=True))
         else:
             return "<Error while getting message body: %s>" % payload
-        return body.decode("utf-8", "ignore")
+        return body
 
     def get_preview(self, maxchar=1000):
         r = ""
