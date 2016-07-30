@@ -185,8 +185,8 @@ def load_modules():
             pn = f[:-len(".py")]
             try:
                 imp.load_source(pn, os.path.join(_module_path, f))
-            except Exception as e:
-                traceback.print_exc(e)
+            except:
+                traceback.print_exc()
     for cls in PatchewModule.__subclasses__():
         try:
             i = _init_module(cls)
@@ -202,9 +202,9 @@ def dispatch_module_hook(hook_name, **params):
         if hasattr(i, hook_name):
             try:
                 getattr(i, hook_name)(**params)
-            except Exception as e:
+            except:
                 print("Cannot invoke module hook: %s.%s" % (i, hook_name))
-                traceback.print_exc(e)
+                traceback.print_exc()
 
 def get_module(name):
     return _loaded_modules.get(name)

@@ -169,9 +169,9 @@ class GitModule(PatchewModule):
                                    replace("%t", tag_name))
             s.set_property("git.apply-failed", False)
             emit_event("SeriesApplied", series=s)
-        except Exception as e:
+        except:
             import traceback
-            traceback.print_exc(e, logf)
+            traceback.print_exc(file=logf)
             s.set_property("git.apply-failed", True)
             s.set_property("git.repo", None)
             s.set_property("git.tag", None)

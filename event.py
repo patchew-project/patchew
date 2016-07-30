@@ -37,9 +37,9 @@ def emit_event(event, **params):
     for handler in _handlers.get(event, []) + _handlers.get(None, []):
         try:
             handler(event, **params)
-        except Exception as e:
+        except:
             import traceback
-            traceback.print_exc(e)
+            traceback.print_exc()
 
 def get_events_info():
     return _events.copy()

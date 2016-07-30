@@ -171,9 +171,9 @@ class ImportCommand(SubCommand):
         for f in args.file:
             try:
                 import_one(f)
-            except Exception as e:
+            except:
                 print("Error in importing:", f)
-                traceback.print_exc(e)
+                traceback.print_exc()
                 r = 1
                 pass
         return r
@@ -429,8 +429,8 @@ class TesterCommand(SubCommand):
             else:
                 logf.write("Test command exited with code: %d" % rc)
             logf.flush()
-        except Exception as e:
-            traceback.print_exc(e, logf)
+        except:
+            traceback.print_exc(file=logf)
         finally:
             passed = rc == 0
             logf.seek(0)
@@ -470,8 +470,8 @@ class TesterCommand(SubCommand):
                     print("No more work, having a rest...")
                     rest = True
                 time.sleep(60)
-            except Exception as e:
-                traceback.print_exc(e)
+            except:
+                traceback.print_exc()
                 # Wait longer in case of an exception
                 time.sleep(600)
         return 0
@@ -600,7 +600,7 @@ class ApplyCommand(SubCommand):
             return 0
         except Exception as e:
             if not isinstance(e, AppliFailedException):
-                traceback.print_exc(e, logf)
+                traceback.print_exc(file=logf)
             logf.seek(0)
             log = logf.read().replace(push_repo, public_repo)
             print(log)
