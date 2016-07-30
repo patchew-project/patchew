@@ -297,8 +297,7 @@ class SearchCommand(SubCommand):
         else:
             for x in r:
                 for a in args.output.split(","):
-                    print(x[a], end=' ')
-                print()
+                    print(x[a])
         return 0
 
 class UntestCommand(SubCommand):
