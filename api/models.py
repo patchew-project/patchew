@@ -314,7 +314,7 @@ class Message(models.Model):
                             unit = 'week'
             if sec > 1:
                 unit += 's'
-            return "%s %s" % (sec, unit)
+            return "%s %s" % (int(sec), unit)
 
         age = int((datetime.datetime.utcnow() - date).total_seconds())
         if age < 0:
