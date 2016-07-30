@@ -31,7 +31,7 @@ class APIError(Exception):
 
 def git_clone_repo(clone, remote, head, logf):
     cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
-                              [x for x in remote if x.isalnum()] + "-" + \
+                              "".join([x for x in remote if x.isalnum()]) + "-" + \
                                      str(abs(hash(remote))))
     if not os.path.isdir(cache_repo) or not os.listdir(cache_repo):
         # Clone upstream to local cache
