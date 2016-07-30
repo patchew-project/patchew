@@ -75,7 +75,7 @@ def view_project_list(request):
     return render_page(request, "project-list.html", projects=prepare_projects)
 
 def gen_page_links(total, cur_page, pagesize, extra_params):
-    max_page = (total + pagesize - 1) / pagesize
+    max_page = int((total + pagesize - 1) / pagesize)
     ret = []
     ddd = False
     for i in range(1, max_page + 1):
