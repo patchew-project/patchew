@@ -76,14 +76,14 @@ class SubCommand(object):
             post_data = urllib.parse.urlencode({"params": json.dumps(data)})
         else:
             post_data = ""
-        req = urllib.request.Request(url, data=post_data)
+        req = urllib.request.Request(url, data=bytes(post_data, encoding="utf-8"))
         # insert data
         resp = opener.open(req)
         cookie.save(ignore_discard=True, ignore_expires=True)
         respdata = resp.read()
         logging.debug("Server response:\n%s" % (respdata or "<empty>"))
         if respdata:
-            r = json.loads(respdata)
+            r = json.loads(respdata.decode("utf-8"))
         else:
             r = None
         return r
