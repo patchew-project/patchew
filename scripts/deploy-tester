@@ -49,16 +49,16 @@ EOF
 
 tester_setup
 
-echo "Copy patchew-tester"
-scp scripts/patchew-tester $remote:/usr/bin/patchew-tester
-echo "Copy patchew-cli"
-scp patchew-cli $remote:/usr/bin/patchew
+echo "Copy scripts"
+scp scripts/patchew-tester patchew-cli $remote:/usr/bin/
 echo "Copy patchew-tester.service"
 scp patchew-tester.service $remote:/usr/lib/systemd/system/
-echo "Create user 'patchew'"
-ssh $remote useradd -m -s /bin/bash patchew || true
-echo "Enable patchew-tester systemd service"
-ssh $remote systemctl stop patchew-tester &>/dev/null || true
-ssh $remote systemctl enable patchew-tester
-echo "Start patchew-tester systemd service"
-ssh $remote systemctl start patchew-tester
+ssh $remote '
+    set -e;
+    echo Create user patchew;
+    useradd -m -s /bin/bash patchew || true;
+    echo Enable patchew-tester systemd service;
+    systemctl stop patchew-tester &>/dev/null || true;
+    systemctl enable patchew-tester;
+    echo Start patchew-tester systemd service;
+    systemctl start patchew-tester'
