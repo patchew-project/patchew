@@ -31,6 +31,11 @@ class MessageAdmin(admin.ModelAdmin):
             MessagePropertyInline
         ]
     list_filter = [('is_series_head')]
+    search_fields = [
+            'message_id',
+            'subject',
+            'sender',
+        ]
 
 class ModuleAdmin(admin.ModelAdmin):
     inlines = [
