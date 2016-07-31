@@ -101,11 +101,8 @@ Email information is configured in "INI" style:
 
     def _smtp_send(self, to, cc, message):
         from_addr = self.get_config("smtp", "from")
-        message["From"] = from_addr
-        if cc:
-            message["Cc"] = cc
-        else:
-            message.__delitem__("Cc")
+        message["Resent-From"] = message["From"]
+        message.replace_header("From", from_addr)
         smtp = self._get_smtp()
         smtp.sendmail(from_addr, to, message.as_string())
 
