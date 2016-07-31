@@ -565,7 +565,7 @@ class ApplyCommand(SubCommand):
         if not toapply:
             print("No series need apply")
             return 3
-        logf = tempfile.NamedTemporaryFile()
+        logf = tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8")
         push_repo = toapply["git.push_to"]
         public_repo = toapply["git.public_repo"]
         try:
@@ -579,7 +579,8 @@ class ApplyCommand(SubCommand):
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
-            base = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
+            base = subprocess.check_output(["git", "rev-parse", "HEAD"])
+            base = base.decode("utf-8").strip()
             self._apply(repo, toapply, branch, force_branch, tag, logf)
             self._push(repo, push_repo, tag, logf)
             url = toapply["git.url_template"].replace("%t", tag)
@@ -599,7 +600,7 @@ class ApplyCommand(SubCommand):
             return 0
         except Exception as e:
             if not isinstance(e, AppliFailedException):
-                logf.write(traceback.format_exc().encode("utf-8"))
+                traceback.print_exc(file=logf)
             logf.seek(0)
             log = logf.read().replace(push_repo, public_repo)
             print(log)
