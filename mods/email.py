@@ -144,7 +144,7 @@ Email information is configured in "INI" style:
         message = email.message.Message()
         for k, v in headers.items():
             message[k] = v
-        message.set_payload(body)
+        message.set_payload(body, charset="utf-8")
 
         self._smtp_send(to, cc, message)
 
