@@ -353,7 +353,7 @@ class TesterCommand(SubCommand):
 
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
-        tf = open(filename, "wb")
+        tf = open(filename, "w", encoding="utf-8")
         tf.write(content)
         tf.close()
         subprocess.check_output(["chmod", "+x", filename])
