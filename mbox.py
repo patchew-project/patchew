@@ -146,7 +146,7 @@ class MboxMessage(object):
         payload = self._m.get_payload(decode=not self._m.is_multipart())
         body = ''
         if isinstance(payload, bytes):
-            body = payload
+            body = payload.decode("utf-8")
         elif isinstance(payload, list):
             for p in payload:
                 if p.get_content_type() == "text/plain":
