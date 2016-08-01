@@ -28,6 +28,13 @@ from schema import *
 
 _instance = None
 
+TESTING_SCRIPT_DEFAULT = """#!/bin/bash
+# Testing script will be invoked under the git checkout with
+# HEAD pointing to a commit that has the patches applied on top of "base"
+# branch
+exit 0
+"""
+
 class TestingModule(PatchewModule):
     """Testing module"""
 
@@ -50,7 +57,7 @@ class TestingModule(PatchewModule):
                                       desc="Timeout for the test"),
                         StringSchema("script", "Test script",
                                      desc="The testing script",
-                                     default="#!/bin/bash\ntrue",
+                                     default=TESTING_SCRIPT_DEFAULT,
                                      multiline=True,
                                      required=True),
                     ])
