@@ -8,111 +8,91 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import unittest
 import subprocess
 import sys
 import os
 import tempfile
-import time
 import shutil
 import argparse
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
+sys.path.append(BASE_DIR)
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "patchew.settings")
+import django
+
+django.setup()
+
+import django.test
+from django.contrib.auth.models import User, Group
+from api.models import *
+
+PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
 RUN_DIR = tempfile.mkdtemp()
-_logf = open(os.path.join(RUN_DIR, "log"), "w")
 
-class PatchewTestCase(unittest.TestCase):
-    server_port = 18383
-    server_url = "http://127.0.0.1:%d/" % server_port
-    manage_py = os.path.join(BASE_DIR, "manage.py")
-    patchew_cli = os.path.join(BASE_DIR, "patchew-cli")
-    superuser = "test"
-    password = "patchewtest"
+class PatchewTestCase(django.test.LiveServerTestCase):
+    user = "admin"
+    email = "admin@test"
+    password = "adminpass"
+    client = django.test.Client()
 
-    def assert_server_running(self):
-        return self._server_p.poll() == None
+    def create_superuser(self, username=None, password=None):
+        user = User.objects.create_superuser(username or self.user,
+                                             self.email,
+                                             password or self.password)
 
-    def start_server(self):
-        os.environ["PATCHEW_DATA_DIR"] = tempfile.mkdtemp(dir=RUN_DIR,
-                                                          prefix="data-")
-        subprocess.check_output([self.manage_py, "migrate"])
-        self.create_user(self.superuser, self.password, True)
-        self._server_p = subprocess.Popen([self.manage_py, "runserver",
-                                           "--noreload",
-                                           str(self.server_port)],
-                                          stdout=_logf, stderr=_logf)
-        ok = False
-        for i in range(20):
-            devnull = open("/dev/null", "w")
-            rc = subprocess.call(["curl", self.server_url],
-                                 stdout=devnull, stderr=devnull)
-            devnull.close()
-            if rc == 0:
-                ok = True
-                break
-            time.sleep(0.05)
-        self.assertTrue(ok)
-        self.assert_server_running()
-
-    def create_user(self, username, password, is_superuser=False, groups=[]):
-        p = subprocess.Popen([self.manage_py, "shell"],
-                             stdin=subprocess.PIPE, stdout=_logf,
-                             stderr=_logf)
-        cmd = "from django.contrib.auth.models import User, Group\n"
-        cmd += "user=User.objects.create_user('{}', password='{}')\n".\
-                format(username, password)
-        cmd += "user.is_superuser={}\n".format(is_superuser)
-        cmd += "user.is_staff=True\n"
+    def create_user(self, username=None, password=None, groups=[]):
+        user = User.objects.create_user(username or self.user,
+                                        self.email,
+                                        password or self.password)
         if groups:
-            groups_str = ", ".join('"{}"'.format(s) for s in groups)
-            cmd += "user.groups = [Group.objects.get(name=x) for x in [{}]]\n".\
-                    format(groups_str)
-        cmd += "user.save()\n"
-        p.stdin.write(bytes(cmd, encoding="ascii"))
-        p.stdin.close()
-        p.wait()
+            user.groups = [Group.objects.get_or_create(name=g)[0] for g in groups]
+            user.save()
 
-    def stop_server(self):
-        self._server_p.terminate()
-
-    def cli_command(self, *argv):
+    def cli(self, argv):
         """Run patchew-cli command and return (retcode, stdout, stderr)"""
-        p = subprocess.Popen([self.patchew_cli, "-D", "-s", self.server_url] +\
-                              list(argv),
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = [PATCHEW_CLI, "-D", "-s", self.live_server_url] + argv
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         a, b = p.communicate()
-        return p.returncode, a.strip(), b.strip()
-
-    def check_cli_command(self, *argv):
-        r, a, b = self.cli_command(*argv)
         a = a.decode("utf-8")
         b = b.decode("utf-8")
-        if r != 0:
-            print(a)
-            print(b)
-            self.assertEqual(r, 0)
+        return p.returncode, a.strip(), b.strip()
+
+    def check_cli(self, args, rc=0, stdout=None, stderr=None):
+        assert(isinstance(args, list))
+        r, a, b = self.cli(args)
+        self.assertEqual(r, rc,
+            "Exit code {} != expected {}, stdout:\n{}\nstderr:\n{}\n".format(r, rc, a, b))
+        if stdout:
+            self.assertEqual(a, stdout)
+        if stderr:
+            self.assertEqual(b, stderr)
         return a, b
 
-    def login(self, username=None, password=None):
+    def cli_login(self, username=None, password=None):
         if not username:
-            username = self.superuser
+            username = self.user
         if not password:
             password = self.password
-        r, a, b = self.cli_command("login", username, password)
-        self.assertEqual(r, 0)
+        self.check_cli(["login", username or self.user, password or self.password])
 
-    def logout(self):
-        r, a, b = self.cli_command("logout")
-        self.assertEqual(r, 0)
+    def cli_logout(self):
+        self.check_cli(["logout"])
 
     def get_data_path(self, fname):
-        r = tempfile.NamedTemporaryFile(dir=RUN_DIR, prefix="test-data-",
-                                        delete=False)
+        r = tempfile.NamedTemporaryFile(dir=RUN_DIR, prefix="test-data-", delete=False)
         d = os.path.join(BASE_DIR, "tests", "data", fname)
         r.write(subprocess.check_output(["zcat", d]))
         r.close()
         return r.name
+
+    def get_projects(self):
+        return Project.objects.all()
+
+    def add_project(self, name, mailing_list=""):
+        p = Project(name=name, mailing_list=mailing_list)
+        p.save()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -121,6 +101,7 @@ def parse_args():
     return parser.parse_known_args()
 
 def main():
+    import unittest
     args, argv = parse_args()
     if args.debug:
         print(RUN_DIR)
@@ -134,3 +115,4 @@ def main():
     finally:
         if not args.debug:
             shutil.rmtree(RUN_DIR)
+
