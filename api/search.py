@@ -200,7 +200,7 @@ Search text keyword in the email message. Example:
             q = self._process_term(q, t)
         return q
 
-    def _process_age_term(self, query, cond, neg):
+    def _process_age_term(self, query, cond):
         import datetime
         def human_to_seconds(n, unit):
             if unit == "d":
