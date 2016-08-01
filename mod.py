@@ -28,10 +28,11 @@ class PatchewModule(object):
     def get_model(self):
         # ALways read from DB to accept configuration update in-flight
         from api.models import Module as PC
+        _module_init_config(self.__class__)
         return PC.objects.get(name=self.name)
 
     def get_config_raw(self):
-        return self.get_model().config
+        return self.get_model().config or ""
 
     def get_config_obj(self):
         config = configparser.ConfigParser()
