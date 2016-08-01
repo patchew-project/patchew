@@ -405,6 +405,7 @@ class TestingCapabilitiesView(APILoginRequiredView):
 
 class UntestView(APILoginRequiredView):
     name = "untest"
+    allowed_groups = ["testers"]
 
     def handle(self, request, terms):
         se = SearchEngine()
