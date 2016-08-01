@@ -48,7 +48,8 @@ series cover letter, patch mail body and their replies.
 
         # XXX: get this list through module config?
     def get_tag_prefixes(self):
-        return [x.strip() for x in self.get_config("default", "tags").split(",")]
+        tagsconfig = self.get_config("default", "tags", default="")
+        return [x.strip() for x in tagsconfig.split(",")]
 
     def update_tags(self, s):
         old = s.get_property("tags", [])
