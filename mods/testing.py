@@ -322,7 +322,7 @@ class TestingGetView(APILoginRequiredView):
             # TODO: group?
             ok = True
             reqs = t.get("requirements", "")
-            for r in [x.strip() for x in reqs.split(",")]:
+            for r in [x.strip() for x in reqs.split(",") if x]:
                 if r not in capabilities:
                     ok = False
                     break
