@@ -198,7 +198,7 @@ Email information is configured in "INI" style:
                 raise GitEmailCancelled
             params["cancel"] = cancel_email
 
-            ctx = Context(params)
+            ctx = Context(params, autoescape=False)
 
             try:
                 subject = Template(nt["subject_template"]).render(ctx)
