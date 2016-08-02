@@ -59,6 +59,12 @@ Email information is configured in "INI" style:
                         BooleanSchema("reply_to_all", "Reply to all",
                                       desc='Whether to "reply to all" if the event has an associated email message',
                                       default=False),
+                        BooleanSchema("in_reply_to", "Set In-Reply-To",
+                                      desc='Whether to set In-Reply-To to the message id, if the event has an associated email message',
+                                      default=True),
+                        BooleanSchema("reply_subject", "Set replying subject",
+                                      desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
+                                      default=True),
                         StringSchema("to", "To", desc="Send email to"),
                         StringSchema("cc", "Cc", desc="Cc list"),
                         StringSchema("subject_template", "Subject template",
@@ -167,9 +173,10 @@ Email information is configured in "INI" style:
         return ret
 
     def on_event(self, event, **params):
+        class GitEmailCancelled(Exception):
+            pass
         po = None
         mo = None
-        headers = {}
         for v in list(params.values()):
             if isinstance(v, Message):
                 mo = v
@@ -180,13 +187,8 @@ Email information is configured in "INI" style:
                 break
         if not po:
             return
-        if mo:
-            headers["In-Reply-To"] = "<%s>" % mo.message_id
         for nt in list(self.get_notifications(po).values()):
-
-            class GitEmailCancelled(Exception):
-                pass
-
+            headers = {}
             if not nt["enabled"]:
                 continue
             if nt["event"] != event:
@@ -208,6 +210,10 @@ Email information is configured in "INI" style:
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
                 cc = [x[1] for x in mo.get_receivers()]
+            if mo and nt["in_reply_to"]:
+                headers["In-Reply-To"] = "<%s>" % mo.message_id
+            if nt["reply_subject"] and mo:
+                subject = "Re: " + mo.subject if not mo.subject.startswith("Re:") else mo.subject
             if not (subject and body and to):
                 continue
             headers["Subject"] = subject
