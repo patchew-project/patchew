@@ -102,7 +102,10 @@ Email information is configured in "INI" style:
     def _smtp_send(self, to, cc, message):
         from_addr = self.get_config("smtp", "from")
         message["Resent-From"] = message["From"]
-        message.replace_header("From", from_addr)
+        try:
+            message.replace_header("from", from_addr)
+        except KeyError:
+            message["from"] = from_addr
         smtp = self._get_smtp()
         smtp.sendmail(from_addr, to, message.as_string())
 
