@@ -34,6 +34,6 @@ urlpatterns = [
     url(r'^api/', include('api.urls')),
     url(r'^', include('www.urls')),
 ] + static(settings.STATIC_URL,
-           document_root=os.path.join(settings.BASE_DIR, "static")) \
+           document_root=settings.STATIC_ROOT) \
   + static(settings.MEDIA_URL,
            document_root=settings.MEDIA_ROOT)
