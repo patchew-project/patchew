@@ -6,3 +6,9 @@
 
 python "$OPENSHIFT_REPO_DIR"/manage.py migrate --noinput
 python "$OPENSHIFT_REPO_DIR"/manage.py collectstatic --noinput
+
+mkdir -p $OPENSHIFT_DATA_DIR/media
+
+if ! test -h $OPENSHIFT_REPO_DIR/wsgi/static/media; then
+    ln -s $OPENSHIFT_DATA_DIR/media $OPENSHIFT_REPO_DIR/wsgi/static/media
+fi
