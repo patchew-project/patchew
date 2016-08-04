@@ -216,12 +216,12 @@ Email information is configured in "INI" style:
             ctx = Context(params, autoescape=False)
 
             try:
-                subject = Template(nt["subject_template"]).render(ctx)
-                body = Template(nt["body_template"]).render(ctx)
-                to = [x.strip() for x in Template(nt["to"]).render(ctx).split()]
+                subject = Template(nt["subject_template"]).render(ctx).strip()
+                body = Template(nt["body_template"]).render(ctx).strip()
+                to = [x.strip() for x in Template(nt["to"]).render(ctx).strip().split()]
             except GitEmailCancelled:
                 continue
-            cc = [x.strip() for x in Template(nt["cc"]).render(ctx).split()]
+            cc = [x.strip() for x in Template(nt["cc"]).render(ctx).strip().split()]
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
                 cc += [x[1] for x in mo.get_receivers()]
