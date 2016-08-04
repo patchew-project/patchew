@@ -461,6 +461,8 @@ class TesterCommand(SubCommand):
                                                               args.name)
                 count += 1
                 if self.test_one(args, capabilities=capabilities):
+                    if count == args.num:
+                        break
                     rest = False
                     continue
                 if count == args.num:
