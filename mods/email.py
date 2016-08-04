@@ -206,10 +206,10 @@ Email information is configured in "INI" style:
                 to = [x.strip() for x in Template(nt["to"]).render(ctx).split()]
             except GitEmailCancelled:
                 continue
-            cc = []
+            cc = [x.strip() for x in Template(nt["cc"]).render(ctx).split()]
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
-                cc = [x[1] for x in mo.get_receivers()]
+                cc += [x[1] for x in mo.get_receivers()]
             if mo and nt["in_reply_to"]:
                 headers["In-Reply-To"] = "<%s>" % mo.message_id
             if nt["reply_subject"] and mo:
