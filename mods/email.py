@@ -108,12 +108,27 @@ Email information is configured in "INI" style:
     def _smtp_send(self, to, cc, message):
         from_addr = self.get_config("smtp", "from")
         message["Resent-From"] = message["From"]
-        try:
-            message.replace_header("from", from_addr)
-        except KeyError:
-            message["from"] = from_addr
+        for k, v in [("From", from_addr),
+                     ("To", to),
+                     ("Cc", cc)]:
+            if not v:
+                continue
+            if isinstance(v, list):
+                v = ", ".join(v)
+            try:
+                message.replace_header(k, v)
+            except KeyError:
+                message[k] = v
         smtp = self._get_smtp()
-        smtp.sendmail(from_addr, to, message.as_string())
+        recipients = []
+        for x in [to, cc]:
+            if not x:
+                continue
+            if isinstance(x, str):
+                recipients += [x]
+            elif isinstance(x, list):
+                recipients += x
+        smtp.sendmail(from_addr, recipients, message.as_string())
 
     def www_view_email_bounce(self, request, message_id):
         if not request.user.is_authenticated():
