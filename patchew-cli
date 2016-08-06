@@ -513,6 +513,7 @@ class ApplyCommand(SubCommand):
 
     def _apply(self, repo, s, branch, force_branch, tag, logf=None):
         msgid = s["message-id"]
+        bn = None
         if force_branch:
             bn = force_branch
             bo = "-B"
