@@ -125,7 +125,7 @@ class GitModule(PatchewModule):
             subprocess.check_call(["git", "checkout", "-q", "-b", new_branch],
                                   cwd=repo, stdout=logf, stderr=logf)
             base = subprocess.check_output(["git", "log", '-n', '1', "--format=%H"],
-                                           cwd=repo).strip()
+                                           cwd=repo).decode("utf-8").strip()
             logf.write("On top of commit: %s\n" % base)
             logf.flush()
             for p in s.get_patches():
@@ -135,7 +135,7 @@ class GitModule(PatchewModule):
                 commit_message_lines = \
                         subprocess.check_output(["git", "log", "-n", "1",
                                                  "--format=%b"], cwd=repo)\
-                                               .splitlines()
+                                               .decode('utf-8').splitlines()
                 for t in ["Message-id: %s" % p.message_id] + \
                          p.get_property("tags", []):
                     if t in commit_message_lines:
@@ -249,7 +249,7 @@ class GitModule(PatchewModule):
         repo, branch = self._get_project_repo_and_branch(po)
         cache_repo = self._update_cache_repo(po.name, repo, branch)
         head = subprocess.check_output(["git", "rev-parse", branch],
-                                       cwd=cache_repo).strip()
+                                       cwd=cache_repo).decode('utf-8').strip()
         old_head = po.get_property("git.head")
         if old_head != head:
             po.set_property("git.head", head)
