@@ -646,6 +646,7 @@ class ApplyCommand(SubCommand):
                         mformat(args.tag))
             return 0
         except:
+            traceback.print_exc()
             return 1
 
 
