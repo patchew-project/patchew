@@ -150,7 +150,7 @@ class MboxMessage(object):
         elif isinstance(payload, list):
             for p in payload:
                 if p.get_content_type() == "text/plain":
-                    body += str(p.get_payload(decode=True))
+                    body += str(p.get_payload(decode=True).decode('utf-8'))
         else:
             return "<Error while getting message body: %s>" % payload
         return body
