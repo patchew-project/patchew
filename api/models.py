@@ -312,7 +312,7 @@ class Message(models.Model):
                         if sec > 7:
                             sec /= 7
                             unit = 'week'
-            if sec > 1:
+            if sec >= 2:
                 unit += 's'
             return "%s %s" % (int(sec), unit)
 
