@@ -10,7 +10,7 @@
 
 import sys
 import os
-from patchewtest import PatchewTestCase
+from patchewtest import PatchewTestCase, main
 
 class ProjectTest(PatchewTestCase):
 
@@ -60,6 +60,6 @@ class ProjectTest(PatchewTestCase):
         r, a, b = self.cli(["project", "add", "TestProject"])
         self.assertNotEqual(r, 0)
         self.assertNotEqual(b, "")
-def main():
-    import unittest
-    unittest.main()
+
+if __name__ == '__main__':
+    main()
