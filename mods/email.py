@@ -62,6 +62,9 @@ Email information is configured in "INI" style:
                         BooleanSchema("in_reply_to", "Set In-Reply-To",
                                       desc='Whether to set In-Reply-To to the message id, if the event has an associated email message',
                                       default=True),
+                        BooleanSchema("set_reply_to", "Set Reply-To",
+                                      desc='Whether to set Reply-To to the project mailing list, if the event has an associated email message',
+                                      default=True),
                         BooleanSchema("reply_subject", "Set replying subject",
                                       desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
                                       default=True),
@@ -227,6 +230,8 @@ Email information is configured in "INI" style:
                 cc += [x[1] for x in mo.get_receivers()]
             if mo and nt["in_reply_to"]:
                 headers["In-Reply-To"] = "<%s>" % mo.message_id
+            if mo and nt["set_reply_to"]:
+                headers["Reply-To"] = "<%s>" % mo.project.mailing_list
             if nt["reply_subject"] and mo:
                 subject = "Re: " + mo.subject if not mo.subject.startswith("Re:") else mo.subject
             if not (subject and body and to):
