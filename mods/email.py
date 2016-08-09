@@ -16,6 +16,7 @@ from django.template import Template, Context
 from mod import PatchewModule
 import smtplib
 import email
+import email.utils
 import uuid
 import traceback
 from api.models import Message, Project
@@ -237,6 +238,7 @@ Email information is configured in "INI" style:
             if not (subject and body and to):
                 continue
             headers["Subject"] = subject
+            headers["Message-ID"] = email.utils.make_msgid()
             self._send_email(to, cc, headers, body)
 
     def prepare_project_hook(self, request, project):
