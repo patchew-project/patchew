@@ -113,6 +113,11 @@ DATABASES = {
     }
 }
 
+# If the PATCHEW_ADMIN_EMAIL env var is set, let Django send error reporting to
+# the address.
+admin_email = os.environ.get("PATCHEW_ADMIN_EMAIL")
+if admin_email:
+    ADMINS = [('admin', admin_email)]
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
