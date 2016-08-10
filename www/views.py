@@ -196,7 +196,8 @@ def view_series_mbox(request, project, message_id):
     if not s:
         raise Http404("Series not found")
     r = prepare_series(request, s)
-    mbox = "\n".join([x.get_mbox() for x in r])
+    mbox = "\n".join(["From %s %s\n" % (x.get_sender_addr(), x.date) + \
+                      x.get_mbox() for x in r])
     return HttpResponse(mbox, content_type="text/plain")
 
 def view_series_detail(request, project, message_id):
