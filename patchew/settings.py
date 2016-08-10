@@ -119,6 +119,8 @@ admin_email = os.environ.get("PATCHEW_ADMIN_EMAIL")
 if admin_email:
     ADMINS = [('admin', admin_email)]
 
+SERVER_EMAIL = 'server@patchew.org'
+
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
 
