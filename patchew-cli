@@ -145,10 +145,10 @@ class ImportCommand(SubCommand):
 
     def do(self, args, argv):
         projects = set()
-        import mailbox
+        import mailbox, email
 
-        def call_import(mboxes):
-            r = self.api_do("import", mboxes=mboxes)
+        def call_import(mbox):
+            r = self.api_do("import", mboxes=[mbox])
             for p in r:
                 if p not in projects:
                     projects.add(p)
@@ -159,14 +159,14 @@ class ImportCommand(SubCommand):
                 for p in os.listdir(fn):
                     import_one(os.path.join(fn, p))
                 return
-            f = open(fn, "r")
-            if f.readline().startswith("From "):
+            f = open(fn, "rb")
+            if f.readline().startswith(b"From "):
                 for m in mailbox.mbox(fn):
                     ms = m.as_string()
-                    call_import([ms])
+                    call_import(ms)
             else:
                 f.seek(0)
-                call_import([f.read()])
+                call_import(email.message_from_bytes(f.read()).as_string())
         r = 0
         for f in args.file:
             try:
