@@ -45,6 +45,10 @@ class ImportTest(PatchewTestCase):
         self.assertIn('tESTed-bY: Fam Zheng <famz@redhat.com>',
                       ao["properties"]["tags"])
 
+    def test_non_utf_8(self):
+        self.check_cli(["import",
+                       self.get_data_path("0005-non-utf-8.mbox.gz")])
+
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
