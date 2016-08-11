@@ -49,6 +49,10 @@ class ImportTest(PatchewTestCase):
         self.check_cli(["import",
                        self.get_data_path("0005-non-utf-8.mbox.gz")])
 
+    def test_non_utf_8_multiplart(self):
+        self.check_cli(["import",
+                       self.get_data_path("0006-multi-part-non-utf-8.mbox.gz")])
+
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
