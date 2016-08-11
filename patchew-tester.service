@@ -5,6 +5,7 @@ After=network.target
 [Service]
 ExecStart=/usr/bin/patchew-tester
 Restart=always
+RestartSec=30
 User=patchew
 
 [Install]
