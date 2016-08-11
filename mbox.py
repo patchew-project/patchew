@@ -119,7 +119,7 @@ class MboxMessage(object):
         """Return tags extracted from the leading "[XXX] [YYY ZZZ]... in subject"""
         r = []
         s = self.get_subject(upper=upper)
-        while s.startswith('['):
+        while s.startswith('[') and ']' in s:
             t = s[1:s.find(']')]
             for k in t.split(' '):
                 r.append(k)
