@@ -21,7 +21,7 @@ while getopts "c:" FLAG; do
     esac
 done
 
-BASEDIR="$HOME/.patchew-importer"
+BASEDIR="/data/patchew-importer"
 
 mkdir -p $BASEDIR
 
@@ -30,7 +30,7 @@ mkdir -p $BASEDIR
 PATCHEW_CLI="$(realpath ./patchew-cli) --nodebug -s $PATCHEW_SERVER"
 
 offlineimap_rc=$BASEDIR/offlineimap.rc
-maildir=/data/patchew-importer-maildir
+maildir="$BASEDIR/maildir"
 mkdir -p $maildir
 
 type offlineimap 1>/dev/null
