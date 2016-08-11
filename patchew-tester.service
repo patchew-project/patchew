@@ -7,6 +7,8 @@ ExecStart=/usr/bin/patchew-tester
 Restart=always
 RestartSec=30
 User=patchew
+StandardOutput=syslog+journal
+StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target
