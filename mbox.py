@@ -241,29 +241,3 @@ class MboxMessage(object):
         if c == 0:
             return True
         return False
-
-    def get_diff_stat(self):
-        state = ""
-        cur = []
-        patterns = [r"\S*\s*\|\s*[0-9]* \+*-*$",
-                    r"[0-9]* files changed",
-                    r"1 file changed",
-                    r"create mode [0-7]*"
-                   ]
-        ret = []
-        for l in self.get_body().splitlines():
-            l = l.strip()
-            match = False
-            for p in patterns:
-                if re.match(p, l):
-                    match = True
-                    break
-            if match:
-                cur.append(l)
-            else:
-                if cur:
-                    ret = cur
-                cur = []
-        if cur:
-            ret = cur
-        return "\n".join(ret)

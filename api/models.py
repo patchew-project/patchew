@@ -12,6 +12,7 @@
 import os
 import json
 import datetime
+import re
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -334,7 +335,35 @@ class Message(models.Model):
         return self.get_mbox_obj().get_preview()
 
     def get_diff_stat(self):
-        return self.get_mbox_obj().get_diff_stat()
+        body = self.get_body()
+        if not self.is_series_head:
+            return None
+        state = ""
+        cur = []
+        patterns = [r"\S*\s*\|\s*[0-9]* \+*-*$",
+                    r"\S* => \S*\s*|\s*[0-9]* \+*-*$",
+                    r"[0-9]* files changed",
+                    r"1 file changed",
+                    r"(create|delete) mode [0-7]*",
+                    r"rename ",
+                   ]
+        ret = []
+        for l in self.get_body().splitlines():
+            l = l.strip()
+            match = False
+            for p in patterns:
+                if re.match(p, l):
+                    match = True
+                    break
+            if match:
+                cur.append(l)
+            else:
+                if cur:
+                    ret = cur
+                cur = []
+        if cur:
+            ret = cur
+        return "\n".join(ret)
 
     def get_alternative_revisions(self):
         assert self.is_series_head
