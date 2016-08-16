@@ -21,7 +21,7 @@ from event import emit_event, declare_event
 from django.contrib import admin
 
 class Project(models.Model):
-    name = models.CharField(max_length=1024, db_index=True)
+    name = models.CharField(max_length=1024, db_index=True, unique=True)
     mailing_list = models.CharField(max_length=4096, blank=True)
     url = models.CharField(max_length=4096, blank=True)
     git = models.CharField(max_length=4096, blank=True)
