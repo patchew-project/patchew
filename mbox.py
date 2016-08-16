@@ -143,15 +143,24 @@ class MboxMessage(object):
         return s.intersection(self.get_prefixes(upper=True))
 
     def get_body(self):
+        def decode_payload(payload, charset):
+            try:
+                return payload.decode(charset or 'utf-8')
+            except:
+                if charset != 'utf-8':
+                    # Still fall back from non-utf-8 to utf-8
+                    return payload.decode('utf-8')
+                else:
+                    raise
         payload = self._m.get_payload(decode=not self._m.is_multipart())
         body = ''
         if isinstance(payload, bytes):
-            body = payload.decode(self._m.get_content_charset() or 'utf-8')
+            body = decode_payload(payload, self._m.get_content_charset())
         elif isinstance(payload, list):
             for p in payload:
                 if p.get_content_type() == "text/plain":
-                    body += p.get_payload(decode=True).\
-                                decode(p.get_content_charset() or 'utf-8')
+                    body += decode_payload(p.get_payload(decode=True),
+                                           p.get_content_charset())
         else:
             return "<Error while getting message body: %s>" % payload
         return body

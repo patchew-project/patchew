@@ -53,6 +53,10 @@ class ImportTest(PatchewTestCase):
         self.check_cli(["import",
                        self.get_data_path("0006-multi-part-non-utf-8.mbox.gz")])
 
+    def test_import_invalid_charset(self):
+        self.check_cli(["import",
+                       self.get_data_path("0007-invalid-charset.mbox.gz")])
+
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
