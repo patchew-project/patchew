@@ -14,6 +14,7 @@ import os
 import tempfile
 import shutil
 import argparse
+import json
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
@@ -93,6 +94,14 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     def add_project(self, name, mailing_list=""):
         p = Project(name=name, mailing_list=mailing_list)
         p.save()
+
+    def api_login(self):
+        r = self.client.login(username=self.user, password=self.password)
+        self.assertTrue(r)
+
+    def api_call(self, method, **params):
+        resp = self.client.post('/api/%s/' % method, {"params": json.dumps(params)})
+        return json.loads(resp.content.decode('utf-8')) if resp.content else None
 
 def parse_args():
     parser = argparse.ArgumentParser()
