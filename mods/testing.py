@@ -315,9 +315,9 @@ class TestingGetView(APILoginRequiredView):
             if obj.get_property("testing.report." + tn):
                 done_tests.add(tn)
                 continue
-            if "tester" in t and tester != t["tester"]:
+            if t.get("tester") and tester != t["tester"]:
                 continue
-            if "user" in t and user.username != t["user"]:
+            if t.get("user") and user.username != t["user"]:
                 continue
             # TODO: group?
             ok = True
