@@ -121,13 +121,6 @@ Search text keyword in the email message. Example:
     regression
 
 """
-    def _property_q(self, prop):
-        q = Q(messageproperty__name=prop) & \
-            ~Q(messageproperty__value__isnull=True) & \
-            ~Q(messageproperty__value="false") & \
-            ~Q(messageproperty__value="")
-        return q
-
     def _process_term(self, query, term, neg=False):
         """ Return a Q object that will be applied to the query """
         def as_keywords(t):
@@ -165,13 +158,21 @@ Search text keyword in the email message. Example:
             if cond == "complete":
                 q = Q(is_complete=True)
             elif cond == "reviewed":
-                q = self._property_q("reviewed")
+                q = Q(messageproperty__name="reviewed",
+                      messageproperty__value="true")
             elif cond in ("obsoleted", "old"):
-                q = self._property_q("obsoleted-by")
+                q = Q(messageproperty__name="obsoleted-by",
+                      messageproperty__value__isnull=False) & \
+                    ~Q(messageproperty__name="obsoleted-by",
+                      messageproperty__value__iexact='')
             elif cond == "applied":
-                q = self._property_q("git.tag")
+                q = Q(messageproperty__name="git.tag",
+                      messageproperty__value__isnull=False) & \
+                    ~Q(messageproperty__name="git.tag",
+                      messageproperty__value__iexact='')
             elif cond == "tested":
-                q = self._property_q("testing.done")
+                q = Q(messageproperty__name="testing.done",
+                      messageproperty__value="true")
             else:
                 q = as_keywords(term)
             if lneg:
