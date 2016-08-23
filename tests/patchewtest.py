@@ -20,6 +20,7 @@ BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 sys.path.append(BASE_DIR)
 
+os.environ["PATCHEW_TEST"] = "1"
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "patchew.settings")
 import django
 

@@ -91,10 +91,14 @@ if DATA_DIR:
     DEBUG = False
     ALLOWED_HOSTS = ['*']
 else:
-    if DEBUG:
+    if os.environ.get("PATCHEW_TEST"):
+        DATA_DIR = "/tmp/patchew-test-data"
+    elif DEBUG:
         DATA_DIR = "/var/tmp/patchew-data"
     else:
         DATA_DIR = "/data/patchew"
+if not os.path.isdir(DATA_DIR):
+    os.mkdir(DATA_DIR)
 
 MEDIA_ROOT = os.path.join(DATA_DIR, "media")
 MEDIA_URL = "/media/"
