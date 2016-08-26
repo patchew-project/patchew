@@ -493,6 +493,8 @@ class ApplyCommand(SubCommand):
         parser.add_argument("--any", "-a", action="store_true",
                             help="""Apply any applicable series (e.g. the
                             first) even if there are more than one matches""")
+        parser.add_argument("--signoff", "-s", action="store_true",
+                            help="""Sign off the applied patch""")
         parser.add_argument("--branch", "-b",
                             help="""Create a branch at current HEAD before
                             applying, with '%m' replaced with the series'
@@ -514,7 +516,8 @@ class ApplyCommand(SubCommand):
                             temporary repo, and apply the patch there. Implies
                             --any, conflicts with -C, -b, -B and -t.""")
 
-    def _apply(self, repo, s, branch, force_branch, tag, logf=None):
+    def _apply(self, repo, s, branch, force_branch, tag, logf=None,
+               signoff=False):
         msgid = s["message-id"]
         bn = None
         if force_branch:
@@ -546,6 +549,13 @@ class ApplyCommand(SubCommand):
                 if t in commit_message_lines:
                     continue
                 filter_cmd += "echo '%s';" % t
+            if signoff:
+                # Signed-off-by of the user line goes last
+                name = subprocess.check_output(["git", "config", "user.name"])
+                email = subprocess.check_output(["git", "config", "user.email"])
+                if not (name and email):
+                    raise Exception("Git user info not set")
+                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % (name, email)
             if filter_cmd:
                 subprocess.check_output(["git", "filter-branch", "-f",
                                          "--msg-filter", "cat; " + filter_cmd,
@@ -646,7 +656,8 @@ class ApplyCommand(SubCommand):
             self._apply(args.repo, r[0],
                         mformat(args.branch),
                         mformat(args.force_branch),
-                        mformat(args.tag))
+                        mformat(args.tag),
+                        signoff=args.signoff)
             return 0
         except:
             traceback.print_exc()
