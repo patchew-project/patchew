@@ -158,6 +158,8 @@ class TestingModule(PatchewModule):
 
     def get_tests(self, obj):
         ret = {}
+        if isinstance(obj, Message):
+            obj = obj.project
         for k, v in obj.get_properties().items():
             if not k.startswith("testing.tests."):
                 continue
