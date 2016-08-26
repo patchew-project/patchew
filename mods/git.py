@@ -204,7 +204,7 @@ class GitModule(PatchewModule):
                     "char": "G",
                     })
             else:
-                html = 'Git: <a href="%s">%s</a>' % (git_url, git_url)
+                html = 'Git: <a href="%s">%s</a><br><pre>git fetch %s %s</pre>' % (git_url, git_url, git_repo, git_tag)
                 message.extra_headers.append(html)
                 title = "Applied as tag %s in repo %s" % (git_tag, git_repo)
                 message.status_tags.append({
