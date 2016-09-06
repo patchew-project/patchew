@@ -63,10 +63,12 @@ series cover letter, patch mail body and their replies.
         if not series:
             return
 
+        def newer_than(m1, m2):
+            return m1.version > m2.version and m1.date >= m2.date
         for m in series.get_alternative_revisions():
-            if m.version > series.version:
+            if newer_than(m, series):
                 series.set_property("obsoleted-by", m.message_id)
-            elif m.version < series.version:
+            elif newer_than(series, m):
                 m.set_property("obsoleted-by", series.message_id)
 
         updated = self.update_tags(series)
