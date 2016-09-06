@@ -107,7 +107,7 @@ create mode 100644 util/authz-pam.c
 create mode 100644 util/authz-simple.c
 create mode 100644 util/authz.c
 """
-        self.check_cli(["import", self.get_data_path("0007-complex-diffstat.mbox.gz")])
+        self.check_cli(["import", self.get_data_path("0008-complex-diffstat.mbox.gz")])
         msg = Message.objects.first()
         self.maxDiff = 100000
         self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
