@@ -69,6 +69,13 @@ class ImportTest(PatchewTestCase):
             else:
                 self.assertFalse(m["properties"].get("obsoleted-by"))
 
+    def test_import_invalid_byte(self):
+        self.add_project("EDK2", "edk2-devel@lists.01.org")
+        self.check_cli(["import",
+                       self.get_data_path("0010-invalid-byte.mbox.gz")])
+        self.check_cli(["search"],
+                       stdout='[edk2] [PATCH 0/3] Revert "ShellPkg: Fix echo to support displaying special characters"')
+
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
