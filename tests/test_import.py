@@ -10,6 +10,7 @@
 
 import sys
 import os
+sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 import json
 
@@ -56,6 +57,17 @@ class ImportTest(PatchewTestCase):
     def test_import_invalid_charset(self):
         self.check_cli(["import",
                        self.get_data_path("0007-invalid-charset.mbox.gz")])
+
+    def test_obsoleted_by(self):
+        self.check_cli(["import",
+                       self.get_data_path("0009-obsolete-by.mbox.gz")])
+        a, b = self.check_cli(["search", "-r"])
+        ao = json.loads(a)
+        for m in ao:
+            if "[PATCH]" in m["subject"]:
+                self.assertTrue(m["properties"].get("obsoleted-by"))
+            else:
+                self.assertFalse(m["properties"].get("obsoleted-by"))
 
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
