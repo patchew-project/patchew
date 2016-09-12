@@ -145,8 +145,7 @@ class MboxMessage(object):
     def get_body(self):
         def decode_payload(payload, charset):
             try:
-                return payload.decode(charset or 'utf-8',
-                                      errors='backslashreplace')
+                return payload.decode(charset or 'utf-8', errors='replace')
             except:
                 if charset != 'utf-8':
                     # Still fall back from non-utf-8 to utf-8
