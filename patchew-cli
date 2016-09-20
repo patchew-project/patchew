@@ -385,6 +385,7 @@ class TesterCommand(SubCommand):
 
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print("  Workdir:", wd)
+        print("  Identity:", str(r["identity"]))
         logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8")
         test_cmd = r["test"]["script"]
         script = r["test"]["script"].strip() + "\n"
