@@ -424,7 +424,12 @@ class TesterCommand(SubCommand):
             logf.write("\n")
             if rc == None:
                 try:
+                    tp.terminate()
+                    start_time = time.time()
+                    while tp.poll() == None and time.time() - start_time < 10:
+                        time.sleep(0.1)
                     tp.kill()
+                    tp.wait()
                 except Exception as e:
                     traceback.print_exc(file=logf)
                 logf.write("Abort: command timeout (>%d seconds)" % timeout)
