@@ -100,9 +100,6 @@ class MessageManager(models.Manager):
         return super(MessageManager, self).get_queryset().\
                 filter(is_patch=True)
 
-    def complete_series(self, project_name=None):
-        return self.series_heads(project_name).filter(is_complete=True)
-
     def update_series(self, msg):
         """Update the series' record to which @msg is replying"""
         s = msg.get_series_head()
