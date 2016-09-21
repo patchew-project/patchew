@@ -56,6 +56,7 @@ class GitModule(PatchewModule):
         return self.get_config("general", "server_side_apply")
 
     def on_series_update(self, event, series, **params):
+        series.set_property("git.need-apply", True)
         if not self._server_side_apply_enabled():
             return
         wd = tempfile.mkdtemp(prefix="patchew-git-tmp-", dir="/var/tmp")
@@ -183,6 +184,7 @@ class GitModule(PatchewModule):
             if push_to:
                 log = log.replace(push_to, public_repo)
             s.set_property("git.apply-log", log)
+            s.set_property("git.need-apply", False)
 
     def prepare_message_hook(self, request, message):
         if not message.is_series_head:
