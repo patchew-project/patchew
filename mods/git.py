@@ -20,6 +20,7 @@ from django.core.exceptions import PermissionDenied
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Project, Message
+from api.views import APILoginRequiredView, prepare_series
 from schema import *
 
 _instance = None
@@ -56,7 +57,8 @@ class GitModule(PatchewModule):
         return self.get_config("general", "server_side_apply")
 
     def on_series_update(self, event, series, **params):
-        series.set_property("git.need-apply", True)
+        if series.is_complete:
+            series.set_property("git.need-apply", True)
         if not self._server_side_apply_enabled():
             return
         wd = tempfile.mkdtemp(prefix="patchew-git-tmp-", dir="/var/tmp")
@@ -222,7 +224,8 @@ class GitModule(PatchewModule):
                 message.extra_ops.append({"url": url,
                                           "title": "Git apply",
                                          })
-            elif message.get_property("git.apply-log"):
+            elif message.get_property("git.apply-failed") != None or \
+                 message.get_property("git.need-apply") == None:
                 url = reverse("git_reset",
                               kwargs={"series": message.message_id})
                 message.extra_ops.append({"url": url,
@@ -239,13 +242,9 @@ class GitModule(PatchewModule):
 
     def prepare_series_hook(self, request, series, response):
         po = series.project
-        response["git-need-apply"] = True
         for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
             if po.get_property(prop):
                 response[prop] = po.get_property(prop)
-            else:
-                response["git-need-apply"] = False
-                break
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
@@ -275,8 +274,9 @@ class GitModule(PatchewModule):
         if not obj:
             raise Http404("Not found: " + series)
         for p in obj.get_properties():
-            if p.startswith("git."):
+            if p.startswith("git.") and p != "git.need-apply":
                 obj.set_property(p, None)
+        obj.set_property("git.need-apply", True)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
@@ -286,3 +286,29 @@ class GitModule(PatchewModule):
         urlpatterns.append(url(r"^git-reset/(?P<series>.*)/",
                                self.www_view_git_reset,
                                name="git_reset"))
+
+class ApplierGetView(APILoginRequiredView):
+    name = "applier-get"
+    allowed_groups = ["importers"]
+
+    def handle(self, request):
+        for s in Message.objects.series_heads().filter(is_complete=True):
+            if not s.get_property("git.need-apply"):
+                continue
+            return prepare_series(request, s)
+
+class ApplierReportView(APILoginRequiredView):
+    name = "applier-report"
+    allowed_groups = ["importers"]
+
+    def handle(self, request, project, message_id, tag, url, base, repo,
+               failed, log):
+        s = Message.objects.series_heads().get(project__name=project,
+                                               message_id=message_id)
+        s.set_property("git.tag", tag)
+        s.set_property("git.url", url)
+        s.set_property("git.base", base)
+        s.set_property("git.repo", repo)
+        s.set_property("git.apply-failed", failed)
+        s.set_property("git.apply-log", log)
+        s.set_property("git.need-apply", False)
