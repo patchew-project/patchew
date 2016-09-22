@@ -288,7 +288,7 @@ class SearchCommand(SubCommand):
         parser.add_argument("term", nargs="*", type=str)
 
     def do(self, args, argv):
-        r = self.api_do("search", terms=args.term)
+        r = self.api_do("search", terms=args.term, fields=args.output.split(','))
         if not r:
             return 0
         if args.raw:

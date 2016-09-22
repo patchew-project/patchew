@@ -144,26 +144,38 @@ def prepare_patch(p):
          }
     return r
 
-def prepare_series(request, s):
-    r = {"subject": s.subject,
-         "project": s.project.name,
-         "project.git": s.project.git,
-         "message-id": s.message_id,
-         "patches": [prepare_patch(x) for x in s.get_patches()],
-         "properties": s.get_properties(),
-         "is_complete": s.is_complete,
-         }
+def prepare_series(request, s, fields=None):
+    r = {}
+    def want_field(f):
+        return not fields or f in fields
+
+    if want_field("subject"):
+        r["subject"] = s.subject
+    if want_field("project"):
+        r["project"] = s.project.name
+    if want_field("project.git"):
+        r["project.git"] = s.project.git
+    if want_field("message-id"):
+        r["message-id"] = s.message_id
+    if want_field("patches"):
+        r["patches"] = [prepare_patch(x) for x in s.get_patches()]
+    if want_field("properties"):
+        r["properties"] = s.get_properties()
+    if want_field("is_complete"):
+        r["is_complete"] = s.is_complete
     dispatch_module_hook("prepare_series_hook", request=request, series=s,
                          response=r)
+    if fields:
+        r = dict([(k, v) for k, v in r.items() if k in fields])
     return r
 
 class SearchView(APIView):
     name = "search"
 
-    def handle(self, request, terms):
+    def handle(self, request, terms, fields=None):
         se = SearchEngine()
         r = se.search_series(*terms)
-        return [prepare_series(request, x) for x in r]
+        return [prepare_series(request, x, fields) for x in r]
 
 class ImportView(APILoginRequiredView):
     name = "import"
