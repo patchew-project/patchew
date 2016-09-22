@@ -586,22 +586,22 @@ class ApplyCommand(SubCommand):
         logf = tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8")
         push_repo = toapply["git.push_to"]
         public_repo = toapply["git.public_repo"]
+        wd = tempfile.mkdtemp(dir="/var/tmp")
         try:
             project_git = toapply["project.git"]
             if " " in project_git:
                 remote, head = project_git.split(" ", 2)
             else:
                 remote, head = project_git, "master"
-            repo = tempfile.mkdtemp(dir="/var/tmp")
-            git_clone_repo(repo, remote, head, sys.stdout)
+            git_clone_repo(wd, remote, head, sys.stdout)
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
             base = subprocess.check_output(["git", "rev-parse", "HEAD"],
-                                           cwd=repo).decode('utf-8') \
+                                           cwd=wd).decode('utf-8') \
                     .strip()
-            self._apply(repo, toapply, branch, force_branch, tag, logf)
-            self._push(repo, push_repo, tag, logf)
+            self._apply(wd, toapply, branch, force_branch, tag, logf)
+            self._push(wd, push_repo, tag, logf)
             url = toapply["git.url_template"].replace("%t", tag)
         except Exception as e:
             if not isinstance(e, AppliFailedException):
@@ -615,6 +615,8 @@ class ApplyCommand(SubCommand):
                         tag=None, url=None, base=None, repo=None,
                         failed=True, log=log)
             return 1
+        finally:
+            shutil.rmtree(wd)
         logf.seek(0)
         log = logf.read().replace(push_repo, public_repo)
         self.api_do("applier-report",
