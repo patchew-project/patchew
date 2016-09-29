@@ -95,15 +95,15 @@ class TestingModule(PatchewModule):
                       test="test name",
                       log="test log")
 
-    def remove_testing_properties(self, obj):
+    def remove_testing_properties(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
-            if k == "testing.started" or \
-               k == "testing.start-time" or \
+            if (not test and k == "testing.started") or \
+               (not test and k == "testing.start-time") or \
                k == "testing.failed" or \
                k == "testing.done" or \
                k == "testing.tested-head" or \
-               k.startswith("testing.report.") or \
-               k.startswith("testing.log."):
+               k.startswith("testing.report." + test) or \
+               k.startswith("testing.log." + test):
                 obj.set_property(k, None)
 
     def www_view_testing_reset(self, request, project_or_series):
@@ -117,7 +117,7 @@ class TestingModule(PatchewModule):
             obj = Message.objects.find_series(project_or_series)
         if not obj:
             raise Http404("Not found: " + project_or_series)
-        self.remove_testing_properties(obj)
+        self.remove_testing_properties(obj, request.GET.get("test", ""))
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
@@ -185,6 +185,32 @@ class TestingModule(PatchewModule):
                                   "class": 'danger' if failed else 'success',
                                   "content": '<pre>%s</pre>' % log})
 
+    def _build_reset_ops(self, obj):
+        if isinstance(obj, Message):
+            typearg = "type=message"
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": obj.message_id})
+        else:
+            assert(isinstance(obj, Project))
+            url = reverse("testing-reset",
+                          kwargs={"project_or_series": obj.name})
+            typearg = "type=project"
+        url += "?" + typearg
+        ret = [{"url": url,
+                "title": "Reset all testing states",
+                "class": "warning",
+               }]
+        for pn, p in obj.get_properties().items():
+            if not pn.startswith("testing.report."):
+                continue
+            tn = pn[len("testing.report."):]
+            failed = not p["passed"]
+            ret.append({"url": url + "&test=" + tn,
+                        "title": "Reset testing states of '%s'" % tn,
+                        "class": "warning",
+                        })
+        return ret
+
     def prepare_message_hook(self, request, message):
         if not message.is_series_head:
             return
@@ -192,12 +218,7 @@ class TestingModule(PatchewModule):
 
         if message.project.maintained_by(request.user) \
                 and message.get_property("testing.started"):
-            url = reverse("testing-reset",
-                          kwargs={"project_or_series": message.message_id})
-            url += "?type=message"
-            message.extra_ops.append({"url": url,
-                                      "title": "Reset testing states",
-                                     })
+            message.extra_ops += self._build_reset_ops(message)
 
         if message.get_property("testing.failed"):
             message.status_tags.append({
@@ -247,11 +268,7 @@ class TestingModule(PatchewModule):
 
         if project.maintained_by(request.user) \
                 and project.get_property("testing.started"):
-            url = reverse("testing-reset",
-                          kwargs={"project_or_series": project.name})
-            url += "?type=project"
-            project.extra_ops.append({"url": url,
-                                      "title": "Reset testing states"})
+            project.extra_ops += self._build_reset_ops(project)
 
     def get_capability_probes(self, project):
         ret = {}
