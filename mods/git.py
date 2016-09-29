@@ -230,6 +230,7 @@ class GitModule(PatchewModule):
                               kwargs={"series": message.message_id})
                 message.extra_ops.append({"url": url,
                                           "title": "Git reset",
+                                          "class": "warning",
                                          })
 
     def prepare_project_hook(self, request, project):
