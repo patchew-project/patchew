@@ -99,7 +99,7 @@ class TestingModule(PatchewModule):
         for k in list(obj.get_properties().keys()):
             if (not test and k == "testing.started") or \
                (not test and k == "testing.start-time") or \
-               k == "testing.failed" or \
+               (not test and k == "testing.failed") or \
                k == "testing.done" or \
                k == "testing.tested-head" or \
                k.startswith("testing.report." + test) or \
