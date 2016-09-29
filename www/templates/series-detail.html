@@ -15,7 +15,10 @@
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
         {% for op in series.extra_ops %}
-            <a href="{{ op.url }}" class="list-group-item list-group-item-info">{{ op.title }}</a>
+            <a href="{{ op.url }}"
+                class="list-group-item list-group-item-{% if op.class %}{{ op.class }}{% else %}info{% endif %}">
+                {{ op.title }}
+            </a>
         {% endfor %}
         <a href="/{{ project }}/{{ series.message_id }}/mbox" class="list-group-item list-group-item-info">Download mbox</a>
     </div>

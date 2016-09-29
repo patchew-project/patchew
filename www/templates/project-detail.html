@@ -13,7 +13,9 @@
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
         <a href="{% url "series_list" project=project %}" class="list-group-item list-group-item-info">Patches</a>
         {% for op in project.extra_ops %}
-            <a href="{{ op.url }}" class="list-group-item list-group-item-info">{{ op.title }}</a>
+            <a href="{{ op.url }}"
+               class="list-group-item list-group-item-{% if op.class %}{{ op.class }}{% else %}info{% endif %}">{{ op.title }}
+            </a>
         {% endfor %}
     </div>
 </div>
