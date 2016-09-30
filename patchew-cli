@@ -560,7 +560,8 @@ class ApplyCommand(SubCommand):
                 email = subprocess.check_output(["git", "config", "user.email"])
                 if not (name and email):
                     raise Exception("Git user info not set")
-                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % (name, email)
+                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % \
+                        (name.decode().strip(), email.decode().strip())
             if filter_cmd:
                 subprocess.check_output(["git", "filter-branch", "-f",
                                          "--msg-filter", "cat; " + filter_cmd,
