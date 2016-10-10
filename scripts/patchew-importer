@@ -97,9 +97,8 @@ import()
     touch $IMPORTED_DIR/$(hashstr $@)
 }
 
-$PATCHEW_CLI login "$PATCHEW_UESR" "$PATCHEW_PASS"
-
 while :; do
+    $PATCHEW_CLI login "$PATCHEW_UESR" "$PATCHEW_PASS"
     if ! timeout -k 2000 1800 offlineimap -c $offlineimap_rc; then
         sleep 300
         continue
