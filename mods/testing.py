@@ -93,7 +93,8 @@ class TestingModule(PatchewModule):
                       obj="the object (series or project) which the test is for",
                       passed="True if the test is passed",
                       test="test name",
-                      log="test log")
+                      log="test log",
+                      is_timeout="whether the test has timeout")
 
     def remove_testing_properties(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
@@ -125,7 +126,8 @@ class TestingModule(PatchewModule):
                                self.www_view_testing_reset,
                                name="testing-reset"))
 
-    def add_test_report(self, user, project, tester, test, head, base, identity, passed, log):
+    def add_test_report(self, user, project, tester, test, head,
+                        base, identity, passed, log, is_timeout):
         # Find a project or series depending on the test type and assign it to obj
         if identity["type"] == "project":
             obj = Project.objects.get(name=project)
@@ -140,6 +142,7 @@ class TestingModule(PatchewModule):
             project = obj.project.name
         obj.set_property("testing.report." + test,
                          {"passed": passed,
+                          "is_timeout": is_timeout,
                           "user": user.username,
                           "tester": tester or user.username,
                          })
@@ -154,7 +157,8 @@ class TestingModule(PatchewModule):
         if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
         emit_event("TestingReport", tester=tester, user=user.username,
-                    obj=obj, passed=passed, test=test, log=log)
+                    obj=obj, passed=passed, test=test, log=log,
+                    is_timeout=is_timeout)
 
     def get_tests(self, obj):
         ret = {}
@@ -405,10 +409,13 @@ class TestingReportView(APILoginRequiredView):
     name = "testing-report"
     allowed_groups = ["testers"]
 
-    def handle(self, request, tester, project, test, head, base, passed, log, identity):
+    def handle(self, request, tester, project, test,
+               head, base, passed, log, identity,
+               is_timeout=False):
         _instance.tester_check_in(project, tester or request.user.username)
         _instance.add_test_report(request.user, project, tester,
-                                  test, head, base, identity, passed, log)
+                                  test, head, base, identity, passed, log,
+                                  is_timeout)
 
 class TestingCapabilitiesView(APILoginRequiredView):
     name = "testing-capabilities"
