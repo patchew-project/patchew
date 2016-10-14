@@ -399,6 +399,7 @@ class TesterCommand(SubCommand):
         logf.write("\n")
         logf.flush()
         rc = 1
+        is_timeout = False
         try:
             clone = os.path.join(wd, "src")
             git_clone_repo(clone, r["repo"], r["head"], logf)
@@ -434,6 +435,7 @@ class TesterCommand(SubCommand):
                 except Exception as e:
                     traceback.print_exc(file=logf)
                 logf.write("Abort: command timeout (>%d seconds)" % timeout)
+                is_timeout = True
             else:
                 logf.write("Test command exited with code: %d" % rc)
             logf.flush()
@@ -452,7 +454,8 @@ class TesterCommand(SubCommand):
                                           head=r["head"],
                                           base=r["base"],
                                           passed=passed,
-                                          log=log)
+                                          log=log,
+                                          is_timeout=is_timeout)
             logf.close()
             shutil.rmtree(wd)
             return True
