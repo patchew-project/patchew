@@ -42,5 +42,19 @@ class ProjectTest(PatchewTestCase):
         age = message.get_age()
         self.assertEqual(age, "1 day")
 
+    def test_asctime(self):
+        from api.models import Message
+        message = Message()
+        dt = datetime.datetime(2016, 10, 22, 10, 16, 40)
+        message.date = dt
+        asctime = message.get_asctime()
+        self.assertEqual(asctime, "Sat Oct 22 10:16:40 2016")
+
+        message = Message()
+        dt = datetime.datetime(2016, 10, 22, 9, 6, 4)
+        message.date = dt
+        asctime = message.get_asctime()
+        self.assertEqual(asctime, "Sat Oct 22 9:06:04 2016")
+
 if __name__ == '__main__':
     main()
