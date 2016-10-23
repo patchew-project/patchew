@@ -322,6 +322,14 @@ class Message(models.Model):
     def get_age(self):
         return self._get_age(self.date)
 
+    def get_asctime(self):
+        d = self.date
+        wday = d.weekday()+1;
+        return '%s %s %d %d:%02d:%02d %s' % (
+                "MonTueWedThuFriSatSun"[wday*3-3:wday*3],
+                "JanFebMarAprMayJunJulAugSepOctNovDec"[d.month*3-3:d.month*3],
+                d.day, d.hour, d.minute, d.second, d.year)
+
     def get_last_reply_age(self):
         return self._get_age(self.last_reply_date)
 
