@@ -1,0 +1,13 @@
+[Unit]
+Description=Patchew server docker instance
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStartPre=-/usr/bin/docker stop patchew-server ; -/usr/bin/docker rm patchew-server
+ExecStart= /usr/bin/docker run --privileged --name patchew-server -v /data:/data:rw -p 8081:80 patchew:server
+ExecStop=/usr/bin/docker stop -t 10 patchew-server
+
+[Install]
+WantedBy=default.target

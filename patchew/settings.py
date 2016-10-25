@@ -86,7 +86,9 @@ WSGI_APPLICATION = 'patchew.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-DATA_DIR = os.environ.get("OPENSHIFT_DATA_DIR")
+DATA_DIR = os.environ.get("PATCHEW_DATA_DIR")
+if not DATA_DIR:
+    DATA_DIR = os.environ.get("OPENSHIFT_DATA_DIR")
 if DATA_DIR:
     DEBUG = False
     ALLOWED_HOSTS = ['*']

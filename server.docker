@@ -1,14 +1,20 @@
-FROM fedora:23
+FROM fedora:latest
 EXPOSE 80
-RUN dnf install -y python-pip httpd mod_wsgi
-RUN pip install Django==1.9.7
+RUN dnf install -y git nginx \
+    python3-gunicorn \
+    python3-pillow \
+    python3-markdown \
+    python3-django
 ADD . /opt/patchew
-RUN ln -s /opt/patchew/apache.conf /etc/httpd/conf.d/patchew.conf
-CMD cd /opt/patchew && \
-    python manage.py migrate --noinput && \
+ENV PATCHEW_DATA_DIR /data/patchew/
+CMD mkdir -p /data/patchew/log && \
+    chown -R nginx:nginx /data/patchew && \
+    cd /opt/patchew && \
+    ./manage.py migrate --noinput && \
+    ./manage.py collectstatic --noinput && \
     echo "from django.contrib.auth.models import User; \
           User.objects.create_superuser('admin', \
                                         'admin@patchew.org', 'adminpass')" \
-        | python manage.py shell && \
-    chown -R apache:apache /data/patchew /opt/patchew/data && \
-    apachectl -D FOREGROUND
+        | ./manage.py shell && \
+    python3-gunicorn -b unix:/tmp/patchew-wsgi.sock -D wsgi && \
+    nginx -c $(readlink -e nginx.conf)
