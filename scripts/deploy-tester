@@ -55,6 +55,7 @@ echo "Copy patchew-tester.service"
 scp patchew-tester.service $remote:/usr/lib/systemd/system/
 ssh $remote '
     set -e;
+    mv /usr/bin/patchew-cli /usr/bin/patchew;
     echo Create user patchew;
     useradd -m -s /bin/bash patchew || true;
     echo Enable patchew-tester systemd service;
