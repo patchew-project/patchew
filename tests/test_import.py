@@ -37,7 +37,7 @@ class ImportTest(PatchewTestCase):
     def test_case_insensitive(self):
         self.check_cli(["import",
                        self.get_data_path("0002-unusual-cased-tags.mbox.gz")])
-        a, b = self.check_cli(["search", "-r"])
+        a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
         ao = json.loads(a)[0]
         self.assertEqual(["Fam Zheng", "famz@redhat.com"],
                          ao["properties"]["reviewers"][0])
@@ -61,7 +61,7 @@ class ImportTest(PatchewTestCase):
     def test_obsoleted_by(self):
         self.check_cli(["import",
                        self.get_data_path("0009-obsolete-by.mbox.gz")])
-        a, b = self.check_cli(["search", "-r"])
+        a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
         ao = json.loads(a)
         for m in ao:
             if "[PATCH]" in m["subject"]:
