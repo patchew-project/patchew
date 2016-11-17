@@ -146,7 +146,7 @@ class GitModule(PatchewModule):
                                          })
 
     def prepare_project_hook(self, request, project):
-        if not project.maintained_by(request.user):
+        if not request.user.is_superuser:
             return
         project.extra_info.append({"title": "Git configuration",
                                    "class": "info",
