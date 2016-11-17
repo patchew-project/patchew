@@ -386,7 +386,8 @@ class TesterCommand(SubCommand):
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print("  Workdir:", wd)
         print("  Identity:", str(r["identity"]))
-        logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8")
+        logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8",
+                    errors="ignore")
         test_cmd = r["test"]["script"]
         script = r["test"]["script"].strip() + "\n"
         test_script = self._make_script(wd, "run", script)
@@ -443,21 +444,26 @@ class TesterCommand(SubCommand):
             traceback.print_exc(file=logf)
         finally:
             passed = rc == 0
-            logf.seek(0)
-            log = logf.read()
-            print("  Result:", "Passed" if passed else "Failed")
-            logging.debug(log)
-            self.api_do("testing-report", project=r["project"],
-                                          identity=r["identity"],
-                                          test=r["test"]["name"],
-                                          tester=args.name,
-                                          head=r["head"],
-                                          base=r["base"],
-                                          passed=passed,
-                                          log=log,
-                                          is_timeout=is_timeout)
-            logf.close()
-            shutil.rmtree(wd)
+            try:
+                try:
+                    logf.seek(0)
+                    log = logf.read()
+                except:
+                    log = "N/A. Internal error while reading log file\n"
+                print("  Result:", "Passed" if passed else "Failed")
+                logging.debug(log)
+                self.api_do("testing-report", project=r["project"],
+                                              identity=r["identity"],
+                                              test=r["test"]["name"],
+                                              tester=args.name,
+                                              head=r["head"],
+                                              base=r["base"],
+                                              passed=passed,
+                                              log=log,
+                                              is_timeout=is_timeout)
+                logf.close()
+            finally:
+                shutil.rmtree(wd)
             return True
 
     def do(self, args, argv):
