@@ -24,6 +24,10 @@ It can:
 
 [https://github.com/patchew-project/patchew/issues/new](https://github.com/patchew-project/patchew/issues/new)
 
+## Known issues
+
+ - Binary patches are not recognized correctly.
+
 ## License
 
 See LICENSE file.
