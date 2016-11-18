@@ -17,5 +17,6 @@ CMD mkdir -p /data/patchew/log && \
                                         'admin@patchew.org', 'adminpass')" \
         | ./manage.py shell && \
     python3-gunicorn -b unix:/tmp/patchew-wsgi.sock -D wsgi \
-        --logfile /data/patchew/log/gunicorn.log && \
+        --error-logfile /data/patchew/log/gunicorn-error.log \
+        --access-logfile /data/patchew/log/gunicorn-access.log && \
     nginx -c $(readlink -e nginx.conf)
