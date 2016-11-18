@@ -52,7 +52,7 @@ IMAP_DELETE_AFTER_IMPORT=
 EOF
     fi
     cp $conf $conf.new
-    $EDITOR $conf.new
+    ${EDITOR:-vi} $conf.new
     if test -z "$(cat $conf.new)"; then
         echo "empty config, quit"
         rm $conf.new
