@@ -128,6 +128,7 @@ class SetPropertyView(APILoginRequiredView):
 
 class SetProjectPropertiesView(APILoginRequiredView):
     name = "set-project-properties"
+    allowed_groups = ["maintainers"]
 
     def handle(self, request, project, properties):
         po = Project.objects.get(name=project)
