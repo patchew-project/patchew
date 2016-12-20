@@ -473,26 +473,21 @@ class TesterCommand(SubCommand):
         count = 0
         cap_refresh = 10
         while True:
-            try:
-                if count % cap_refresh == 0:
-                    capabilities = self._refresh_capabilities(args.project,
-                                                              args.name)
-                count += 1
-                if self.test_one(args, capabilities=capabilities):
-                    if count == args.num:
-                        break
-                    rest = False
-                    continue
+            if count % cap_refresh == 0:
+                capabilities = self._refresh_capabilities(args.project,
+                                                          args.name)
+            count += 1
+            if self.test_one(args, capabilities=capabilities):
                 if count == args.num:
                     break
-                if not rest:
-                    print("No more work, having a rest...")
-                    rest = True
-                time.sleep(60)
-            except:
-                traceback.print_exc()
-                # Wait longer in case of an exception
-                time.sleep(600)
+                rest = False
+                continue
+            if count == args.num:
+                break
+            if not rest:
+                print("No more work, having a rest...")
+                rest = True
+            time.sleep(60)
         return 0
 
 class AppliFailedException(Exception):
