@@ -61,7 +61,7 @@ remotehost = $IMAP_SERVER
 remoteuser = $IMAP_USER
 remotepass = $IMAP_PASS
 ssl= yes
-cert_fingerprint = F8FA861AFD7E65634037400757BEACB6111217F4
+cert_fingerprint = $IMAP_CERT_FINGERPRINT
 folderfilter = lambda foldername: foldername in [
     $(for x in $IMAP_FOLDERS; do printf "'$x',"; done)
     ]
