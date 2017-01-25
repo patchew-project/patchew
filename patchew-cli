@@ -22,6 +22,7 @@ import shutil
 import traceback
 import time
 import hashlib
+import fcntl
 
 COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 
@@ -343,6 +344,8 @@ class TesterCommand(SubCommand):
     want_argv = True
 
     def arguments(self, parser):
+        parser.add_argument("--singleton", "-S", action="store_true",
+                            help="quit if another singleton mode tester is running")
         parser.add_argument("--project", "-p", required=True,
                             help="which project to run test")
         parser.add_argument("--name", "-n",
@@ -466,8 +469,19 @@ class TesterCommand(SubCommand):
                 shutil.rmtree(wd)
             return True
 
+    def _check_singleton(self):
+        lockfile = os.path.expanduser("~/.patchew-tester.lock")
+        self._lockfile = open(lockfile, "w+")
+        try:
+            fcntl.flock(self._lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            sys.stderr.write("Cannot lock " + lockfile + "\n")
+            sys.exit(1)
+
     def do(self, args, argv):
         # Make sure git works
+        if args.singleton:
+            self._check_singleton()
         subprocess.check_output(["git", "version"])
         rest = False
         count = 0
