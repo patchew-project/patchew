@@ -51,8 +51,16 @@
     {% for info in series.extra_info %}
     <div class="panel panel-{{ info.class }}">
         <div class="panel-heading panel-toggler">{{ info.title }}</div>
-        <div class="panel-body panel-toggle panel-hidden">
-            {{ info.content | safe }}
+        <div class="panel-body panel-toggle panel-hidden" {% if info.content_url %}data-content-url="{{ info.content_url | safe }}"{% endif %}>
+            {% if info.content %}
+                {{ info.content | safe }}
+            {% elif info.content_url %}
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                    <p>loading</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
@@ -93,7 +101,14 @@
 
 function main() {
     $(".panel-toggler").click(function () {
-        $(this).parent().find(".panel-toggle").toggle();
+        tgt = $(this).parent().find(".panel-toggle");
+        tgt.toggle();
+        url = tgt.attr("data-content-url");
+        if (tgt.find(".progress-bar") && url) {
+            $.get(url, function (data) {
+                tgt.html("<pre>" + data + "</pre>");
+            });
+        }
     });
     $(".timestamp").each(function (i, o) {
         $(o).attr("title", new Date(1000 * $(o).attr("title")));
