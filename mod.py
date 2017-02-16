@@ -316,7 +316,7 @@ TMPL_ARRAY = """
 
 TMPL_MAP_ITEM = """
 <div class="item panel panel-default">
-    <div class="panel-heading panel-toggler" onclick="$(this).parent().find('.panel-toggle').toggle()">
+    <div class="panel-heading panel-toggler">
         {{ item_schema.title }}
         <strong id="item-name">{{ item.name }}</strong>
     </div>
