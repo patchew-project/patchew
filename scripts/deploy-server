@@ -34,6 +34,6 @@ ssh -t $remote "\
     $DOCKER build -t patchew:server -f server.docker .;
     $DOCKER rmi patchew:server-prev 2>/dev/null;
     sudo cp patchew-server.service /etc/systemd/system;
-    sudo systemctl start patchew-server;
+    sudo systemctl restart patchew-server;
     cd /; rm $REMOTE_COPY -rf;
 "
