@@ -316,7 +316,7 @@ TMPL_ARRAY = """
 
 TMPL_MAP_ITEM = """
 <div class="item panel panel-default">
-    <div class="panel-heading panel-toggler">
+    <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         {{ item_schema.title }}
         <strong id="item-name">{{ item.name }}</strong>
     </div>

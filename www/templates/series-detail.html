@@ -39,7 +39,7 @@
     </ul>
     {% if series.get_diff_stat %}
     <div class="panel panel-default">
-        <div class="panel-heading panel-toggler">
+        <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         Changeset
         </div>
         <div class="panel-body panel-toggle">
@@ -50,7 +50,7 @@
 
     {% for info in series.extra_info %}
     <div class="panel panel-{{ info.class }}">
-        <div class="panel-heading panel-toggler">{{ info.title }}</div>
+        <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden" {% if info.content_url %}data-content-url="{{ info.content_url | safe }}"{% endif %}>
             {% if info.content %}
                 {{ info.content | safe }}
@@ -68,7 +68,7 @@
     <div id="thread">
     {% for msg in messages %}
         <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
-            <div class="panel-heading panel-toggler">
+            <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
                 <div class="row">
                     <div class="col-md-9 panel-title">
                         {{ msg.subject }}
@@ -100,16 +100,6 @@
 <script type="text/javascript">
 
 function main() {
-    $(".panel-toggler").click(function () {
-        tgt = $(this).parent().find(".panel-toggle");
-        tgt.toggle();
-        url = tgt.attr("data-content-url");
-        if (tgt.find(".progress-bar") && url) {
-            $.get(url, function (data) {
-                tgt.html("<pre>" + data + "</pre>");
-            });
-        }
-    });
     $(".timestamp").each(function (i, o) {
         $(o).attr("title", new Date(1000 * $(o).attr("title")));
     });

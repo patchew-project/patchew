@@ -35,7 +35,7 @@
 
     {% for info in project.extra_info %}
     <div class="panel panel-{{ info.class }}">
-        <div class="panel-heading panel-toggler">{{ info.title }}</div>
+        <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden" {% if info.content_url %}data-content-url="{{ info.content_url | safe }}"{% endif %}>
             {% if info.content %}
                 {{ info.content | safe }}
@@ -54,16 +54,6 @@
 <script type="text/javascript">
 
 function main() {
-    $(".panel-toggler").click(function () {
-        tgt = $(this).parent().find(".panel-toggle");
-        tgt.toggle();
-        url = tgt.attr("data-content-url");
-        if (tgt.find(".progress-bar") && url) {
-            $.get(url, function (data) {
-                tgt.html("<pre>" + data + "</pre>");
-            });
-        }
-    });
     $("#btn-expand-all").click(function () {
         $(".panel-toggle").show();
     });
