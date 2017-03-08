@@ -24,6 +24,7 @@ from django.contrib import admin
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True)
     mailing_list = models.CharField(max_length=4096, blank=True)
+    prefix_tags = models.CharField(max_length=1024, blank=True)
     url = models.CharField(max_length=4096, blank=True)
     git = models.CharField(max_length=4096, blank=True)
     description = models.TextField(blank=True)
@@ -69,9 +70,22 @@ class Project(models.Model):
         return False
 
     def verify_message(self, m):
+        addr_ok = False
         for name, addr in m.get_to() + m.get_cc():
             if addr in self.mailing_list:
-                return True
+                addr_ok = True
+                break
+        if addr_ok:
+            for t in self.prefix_tags.split():
+                ok = False
+                valid = t.split('|')
+                for p in m.get_prefixes():
+                    if p in valid:
+                        ok = True
+                        break
+                if not ok:
+                    return False
+            return True
         return False
 
 class ProjectProperty(models.Model):
