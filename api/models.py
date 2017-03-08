@@ -68,6 +68,12 @@ class Project(models.Model):
             return True
         return False
 
+    def verify_message(self, m):
+        for name, addr in m.get_to() + m.get_cc():
+            if addr in self.mailing_list:
+                return True
+        return False
+
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, db_index=True)
@@ -130,9 +136,7 @@ class MessageManager(models.Manager):
     def add_message_from_mbox(self, mbox, user, project_name=None):
 
         def find_message_projects(m):
-            q = []
-            for name, addr in m.get_to() + m.get_cc():
-                q += Project.objects.filter(mailing_list__contains=addr)
+            q = [p for p in Project.objects.all() if p.verify_message(m)]
             if not q:
                 raise Exception("Cannot find project for message: %s" % m)
             return q
