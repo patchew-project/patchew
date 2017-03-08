@@ -45,12 +45,14 @@ class MboxMessage(object):
     def get_mbox(self):
         return self._mbox
 
-    def get_subject(self, upper=False, strip_tags=False, suppress_re=None):
+    def get_subject(self, upper=False, strip_tags=False, suppress_re=None,
+                    strip_re=False):
         """Process and return subject of the message.
            upper: convert subject to upper case.
            strip_tags: remove all the leading [xxx] tags
            suppress_re: a subject str to compare to, if ours is the same or
-           only to prepend Re:, return an empty str"""
+           only to prepend Re:, return an empty str
+           strip_re: drop leading "Re:" prefixes"""
         def do_strip_tags(t):
             diff_stats = t.strip()
             while t.startswith("[") and "]" in t:
@@ -62,10 +64,12 @@ class MboxMessage(object):
         if strip_tags:
             r = do_strip_tags(r)
 
-        if suppress_re:
-            while len(suppress_re) < len(r) and r.upper().startswith("RE:"):
+        if suppress_re or strip_re:
+            while r.upper().startswith("RE:"):
                 r = r[3:].strip()
-            if suppress_re == r:
+            if strip_re:
+                return r
+            if suppress_re and suppress_re == r:
                 return "Re: ..."
         return r
 
@@ -123,7 +127,7 @@ class MboxMessage(object):
     def get_prefixes(self, upper=False):
         """Return tags extracted from the leading "[XXX] [YYY ZZZ]... in subject"""
         r = []
-        s = self.get_subject(upper=upper)
+        s = self.get_subject(upper=upper, strip_re=True)
         while s.startswith('[') and ']' in s:
             t = s[1:s.find(']')]
             for k in t.split(' '):
