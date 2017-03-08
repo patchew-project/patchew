@@ -22,14 +22,30 @@ from event import emit_event, declare_event
 from django.contrib import admin
 
 class Project(models.Model):
-    name = models.CharField(max_length=1024, db_index=True, unique=True)
-    mailing_list = models.CharField(max_length=4096, blank=True)
-    prefix_tags = models.CharField(max_length=1024, blank=True)
-    url = models.CharField(max_length=4096, blank=True)
-    git = models.CharField(max_length=4096, blank=True)
-    description = models.TextField(blank=True)
-    logo = models.ImageField(blank=True, upload_to="logo")
-    display_order = models.IntegerField(default=0)
+    name = models.CharField(max_length=1024, db_index=True, unique=True,
+                            help_text="""The name of the project""")
+    mailing_list = models.CharField(max_length=4096, blank=True,
+                                   help_text="""The mailing list of the project.
+                                   Will be used to verify if a message belongs
+                                   to this project""")
+    prefix_tags = models.CharField(max_length=1024, blank=True,
+                                   help_text="""Whitespace separated tags that
+                                   are required to be present messages' prefix.
+                                   If a tag has multiple choices, use '|' to
+                                   list each""")
+    url = models.CharField(max_length=4096, blank=True,
+                           help_text="""The URL of the project page""")
+    git = models.CharField(max_length=4096, blank=True,
+                           help_text="""The git repo of the project. If a
+                           branch other than "master" is desired, add it to the
+                           end after a whitespace""")
+    description = models.TextField(blank=True,
+                                   help_text="""Description of the project""")
+    logo = models.ImageField(blank=True, upload_to="logo",
+                             help_text="""Project logo""")
+    display_order = models.IntegerField(default=0,
+                                        help_text="""Order number of the project
+                                        to display, higher number first""")
     def __str__(self):
         return self.name
 
