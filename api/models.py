@@ -168,10 +168,7 @@ class MessageManager(models.Manager):
     def add_message_from_mbox(self, mbox, user, project_name=None):
 
         def find_message_projects(m):
-            q = [p for p in Project.objects.all() if p.verify_message(m)]
-            if not q:
-                raise Exception("Cannot find project for message: %s" % m)
-            return q
+            return [p for p in Project.objects.all() if p.verify_message(m)]
 
         m = MboxMessage(mbox)
         msgid = m.get_message_id()
