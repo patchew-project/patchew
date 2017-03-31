@@ -31,8 +31,8 @@ class Project(models.Model):
     prefix_tags = models.CharField(max_length=1024, blank=True,
                                    help_text="""Whitespace separated tags that
                                    are required to be present messages' prefix.
-                                   If a tag has multiple choices, use '|' to
-                                   list each""")
+                                   Tags led by '/' are treated with python regex match.
+                                   """)
     url = models.CharField(max_length=4096, blank=True,
                            help_text="""The URL of the project page""")
     git = models.CharField(max_length=4096, blank=True,
@@ -94,10 +94,12 @@ class Project(models.Model):
         if addr_ok:
             for t in self.prefix_tags.split():
                 ok = False
-                valid = t.split('|')
                 for p in m.get_prefixes():
-                    if p in valid:
-                        ok = True
+                    if t.startswith('/'):
+                        ok = re.match(t[1:], p)
+                    else:
+                        ok = t.lower() == p.lower()
+                    if ok:
                         break
                 if not ok:
                     return False
