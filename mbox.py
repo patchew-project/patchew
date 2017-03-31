@@ -253,6 +253,8 @@ class MboxMessage(object):
     def is_series_head(self):
         """Create and return a Series from Message if it is one, otherwise
         return None"""
+        if self.get_subject().startswith("Re:"):
+            return False
         c, t = self.get_num()
         if (c, t) == (None, None) and self.is_patch():
             return True
