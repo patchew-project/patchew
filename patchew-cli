@@ -163,7 +163,13 @@ class ImportCommand(SubCommand):
             if f.readline().startswith(b"From "):
                 for m in mailbox.mbox(fn):
                     ms = m.as_string()
-                    call_import(ms)
+                    try:
+                        call_import(ms)
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        print("Error in importing:", m['subject'])
+                        pass
             else:
                 f.seek(0)
                 call_import(email.message_from_bytes(f.read()).as_string())
