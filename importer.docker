@@ -1,5 +1,5 @@
 FROM fedora:latest
-RUN dnf install -y python offlineimap findutils git
+RUN dnf install -y python offlineimap findutils git wget
 RUN git config --global user.email "importer@patchew.org"
 RUN git config --global user.name "Patchew Importer"
 ADD . /opt/patchew
