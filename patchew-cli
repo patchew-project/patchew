@@ -142,17 +142,30 @@ class ImportCommand(SubCommand):
 
     def arguments(self, parser):
         parser.add_argument("file", nargs="*", type=str, help="object to list")
+        parser.add_argument("--known-flag-dir", "-k", type=str,
+                            help="""a directory to store "known flag files"
+                            to mark messages as 'imported' and skip them next time""")
 
     def do(self, args, argv):
         projects = set()
         import mailbox, email
 
-        def call_import(mbox):
-            r = self.api_do("import", mboxes=[mbox])
+        def call_import(mo):
+            ff = None
+            if args.known_flag_dir:
+                ff = os.path.join(args.known_flag_dir,
+                                  hashlib.sha1(mo["Message-ID"].encode('utf-8')).hexdigest())
+                if os.path.exists(ff):
+                    print("[OLD] " + mo["Subject"])
+                    return
+            print("[NEW] " + mo["Subject"])
+            r = self.api_do("import", mboxes=[mo.as_string()])
             for p in r:
                 if p not in projects:
                     projects.add(p)
                     print(p)
+            if ff:
+                open(ff, "wb").close()
 
         def import_one(fn):
             if os.path.isdir(fn):
@@ -162,17 +175,16 @@ class ImportCommand(SubCommand):
             f = open(fn, "rb")
             if f.readline().startswith(b"From "):
                 for m in mailbox.mbox(fn):
-                    ms = m.as_string()
                     try:
-                        call_import(ms)
+                        call_import(m)
                     except KeyboardInterrupt:
                         raise
-                    except:
-                        print("Error in importing:", m['subject'])
-                        pass
+                    except Exception as e:
+                        print("Error in importing:", m['subject'], str(e))
             else:
                 f.seek(0)
-                call_import(email.message_from_bytes(f.read()).as_string())
+                mo = email.message_from_bytes(f.read())
+                call_import(mo)
         r = 0
         for f in args.file:
             try:
