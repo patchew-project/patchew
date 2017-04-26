@@ -37,6 +37,8 @@ importer_setup()
 PATCHEW_SERVER=http://localhost:8000
 PATCHEW_UESR=somebody
 PATCHEW_PASS=password001
+# Methods: offlineimap, archive
+PATCHEW_IMPORT_METHOD=offlineimap
 
 # Imap setting to fetch email
 IMAP_SERVER=imap.gmail.com
@@ -48,6 +50,8 @@ IMAP_CERT_FINGERPRINT=
 IMAP_FOLDERS=qemu-devel
 
 IMAP_DELETE_AFTER_IMPORT=
+
+ARCHIVE_URL=
 
 EOF
     fi
