@@ -48,7 +48,7 @@ def git_clone_repo(clone, remote, head, logf, cwd=None):
                           stdout=logf, stderr=logf)
     subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
                           stderr=logf, stdout=logf)
-    subprocess.check_call(["git", "checkout", head, "-b", "test"],
+    subprocess.check_call(["git", "checkout", "origin/" + head, "-b", "test"],
                           stderr=logf, stdout=logf,
                           cwd=clone)
 
