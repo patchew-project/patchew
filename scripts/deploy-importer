@@ -28,6 +28,7 @@ rsync --exclude=.git --delete -azrC . $remote:$REMOTE_COPY
 
 importer_setup()
 {
+    echo "Please edit the importer config"
     local conf="$HOME/.patchew-importer/config"
     if ! test -f "$conf"; then
         # Generate default config
