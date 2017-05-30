@@ -97,8 +97,13 @@ class MboxMessage(object):
         return self._get_addr_list("cc", text)
 
     def trim_message_id(self, msgid):
-        if msgid and msgid.startswith("<") and msgid.endswith(">"):
-            msgid = msgid[1:-1]
+        if not msgid:
+            return msgid
+        if msgid.startswith("<"):
+            return msgid[1:msgid.find(">")]
+        for x in msgid.split('\n'):
+            if x.startswith("<") and x.endswith(">"):
+                return x[1:-1]
         return msgid
 
     def get_in_reply_to(self):
