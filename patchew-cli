@@ -371,10 +371,13 @@ class TesterCommand(SubCommand):
         ret = []
         for name, val in r.items():
             script = self._make_script(wd, "probe", val)
-            if 0 == subprocess.call(script,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE):
-                ret.append(name)
+            try:
+                if 0 == subprocess.call(script,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE):
+                    ret.append(name)
+            except:
+                pass
         return ret
 
     def test_one(self, args, capabilities):
