@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/jsdifflib/diffview.css">
+<script src="/static/jsdifflib/difflib.js"></script>
+<script src="/static/jsdifflib/diffview.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div id="top"></div>
+
+<div class="col-lg-12">
+    <div id="diffoutput">
+    </div>
+</div>
+
+
+<script id="series_left" type="text/diff">{{series_left_text | safe}}</script>
+<script id="series_right" type="text/diff">{{series_right_text | safe}}</script>
+
+<script type="text/javascript">
+
+function diffUsingJS() {
+    // get the baseText and newText values from the two textboxes, and split them into lines
+    var base = difflib.stringAsLines($("#series_left").text());
+    var newtxt = difflib.stringAsLines($("#series_right").text());
+
+    // create a SequenceMatcher instance that diffs the two sets of lines
+    var sm = new difflib.SequenceMatcher(base, newtxt);
+
+    // get the opcodes from the SequenceMatcher instance
+    // opcodes is a list of 3-tuples describing what changes should be made to the base text
+    // in order to yield the new text
+    var opcodes = sm.get_opcodes();
+    var contextSize = 5;
+
+    // build the diff view and add it to the current DOM
+    c = diffview.buildView({
+        baseTextLines: base,
+        newTextLines: newtxt,
+        opcodes: opcodes,
+        // set the display titles for each resource
+        baseTextName: "{{series_left.subject}}",
+        newTextName: "{{series_right.subject}}",
+        contextSize: contextSize,
+        viewType: $("inline").checked ? 1 : 0
+    });
+    $("#diffoutput").append(c);
+}
+$(diffUsingJS);
+</script>
+{% endblock %}
