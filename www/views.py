@@ -31,7 +31,7 @@ def prepare_message(request, m):
     m.url = "/%s/%s" % (m.project.name, m.message_id)
     m.status_tags = []
     if m.is_series_head:
-        m.num_patches = len(m.get_patches())
+        m.num_patches = m.get_num_patches()
         if m.get_num():
             m.total_patches = m.get_num()[1] or 1
         else:

@@ -148,6 +148,7 @@ class MessageManager(models.Manager):
         if not s.last_reply_date or s.last_reply_date < msg.date:
             s.last_reply_date = msg.date
             s.save()
+        s.refresh_num_patches()
         cur, total = s.get_num()
         if cur == total and s.is_patch:
             s.set_complete()
@@ -221,7 +222,11 @@ class Message(models.Model):
     is_series_head = models.BooleanField()
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
+    # patch index number if is_patch
     patch_num = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    # number of patches we've got if is_series_head
+    num_patches = models.IntegerField(null=False, default=-1, blank=True)
 
     objects = MessageManager()
 
@@ -296,12 +301,23 @@ class Message(models.Model):
                                                 in_reply_to=self.message_id)\
                              .order_by('patch_num')
 
-    def get_property(self, prop, default=None):
-        mp = MessageProperty.objects.filter(message=self, name=prop).first()
-        if mp:
-            return json.loads(mp.value)
+    def refresh_num_patches(self):
+        c, n = self.get_num()
+        if c == n and self.is_patch:
+            self.num_patches = 1
         else:
-            return default
+            self.num_patches = \
+                Message.objects.patches().filter(project=self.project,
+                                                 in_reply_to=self.message_id)\
+                                .count()
+        self.save()
+
+    def get_num_patches(self):
+        if not self.is_series_head:
+            raise Exception("Can not get patches for a non-series message")
+        if self.num_patches == -1:
+            self.refresh_num_patches()
+        return self.num_patches
 
     def get_property(self, prop, default=None):
         return self.get_properties().get(prop, default)
