@@ -185,10 +185,11 @@ def view_search(request):
                                    keywords=se.last_keywords())
 
 def view_series_list(request, project):
-    if not api.models.Project.has_project(project):
+    prj = api.models.Project.objects.filter(name=project).first()
+    if not prj:
         raise Http404("Project not found")
     search = "project:%s" % project
-    query = api.models.Message.objects.series_heads(project)
+    query = api.models.Message.objects.series_heads(prj.id)
     return render_series_list_page(request, query, search, project=project)
 
 def view_series_mbox(request, project, message_id):
