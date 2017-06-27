@@ -158,28 +158,28 @@ Search text keyword in the email message. Example:
             if cond == "complete":
                 q = Q(is_complete=True)
             elif cond == "reviewed":
-                q = Q(messageproperty__name="reviewed",
-                      messageproperty__value="true")
+                q = Q(properties__name="reviewed",
+                      properties__value="true")
             elif cond in ("obsoleted", "old"):
-                q = Q(messageproperty__name="obsoleted-by",
-                      messageproperty__value__isnull=False) & \
-                    ~Q(messageproperty__name="obsoleted-by",
-                      messageproperty__value__iexact='')
+                q = Q(properties__name="obsoleted-by",
+                      properties__value__isnull=False) & \
+                    ~Q(properties__name="obsoleted-by",
+                      properties__value__iexact='')
             elif cond == "applied":
-                q = Q(messageproperty__name="git.tag",
-                      messageproperty__value__isnull=False) & \
-                    ~Q(messageproperty__name="git.tag",
-                      messageproperty__value__iexact='')
+                q = Q(properties__name="git.tag",
+                      properties__value__isnull=False) & \
+                    ~Q(properties__name="git.tag",
+                      properties__value__iexact='')
             elif cond == "tested":
-                q = Q(messageproperty__name="testing.done",
-                      messageproperty__value="true")
+                q = Q(properties__name="testing.done",
+                      properties__value="true")
             else:
                 q = as_keywords(term)
             if lneg:
                 neg = not neg
         elif term.startswith("has:"):
             cond = term[term.find(":") + 1:]
-            q = Q(messageproperty__name=cond)
+            q = Q(properties__name=cond)
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             q = Q(project__name=cond)
