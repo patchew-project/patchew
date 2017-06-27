@@ -19,7 +19,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Project, Message
+from api.models import Project, Message, MessageProperty
 from api.views import APILoginRequiredView, prepare_series
 from schema import *
 
@@ -293,10 +293,11 @@ class ApplierGetView(APILoginRequiredView):
     allowed_groups = ["importers"]
 
     def handle(self, request):
-        for s in Message.objects.series_heads().filter(is_complete=True):
-            if not s.get_property("git.need-apply"):
-                continue
-            return prepare_series(request, s)
+        mp = MessageProperty.objects.filter(name="git.need-apply",
+                                            value='true',
+                                            message__is_complete=True).first()
+        if mp:
+            return prepare_series(request, mp.message)
 
 class ApplierReportView(APILoginRequiredView):
     name = "applier-report"
