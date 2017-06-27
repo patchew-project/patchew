@@ -124,11 +124,13 @@ class MessageManager(models.Manager):
     class DuplicateMessageError(Exception):
         pass
 
-    def series_heads(self, project_name=None):
+    def series_heads(self, project=None):
         q = super(MessageManager, self).get_queryset()\
-                .filter(is_series_head=True)
-        if project_name:
-            q = q.filter(project__name=project_name)
+                .filter(is_series_head=True).prefetch_related('properties')
+        if isinstance(project, str):
+            q = q.filter(project__name=project)
+        elif isinstance(project, int):
+            q = q.filter(project__id=project)
         return q
 
     def find_series(self, message_id, project_name=None):
@@ -301,11 +303,16 @@ class Message(models.Model):
         else:
             return default
 
+    def get_property(self, prop, default=None):
+        return self.get_properties().get(prop, default)
+
     def get_properties(self):
-        r = {}
-        for m in MessageProperty.objects.filter(message=self):
-            r[m.name] = json.loads(m.value)
-        return r
+        if not hasattr(self, '_properties'):
+            r = {}
+            for m in MessageProperty.objects.filter(message=self):
+                r[m.name] = json.loads(m.value)
+            self._properties = r
+        return self._properties
 
     def set_property(self, prop, value):
         if value == None:
@@ -421,7 +428,8 @@ class Message(models.Model):
         unique_together = ('project', 'message_id',)
 
 class MessageProperty(models.Model):
-    message = models.ForeignKey('Message', on_delete=models.CASCADE)
+    message = models.ForeignKey('Message', on_delete=models.CASCADE,
+                                related_name='properties')
     name = models.CharField(max_length=256)
     # JSON encoded value
     value = models.TextField(blank=True)
