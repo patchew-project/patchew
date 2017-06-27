@@ -91,7 +91,7 @@ DATA_DIR = os.environ.get("PATCHEW_DATA_DIR")
 if not DATA_DIR:
     DATA_DIR = os.environ.get("OPENSHIFT_DATA_DIR")
 if DATA_DIR:
-    DEBUG = False
+    DEBUG = os.environ.get("PATCHEW_DEBUG", False)
     ALLOWED_HOSTS = ['*']
 else:
     if os.environ.get("PATCHEW_TEST"):
@@ -174,4 +174,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'wsgi', 'static')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
+]
+
+INTERNAL_IPS = [
+    "127.0.0.1",
 ]
