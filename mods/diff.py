@@ -35,6 +35,8 @@ class DiffModule(PatchewModule):
         return self.get_config("general", "server_side_apply")
 
     def prepare_message_hook(self, request, message):
+        if not message.is_series_head:
+            return
         other_versions = message.get_alternative_revisions()
         for o in other_versions:
             if message.message_id == o.message_id:
