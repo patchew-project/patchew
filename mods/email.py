@@ -13,6 +13,7 @@ from django.http import HttpResponse, Http404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.template import Template, Context
+from django.conf import settings
 from mod import PatchewModule
 import smtplib
 import email
@@ -33,6 +34,11 @@ password = yourpassword
 from = your@email.com
 
 """
+
+class DebugSMTP(object):
+    def sendmail(*args):
+        print("SMPT: debug mode, not sending\n" + "\n".join([str(x) for x in args]))
+
 class EmailModule(PatchewModule):
     """
 
@@ -97,7 +103,9 @@ Email information is configured in "INI" style:
         username = self.get_config("smtp", "username")
         password = self.get_config("smtp", "password")
         ssl = self.get_config("smtp", "ssl", "getboolean")
-        if ssl:
+        if settings.DEBUG:
+            return DebugSMTP()
+        elif ssl:
             smtp = smtplib.SMTP_SSL(server, port)
         else:
             smtp = smtplib.SMTP(server, port)
