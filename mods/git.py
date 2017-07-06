@@ -53,19 +53,9 @@ class GitModule(PatchewModule):
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_series_update)
 
-    def _server_side_apply_enabled(self):
-        return self.get_config("general", "server_side_apply")
-
     def on_series_update(self, event, series, **params):
         if series.is_complete:
             series.set_property("git.need-apply", True)
-        if not self._server_side_apply_enabled():
-            return
-        wd = tempfile.mkdtemp(prefix="patchew-git-tmp-", dir="/var/tmp")
-        try:
-            self._update_series(wd, series)
-        finally:
-            shutil.rmtree(wd)
 
     def get_project_config(self, project, what):
         return project.get_property("git." + what)
@@ -97,13 +87,6 @@ class GitModule(PatchewModule):
                               stdout=logf, stderr=logf)
         return cache_repo
 
-    def _clone_repo(self, wd, cache_repo, branch, logf):
-        clone = os.path.join(wd, "src")
-        subprocess.check_call(["git", "clone", "-q", "--branch", branch,
-                              cache_repo, clone],
-                              stderr=logf, stdout=logf)
-        return clone
-
     def _get_project_repo_and_branch(self, project):
         project_git = project.git
         if not project_git:
@@ -115,78 +98,6 @@ class GitModule(PatchewModule):
         if not upstream or not branch:
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
-
-    def _update_series(self, wd, s):
-        logf = tempfile.NamedTemporaryFile()
-        project_name = s.project.name
-        push_to = None
-        try:
-            upstream, base_branch = self._get_project_repo_and_branch(s.project)
-            cache_repo = self._poll_project(s.project)
-            repo = self._clone_repo(wd, cache_repo, base_branch, logf)
-            new_branch = "patchew/" + s.message_id
-            subprocess.check_call(["git", "checkout", "-q", "-b", new_branch],
-                                  cwd=repo, stdout=logf, stderr=logf)
-            base = subprocess.check_output(["git", "log", '-n', '1', "--format=%H"],
-                                           cwd=repo).decode("utf-8").strip()
-            logf.write("On top of commit: %s\n" % base)
-            logf.flush()
-            for p in s.get_patches():
-                subprocess.check_call(["git", "am", p.get_mbox_path()],
-                                      cwd=repo, stdout=logf, stderr=logf)
-                filter_cmd = ""
-                commit_message_lines = \
-                        subprocess.check_output(["git", "log", "-n", "1",
-                                                 "--format=%b"], cwd=repo)\
-                                               .decode('utf-8').splitlines()
-                for t in ["Message-id: %s" % p.message_id] + \
-                         p.get_property("tags", []):
-                    if t in commit_message_lines:
-                        continue
-                    filter_cmd += "echo '%s';" % t
-                if filter_cmd:
-                    subprocess.check_output(["git", "filter-branch", "-f",
-                                             "--msg-filter", "cat; " + filter_cmd,
-                                             "HEAD~1.."], cwd=repo)
-            push_to = self.get_project_config(s.project, "push_to")
-            if push_to:
-                subprocess.check_call(["git", "remote", "add",
-                                        "push_remote", push_to], cwd=repo,
-                                        stdout=logf, stderr=logf)
-                # Push the new branch to remote as a new tag with the same name
-                subprocess.check_call(["git", "push", "-f",
-                                       "push_remote",
-                                       "refs/heads/%s:refs/tags/%s" % \
-                                               (new_branch, new_branch)],
-                                        cwd=repo,
-                                        stdout=logf, stderr=logf)
-                subprocess.call(["git", "push", "push_remote", base_branch],
-                                cwd=repo,
-                                stdout=logf, stderr=logf)
-            public_repo = self.get_project_config(s.project, "public_repo")
-            s.set_property("git.repo", public_repo)
-            s.set_property("git.tag", new_branch)
-            s.set_property("git.base", base)
-            s.set_property("git.url",
-                           self.get_project_config(s.project, "url_template").\
-                                   replace("%t", tag_name))
-            s.set_property("git.apply-failed", False)
-            emit_event("SeriesApplied", series=s)
-        except:
-            import traceback
-            traceback.print_exc(file=logf)
-            s.set_property("git.apply-failed", True)
-            s.set_property("git.repo", None)
-            s.set_property("git.tag", None)
-            s.set_property("git.base", None)
-            s.set_property("git.url", None)
-        finally:
-            logf.seek(0)
-            log = logf.read()
-            if push_to:
-                log = log.replace(push_to, public_repo)
-            s.set_property("git.apply-log", log)
-            s.set_property("git.need-apply", False)
 
     def prepare_message_hook(self, request, message):
         if not message.is_series_head:
@@ -218,13 +129,7 @@ class GitModule(PatchewModule):
                     "char": "G",
                     })
         if request.user.is_authenticated():
-            if self._server_side_apply_enabled():
-                url = reverse("git_apply",
-                              kwargs={"series": message.message_id})
-                message.extra_ops.append({"url": url,
-                                          "title": "Git apply",
-                                         })
-            elif message.get_property("git.apply-failed") != None or \
+            if message.get_property("git.apply-failed") != None or \
                  message.get_property("git.need-apply") == None:
                 url = reverse("git_reset",
                               kwargs={"series": message.message_id})

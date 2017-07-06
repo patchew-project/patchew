@@ -30,7 +30,7 @@ def save_blob(json_data):
 
 def load_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name)
-    return json.load(open(fn, 'rb'))
+    return json.load(open(fn, 'r'))
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
@@ -346,19 +346,13 @@ class Message(models.Model):
         return self.num_patches
 
     def get_property(self, prop, default=None):
-        mp = MessageProperty.objects.filter(message=self, name=prop).first()
-        if not mp:
-            return default
-        if mp.blob:
-            return load_blob(mp.value)
-        else:
-            return json.loads(mp.value)
+        return self.get_properties().get(prop, default)
 
     def get_properties(self):
         if hasattr(self, '_properties'):
             return self._properties
         r = {}
-        for m in MessageProperty.objects.filter(message=self):
+        for m in self.properties.all():
             if m.blob:
                 r[m.name] = load_blob(m.value)
             else:

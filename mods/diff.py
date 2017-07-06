@@ -31,9 +31,6 @@ class DiffModule(PatchewModule):
         assert _instance == None
         _instance = self
 
-    def _server_side_apply_enabled(self):
-        return self.get_config("general", "server_side_apply")
-
     def prepare_message_hook(self, request, message):
         if not message.is_series_head:
             return
