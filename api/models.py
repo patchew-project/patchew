@@ -152,7 +152,7 @@ class MessageManager(models.Manager):
 
     def series_heads(self, project=None):
         q = super(MessageManager, self).get_queryset()\
-                .filter(is_series_head=True).prefetch_related('properties')
+                .filter(is_series_head=True).prefetch_related('properties', 'project')
         if isinstance(project, str):
             q = q.filter(project__name=project)
         elif isinstance(project, int):
