@@ -21,7 +21,7 @@ import email
 import traceback
 import math
 from api.views import APILoginRequiredView
-from api.models import Message, Project
+from api.models import Message, Project, MessageProperty
 from api.search import SearchEngine
 from event import emit_event, declare_event
 from schema import *
