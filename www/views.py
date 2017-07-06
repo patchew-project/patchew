@@ -24,7 +24,7 @@ def render_page(request, template_name, **data):
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
 
-def prepare_message(request, m):
+def prepare_message(request, m, detailed):
     name, addr = m.get_sender()
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
@@ -47,15 +47,16 @@ def prepare_message(request, m):
     m.extra_info = []
     m.extra_headers = []
     m.extra_ops = []
-    dispatch_module_hook("prepare_message_hook", request=request, message=m)
+    dispatch_module_hook("prepare_message_hook", request=request, message=m,
+                         detailed=detailed)
     return m
 
 def prepare_series(request, s):
     r = []
     def add_msg_recurse(m, depth=0):
-        a = prepare_message(request, m)
+        a = prepare_message(request, m, True)
         a.indent_level = min(depth, 4)
-        r.append(prepare_message(request, m))
+        r.append(prepare_message(request, m, True))
         replies = m.get_replies()
         non_patches = [x for x in replies if not x.is_patch]
         patches = [x for x in replies if x.is_patch]
@@ -66,7 +67,7 @@ def prepare_series(request, s):
     return r
 
 def prepare_series_list(request, sl):
-    return [prepare_message(request, s) for s in sl]
+    return [prepare_message(request, s, False) for s in sl]
 
 def prepare_projects():
     return api.models.Project.objects.all().order_by('-display_order', 'name')
@@ -196,9 +197,8 @@ def view_series_mbox(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
     if not s:
         raise Http404("Series not found")
-    r = prepare_series(request, s)
     mbox = "\n".join(["From %s %s\n" % (x.get_sender_addr(), x.get_asctime()) + \
-                      x.get_mbox() for x in r])
+                      x.get_mbox() for x in s])
     return HttpResponse(mbox, content_type="text/plain")
 
 def view_series_detail(request, project, message_id):
@@ -211,7 +211,7 @@ def view_series_detail(request, project, message_id):
     search = "id:" + message_id
     ops = []
     return render_page(request, 'series-detail.html',
-                       series=prepare_message(request, s),
+                       series=prepare_message(request, s, True),
                        project=project,
                        navigate_links=nav_path,
                        search=search,

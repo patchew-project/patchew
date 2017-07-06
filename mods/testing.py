@@ -246,7 +246,7 @@ class TestingModule(PatchewModule):
         return reverse("testing-get-prop",
                        kwargs={"project_or_series": obj.message_id})
 
-    def prepare_message_hook(self, request, message):
+    def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
         self.prepare_testing_report(message)

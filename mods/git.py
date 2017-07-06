@@ -99,7 +99,7 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
-    def prepare_message_hook(self, request, message):
+    def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
         l = message.get_property("git.apply-log")

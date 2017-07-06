@@ -161,7 +161,9 @@ Email information is configured in "INI" style:
                                self.www_view_email_bounce,
                                name="email-bounce"))
 
-    def prepare_message_hook(self, request, message):
+    def prepare_message_hook(self, request, message, detailed):
+        if not detailed:
+            return
         if message.is_series_head and request.user.is_authenticated():
             message.extra_ops.append({"url": reverse("email-bounce",
                                      kwargs={"message_id": message.message_id}),

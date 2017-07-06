@@ -31,8 +31,8 @@ class DiffModule(PatchewModule):
         assert _instance == None
         _instance = self
 
-    def prepare_message_hook(self, request, message):
-        if not message.is_series_head:
+    def prepare_message_hook(self, request, message, detailed):
+        if not message.is_series_head or not detailed:
             return
         other_versions = message.get_alternative_revisions()
         for o in other_versions:
