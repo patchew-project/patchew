@@ -103,6 +103,10 @@ else:
 if not os.path.isdir(DATA_DIR):
     os.mkdir(DATA_DIR)
 
+BLOB_DIR = os.path.join(DATA_DIR, "blob")
+if not os.path.isdir(BLOB_DIR):
+    os.mkdir(BLOB_DIR)
+
 if DEBUG:
     INSTALLED_APPS += ['debug_toolbar']
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware']

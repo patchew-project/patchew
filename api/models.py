@@ -13,6 +13,7 @@ import os
 import json
 import datetime
 import re
+import uuid
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -20,6 +21,16 @@ from django.contrib.auth.models import User, Group
 from mbox import MboxMessage
 from event import emit_event, declare_event
 from django.contrib import admin
+
+def save_blob(json_data):
+    name = str(uuid.uuid4())
+    fn = os.path.join(settings.DATA_DIR, "blob", name)
+    open(fn, 'w').write(json_data)
+    return name
+
+def load_blob(name):
+    fn = os.path.join(settings.DATA_DIR, "blob", name)
+    return json.load(open(fn, 'rb'))
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
@@ -56,27 +67,41 @@ class Project(models.Model):
     def get_property(self, prop, default=None):
         a = ProjectProperty.objects.filter(project=self, name=prop).first()
         if a:
-            return json.loads(a.value)
+            if a.blob:
+                return load_blob(a.value)
+            else:
+                return json.loads(a.value)
         else:
             return default
 
     def get_properties(self):
         r = {}
         for m in ProjectProperty.objects.filter(project=self):
-            r[m.name] = json.loads(m.value)
+            if m.blob:
+                r[m.name] = load_blob(m.value)
+            else:
+                r[m.name] = json.loads(m.value)
         return r
 
     def set_property(self, prop, value):
         if value == None:
             ProjectProperty.objects.filter(project=self, name=prop).delete()
             return
+        # TODO: drop old blob
+        json_data = json.dumps(value)
+        blob = len(json_data) > 1024
+        if blob:
+            value = save_blob(json_data)
+        else:
+            value = json.dumps(value)
         pp, created = ProjectProperty.objects.get_or_create(project=self,
                                                             name=prop)
-        pp.value = json.dumps(value)
+        pp.value = value
+        pp.blob = blob
         pp.save()
 
     def total_series_count(self):
-        return Message.objects.series_heads(project_name=self.name).count()
+        return Message.objects.series_heads(project=self.name).count()
 
     def maintained_by(self, user):
         if user.is_superuser:
@@ -109,7 +134,8 @@ class Project(models.Model):
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, db_index=True)
-    value = models.TextField(blank=True)
+    value = models.CharField(max_length=1024)
+    blob = models.BooleanField(blank=True, default=False)
 
     class Meta:
         unique_together = ('project', 'name',)
@@ -320,24 +346,44 @@ class Message(models.Model):
         return self.num_patches
 
     def get_property(self, prop, default=None):
-        return self.get_properties().get(prop, default)
+        mp = MessageProperty.objects.filter(message=self, name=prop).first()
+        if not mp:
+            return default
+        if mp.blob:
+            return load_blob(mp.value)
+        else:
+            return json.loads(mp.value)
 
     def get_properties(self):
-        if not hasattr(self, '_properties'):
-            r = {}
-            for m in MessageProperty.objects.filter(message=self):
+        if hasattr(self, '_properties'):
+            return self._properties
+        r = {}
+        for m in MessageProperty.objects.filter(message=self):
+            if m.blob:
+                r[m.name] = load_blob(m.value)
+            else:
                 r[m.name] = json.loads(m.value)
-            self._properties = r
-        return self._properties
+        self._properties = r
+        return r
 
     def set_property(self, prop, value):
         if value == None:
             MessageProperty.objects.filter(message=self, name=prop).delete()
             return
+        json_data = json.dumps(value)
+        blob = len(json_data) > 1024
         mp, created = MessageProperty.objects.get_or_create(message=self,
                                                             name=prop)
-        mp.value = json.dumps(value)
+        # TODO: drop old blob
+        if blob:
+            value = save_blob(json_data)
+        else:
+            value = json_data
+        mp.value = value
+        mp.blob = blob
         mp.save()
+        if hasattr(self, '_properties'):
+            del(self._properties)
 
     def get_sender(self):
         return json.loads(self.sender)
@@ -448,7 +494,8 @@ class MessageProperty(models.Model):
                                 related_name='properties')
     name = models.CharField(max_length=256)
     # JSON encoded value
-    value = models.TextField(blank=True)
+    value = models.CharField(max_length=1024)
+    blob = models.BooleanField(blank=True, default=False)
 
     def __str__(self):
         if len(self.value) > 30:

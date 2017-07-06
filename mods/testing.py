@@ -469,3 +469,15 @@ class UntestView(APILoginRequiredView):
         q = se.search_series(*terms)
         for s in q:
             _instance.remove_testing_properties(s)
+
+def do_make_blobs():
+    for mp in MessageProperty.objects.filter(name__startswith="testing.log.",
+                                             blob=False):
+        print(mp)
+        mp.message.set_property(mp.name, mp.value)
+
+class MakeTestingLogBlobsView(APILoginRequiredView):
+    name = "make-testing-log-blobs"
+
+    def handle(self, request):
+        do_make_blobs()
