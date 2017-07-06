@@ -121,6 +121,16 @@ class LogoutCommand(SubCommand):
         self.api_do("logout")
         return 0
 
+class APICommand(SubCommand):
+    name = "api"
+
+    def arguments(self, parser):
+        parser.add_argument("method", type=str)
+
+    def do(self, args, argv):
+        self.api_do(args.method)
+        return 0
+
 class DeleteCommand(SubCommand):
     name = "delete"
     want_argv = True
