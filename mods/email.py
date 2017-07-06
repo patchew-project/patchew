@@ -202,7 +202,7 @@ Email information is configured in "INI" style:
         return ret
 
     def on_event(self, event, **params):
-        class GitEmailCancelled(Exception):
+        class EmailCancelled(Exception):
             pass
         po = None
         mo = None
@@ -224,7 +224,7 @@ Email information is configured in "INI" style:
                 continue
 
             def cancel_email():
-                raise GitEmailCancelled
+                raise EmailCancelled
             params["cancel"] = cancel_email
 
             ctx = Context(params, autoescape=False)
@@ -233,9 +233,9 @@ Email information is configured in "INI" style:
                 subject = Template(nt["subject_template"]).render(ctx).strip()
                 body = Template(nt["body_template"]).render(ctx).strip()
                 to = [x.strip() for x in Template(nt["to"]).render(ctx).strip().split()]
-            except GitEmailCancelled:
+                cc = [x.strip() for x in Template(nt["cc"]).render(ctx).strip().split()]
+            except EmailCancelled:
                 continue
-            cc = [x.strip() for x in Template(nt["cc"]).render(ctx).strip().split()]
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
                 cc += [x[1] for x in mo.get_receivers()]
