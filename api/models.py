@@ -14,6 +14,7 @@ import json
 import datetime
 import re
 import uuid
+import logging
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -30,7 +31,11 @@ def save_blob(json_data):
 
 def load_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name)
-    return json.load(open(fn, 'r'))
+    try:
+        return json.load(open(fn, 'r'))
+    except json.decoder.JSONDecodeError as e:
+        logging.error('Failed to load blob %s: %s' %(name, e))
+        return None
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
