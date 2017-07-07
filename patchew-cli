@@ -759,7 +759,10 @@ def main():
     if base_url.endswith("/"):
         base_url = base_url[:-1]
     args.cmdobj.base_url = base_url
-    return args.cmdobj.do(args, argv)
+    try:
+        return args.cmdobj.do(args, argv)
+    except KeyboardInterrupt:
+        raise
 
 if __name__ == '__main__':
     sys.exit(main())
