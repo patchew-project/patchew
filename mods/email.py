@@ -109,7 +109,8 @@ Email information is configured in "INI" style:
             smtp = smtplib.SMTP_SSL(server, port)
         else:
             smtp = smtplib.SMTP(server, port)
-        smtp.login(username, password)
+        if self.get_config("smtp", "auth", "getboolean"):
+            smtp.login(username, password)
         return smtp
 
     def _send_series_recurse(self, sendmethod, s):
