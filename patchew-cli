@@ -380,6 +380,8 @@ class TesterCommand(SubCommand):
                             help="name of this tester (default is the logged in username)")
         parser.add_argument("--num", "-N", type=int, default=0,
                             help="max number of tests to run")
+        parser.add_argument("--no-clean-up", action="store_true",
+                            help="skip cleaning up after finish")
 
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
@@ -497,7 +499,8 @@ class TesterCommand(SubCommand):
                                               is_timeout=is_timeout)
                 logf.close()
             finally:
-                shutil.rmtree(wd)
+                if not args.no_clean_up:
+                    shutil.rmtree(wd)
             return True
 
     def _check_singleton(self):
