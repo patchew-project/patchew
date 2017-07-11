@@ -48,7 +48,7 @@ def git_clone_repo(clone, remote, head, logf, cwd=None):
                           stdout=logf, stderr=logf)
     subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
                           stderr=logf, stdout=logf)
-    subprocess.check_call(["git", "checkout", "origin/" + head, "-b", "test"],
+    subprocess.check_call(["git", "checkout", head, "-b", "test"],
                           stderr=logf, stdout=logf,
                           cwd=clone)
 
@@ -642,7 +642,7 @@ class ApplyCommand(SubCommand):
                 remote, head = project_git.split(" ", 2)
             else:
                 remote, head = project_git, "master"
-            git_clone_repo(wd, remote, head, sys.stdout)
+            git_clone_repo(wd, remote, "origin/" + head, sys.stdout)
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
