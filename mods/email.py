@@ -246,7 +246,7 @@ Email information is configured in "INI" style:
                 headers["Reply-To"] = "<%s>" % mo.project.mailing_list
             if nt["reply_subject"] and mo:
                 subject = "Re: " + mo.subject if not mo.subject.startswith("Re:") else mo.subject
-            if not (subject and body and to):
+            if not (subject and body and (to or cc)):
                 continue
             headers["Subject"] = subject
             headers["Message-ID"] = email.utils.make_msgid()
