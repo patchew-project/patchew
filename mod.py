@@ -449,7 +449,7 @@ function map_add_item(btn) {
 }
 function map_delete_item(btn) {
     name = $(btn).parent().parent().parent().find("#item-name").html();
-    if (!window.confirm("Really delete" + name +"?")) {
+    if (!window.confirm("Really delete '" + name +"'?")) {
         return;
     }
     props = collect_properties(btn, false);
