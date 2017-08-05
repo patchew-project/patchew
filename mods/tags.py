@@ -14,12 +14,15 @@ from event import register_handler, emit_event, declare_event
 from api.models import Message
 
 REV_BY_PREFIX = "Reviewed-by:"
+BASED_ON_PREFIX = "Based-on:"
 
 _default_config = """
 [default]
-tags = Reviewed-by, Tested-by, Reported-by, Acked-by, Suggested-by
+tags = Tested-by, Reported-by, Acked-by, Suggested-by
 
 """
+
+BUILT_IN_TAGS = [REV_BY_PREFIX, BASED_ON_PREFIX]
 
 class SeriesTagsModule(PatchewModule):
     """
@@ -49,7 +52,7 @@ series cover letter, patch mail body and their replies.
         # XXX: get this list through module config?
     def get_tag_prefixes(self):
         tagsconfig = self.get_config("default", "tags", default="")
-        return [x.strip() for x in tagsconfig.split(",")]
+        return set([x.strip() for x in tagsconfig.split(",") if x.strip()] + BUILT_IN_TAGS)
 
     def update_tags(self, s):
         old = s.get_property("tags", [])
