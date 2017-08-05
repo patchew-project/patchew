@@ -640,12 +640,16 @@ class ApplyCommand(SubCommand):
         public_repo = toapply["git.public_repo"]
         wd = tempfile.mkdtemp(dir="/var/tmp")
         try:
-            project_git = toapply["project.git"]
-            if " " in project_git:
-                remote, head = project_git.split(" ", 2)
+            if toapply.get("git.repo"):
+                remote, head = toapply["git.repo"], toapply["git.base"]
+                git_clone_repo(wd, remote, head, sys.stdout)
             else:
-                remote, head = project_git, "master"
-            git_clone_repo(wd, remote, "origin/" + head, sys.stdout)
+                project_git = toapply["project.git"]
+                if " " in project_git:
+                    remote, head = project_git.split(" ", 2)
+                else:
+                    remote, head = project_git, "master"
+                git_clone_repo(wd, remote, "origin/" + head, sys.stdout)
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
