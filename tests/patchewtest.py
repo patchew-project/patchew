@@ -99,9 +99,10 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     def get_projects(self):
         return Project.objects.all()
 
-    def add_project(self, name, mailing_list=""):
-        p = Project(name=name, mailing_list=mailing_list)
+    def add_project(self, name, mailing_list="", git_repo=""):
+        p = Project(name=name, mailing_list=mailing_list, git=git_repo)
         p.save()
+        return p
 
     def api_login(self):
         r = self.client.login(username=self.user, password=self.password)
