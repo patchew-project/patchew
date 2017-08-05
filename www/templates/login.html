@@ -11,7 +11,7 @@
         <div class="panel panel-info login-panel">
             <div class="panel-heading">Login to Patchew</div>
             <div class="panel-body">
-                <form class="login-form" method="post" action="{% url 'django.contrib.auth.views.login' %}">
+                <form class="login-form" method="post" action="{% url 'login' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% if next %}{{ next }}{% else %}/{% endif %}" />
                     <div class="form-group">
