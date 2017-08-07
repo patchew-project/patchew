@@ -15,6 +15,7 @@ import tempfile
 import shutil
 import argparse
 import json
+import atexit
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
@@ -38,6 +39,12 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     email = "admin@test"
     password = "adminpass"
     client = django.test.Client()
+
+    def get_tmpdir(self):
+        if not hasattr(self, "_tmpdir"):
+            self._tmpdir = tempfile.mkdtemp()
+            atexit.register(shutil.rmtree, self._tmpdir)
+        return self._tmpdir
 
     def create_superuser(self, username=None, password=None):
         user = User.objects.create_superuser(username or self.user,
