@@ -555,15 +555,15 @@ class ApplyCommand(SubCommand):
                             help="""Sign off the applied patch""")
         parser.add_argument("--branch", "-b",
                             help="""Create a branch at current HEAD before
-                            applying, with '%m' replaced with the series'
+                            applying, with '%%m' replaced with the series'
                             message id""")
         parser.add_argument("--force-branch", "-B",
                             help="""Create a branch, overwrite even if a branch
                             with the same name already exists, and point to
-                            current HEAD before applying, with '%m' replaced
+                            current HEAD before applying, with '%%m' replaced
                             with the series' message id""")
         parser.add_argument("--tag", "-t",
-                            help="""Create a tag after applying, with '%m'
+                            help="""Create a tag after applying, with '%%m'
                             replaced with the series' message id. If a tag with
                             the same name already exists, it will be
                             updated""")
