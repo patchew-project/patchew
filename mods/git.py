@@ -151,6 +151,19 @@ class GitModule(PatchewModule):
         for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
             if po.get_property(prop):
                 response[prop] = po.get_property(prop)
+        for tag in series.get_property("tags", []):
+            if not tag.startswith("Based-on:"):
+                continue
+            base_id = tag[len("Based-on:"):].strip()
+            base = Message.objects.series_heads().\
+                    filter(project=po, message_id=base_id).first()
+            if not base:
+                break
+            if not base.get_property("git.repo"):
+                break
+            response["git.repo"] = base.get_property("git.repo")
+            response["git.base"] = base.get_property("git.tag")
+            break
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
