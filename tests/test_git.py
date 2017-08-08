@@ -87,6 +87,19 @@ class GitTest(PatchewTestCase):
         self.assertEqual(s.get_property("git.url"),
                          self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
 
+    def test_apply_with_base_and_brackets(self):
+        self.check_cli(["import", self.get_data_path("0013-foo-patch.mbox.gz")])
+        self.do_apply()
+        self.check_cli(["import", self.get_data_path("0015-bar-patch-with-brackets.mbox.gz")])
+        self.do_apply()
+        s = Message.objects.series_heads().filter(message_id="20160628014747.20971-2-famz@redhat.com")[0]
+        self.assertEqual(s.is_complete, True)
+        self.assertEqual(s.get_property("git.repo"), self.repo)
+        self.assertEqual(s.get_property("git.tag"),
+                         "patchew/20160628014747.20971-2-famz@redhat.com")
+        self.assertEqual(s.get_property("git.url"),
+                         self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
+
 
 if __name__ == '__main__':
     main()
