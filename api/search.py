@@ -173,6 +173,8 @@ Search text keyword in the email message. Example:
             elif cond == "tested":
                 q = Q(properties__name="testing.done",
                       properties__value="true")
+            elif cond == "merged":
+                q = Q(is_merged=True)
             else:
                 q = as_keywords(term)
             if lneg:
