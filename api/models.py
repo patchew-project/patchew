@@ -253,6 +253,7 @@ class Message(models.Model):
     is_series_head = models.BooleanField()
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
+    is_merged = models.BooleanField(default=False, blank=True)
     # patch index number if is_patch
     patch_num = models.PositiveSmallIntegerField(null=True, blank=True)
 
