@@ -49,6 +49,12 @@ def prepare_message(request, m, detailed):
     m.extra_ops = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
                          detailed=detailed)
+    if m.is_merged:
+        m.status_tags = [{
+            "title": "Series merged",
+            "type": "success",
+            "char": "Merged",
+            }]
     return m
 
 def prepare_series(request, s):
