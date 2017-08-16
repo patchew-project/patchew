@@ -88,8 +88,9 @@ def prepare_project(p):
 class ListProjectView(APIView):
     name = "get-projects"
 
-    def handle(self, request):
-        r = [prepare_project(x) for x in Project.objects.all()]
+    def handle(self, request, name=None):
+        r = [prepare_project(x) for x in Project.objects.all() \
+                if name == None or name == x.name]
         return r
 
 class AddProjectView(APILoginRequiredView):
