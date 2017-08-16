@@ -29,7 +29,7 @@ COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 class APIError(Exception):
     pass
 
-def git_clone_repo(clone, remote, head, logf, cwd=None):
+def git_clone_repo(clone, remote, head, logf, checkout=True):
     cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
                               "".join([x for x in remote if x.isalnum()]) + "-" + \
                                       hashlib.sha1(remote.encode("utf-8")).hexdigest())
@@ -48,9 +48,10 @@ def git_clone_repo(clone, remote, head, logf, cwd=None):
                           stdout=logf, stderr=logf)
     subprocess.check_call(["git", "clone", "-q", cache_repo, clone],
                           stderr=logf, stdout=logf)
-    subprocess.check_call(["git", "checkout", head, "-b", "test"],
-                          stderr=logf, stdout=logf,
-                          cwd=clone)
+    if checkout:
+        subprocess.check_call(["git", "checkout", head, "-b", "test"],
+                              stderr=logf, stdout=logf,
+                              cwd=clone)
 
 class SubCommand(object):
     """ Base class of subcommand"""
