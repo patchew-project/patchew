@@ -81,6 +81,7 @@ def prepare_project(p):
         "url": p.url,
         "git": p.git,
         "description": p.description,
+        "properties": p.get_properties(),
     }
     return ret
 
