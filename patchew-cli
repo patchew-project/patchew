@@ -267,6 +267,61 @@ class ProjectCommand(SubCommand):
                     git=args.git,
                     description=args.desc)
 
+    def update_one_project(self, wd, project):
+        logging.info("Updating project '%s'", project["name"])
+        clone = os.path.join(wd, project["name"])
+        if " " in project["git"]:
+            repo, branch = project["git"].split(" ", 2)
+        else:
+            repo, branch = project["git"], "master"
+        git_clone_repo(clone, repo, branch, sys.stdout, checkout=False)
+        new_head = subprocess.check_output(["git", "rev-parse",
+                                            "origin/" + branch], cwd=clone).\
+                                                    decode().strip()
+        logging.debug("new head: %s", new_head)
+        try:
+            old_head = project["properties"]["git.head"].strip()
+            if old_head == new_head:
+                logging.info("no change since last update")
+                return
+        except:
+            old_head = "%s~100" % new_head
+
+        try:
+            new_commits = subprocess.check_output(["git", "rev-list",
+                                                  "%s..%s" % (old_head, new_head)],
+                                                  cwd=clone).decode().splitlines()
+        except:
+            old_head = new_head
+            new_commits = [new_head]
+        logging.debug("old head: %s", old_head)
+        logging.debug("new commits: \n%s" % \
+                "\n".join(["  " + x for x in new_commits]))
+        output = subprocess.check_output("""git log --format=%%b %s..%s |
+                awk 'BEGIN{IGNORECASE=1} /^message-id:/{print}'
+                """% \
+                (old_head, new_head), shell=True, cwd=clone).decode()
+        msgids = [x[len("message-id:"):].strip() for x in output.splitlines()]
+        logging.debug("message ids: \n%s" % \
+                "\n".join(["  " + x for x in msgids]))
+        self.api_do("update-project-head", project=project["name"],
+                                           old_head=old_head,
+                                           new_head=new_head,
+                                           message_ids=msgids)
+
+    def update_project(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--name", "-n", help="Name of the project")
+        args = parser.parse_args(argv)
+        projects = self.api_do("get-projects", name=args.name)
+        wd = tempfile.mkdtemp()
+        logging.debug("TMPDIR: %s", wd)
+        try:
+            for p in projects:
+                self.update_one_project(wd, p)
+        finally:
+            shutil.rmtree(wd)
+
     def project_property(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("name", help="Name of the project")
@@ -305,6 +360,8 @@ class ProjectCommand(SubCommand):
                 return self.project_property(argv[1:])
             elif argv[0] == "info":
                 return self.show_project(argv[1:])
+            elif argv[0] == "update":
+                return self.update_project(argv[1:])
         return self.list_projects(argv)
 
 class SearchCommand(SubCommand):
