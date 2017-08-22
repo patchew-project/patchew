@@ -208,8 +208,8 @@ class MboxMessage(object):
         cur, total = None, None
         for tag in self.get_prefixes():
             if '/' in tag:
-                n, m = tag.split('/')
                 try:
+                    n, m = tag.split('/')
                     cur, total = int(n), int(m)
                     break
                 except:
