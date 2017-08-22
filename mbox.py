@@ -161,17 +161,17 @@ class MboxMessage(object):
                     return payload.decode('utf-8')
                 else:
                     raise
-        payload = self._m.get_payload(decode=not self._m.is_multipart())
-        body = ''
-        if isinstance(payload, bytes):
-            body = decode_payload(payload, self._m.get_content_charset())
-        elif isinstance(payload, list):
-            for p in payload:
-                if p.get_content_type() == "text/plain":
-                    body += decode_payload(p.get_payload(decode=True),
-                                           p.get_content_charset())
-        else:
-            return "<Error while getting message body: %s>" % payload
+        def _get_message_text(m):
+            payload = m.get_payload(decode=not self._m.is_multipart())
+            body = ''
+            if m.get_content_type() == "text/plain":
+                body = decode_payload(m.get_payload(decode=True),
+                                      self._m.get_content_charset())
+            elif isinstance(payload, list):
+                for p in payload:
+                    body += _get_message_text(p)
+            return body
+        body = _get_message_text(self._m)
         return body
 
     def get_preview(self, maxchar=1000):
