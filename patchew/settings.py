@@ -117,10 +117,6 @@ MEDIA_URL = "/media/"
 if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
 
-MBOX_DIR = os.path.join(DATA_DIR, 'mbox')
-if not os.path.isdir(MBOX_DIR):
-    os.makedirs(MBOX_DIR)
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

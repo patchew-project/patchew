@@ -24,16 +24,20 @@ from event import emit_event, declare_event
 from django.contrib import admin
 import lzma
 
-def save_blob(json_data):
-    name = str(uuid.uuid4())
+def save_blob(data, name=None):
+    if not name:
+        name = str(uuid.uuid4())
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
-    lzma.open(fn, 'w').write(json_data.encode("utf-8"))
+    lzma.open(fn, 'w').write(data.encode("utf-8"))
     return name
 
 def load_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
+    return lzma.open(fn, 'r').read().decode("utf-8")
+
+def load_blob_json(name):
     try:
-        return json.loads(lzma.open(fn, 'r').read().decode("utf-8"))
+        return json.loads(load_blob(name))
     except json.decoder.JSONDecodeError as e:
         logging.error('Failed to load blob %s: %s' %(name, e))
         return None
@@ -75,7 +79,7 @@ class Project(models.Model):
         a = ProjectProperty.objects.filter(project=self, name=prop).first()
         if a:
             if a.blob:
-                return load_blob(a.value)
+                return load_blob_json(a.value)
             else:
                 return json.loads(a.value)
         else:
@@ -85,7 +89,7 @@ class Project(models.Model):
         r = {}
         for m in ProjectProperty.objects.filter(project=self):
             if m.blob:
-                r[m.name] = load_blob(m.value)
+                r[m.name] = load_blob_json(m.value)
             else:
                 r[m.name] = json.loads(m.value)
         return r
@@ -273,9 +277,7 @@ class Message(models.Model):
     objects = MessageManager()
 
     def save_mbox(self, mbox):
-        f = open(self.get_mbox_path(), "wb")
-        f.write(mbox.encode("utf-8"))
-        f.close()
+        save_blob(mbox, self.message_id)
 
     def get_mbox_obj(self):
         self.get_mbox()
@@ -284,14 +286,9 @@ class Message(models.Model):
     def get_mbox(self):
         if hasattr(self, "mbox"):
             return self.mbox
-        f = open(self.get_mbox_path(), "r", encoding="utf-8")
-        self.mbox = f.read()
+        self.mbox = load_blob(self.message_id)
         self._mbox_obj = MboxMessage(self.mbox)
-        f.close()
         return self.mbox
-
-    def get_mbox_path(self):
-        return os.path.join(settings.MBOX_DIR, self.message_id)
 
     def get_prefixes(self):
         return json.loads(self.prefixes)
@@ -370,7 +367,7 @@ class Message(models.Model):
         r = {}
         for m in self.properties.all():
             if m.blob:
-                r[m.name] = load_blob(m.value)
+                r[m.name] = load_blob_json(m.value)
             else:
                 r[m.name] = json.loads(m.value)
         self._properties = r

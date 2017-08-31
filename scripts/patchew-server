@@ -10,6 +10,17 @@ if ! test -f $PATCHEW_DATA_DIR/.blob-compressed.flag; then
 fi
 touch $PATCHEW_DATA_DIR/.blob-compressed.flag
 
+if test -d $PATCHEW_DATA_DIR/mbox; then
+    ls $PATCHEW_DATA_DIR/mbox | \
+        while read msgid; do
+            blob_file="$PATCHEW_DATA_DIR/blob/$msgid.xz"
+            test -f "$blob_file" || \
+                xz -c "$PATCHEW_DATA_DIR/mbox/$msgid" > "$blob_file"
+            rm "$PATCHEW_DATA_DIR/mbox/$msgid"
+        done
+    rm -r $PATCHEW_DATA_DIR/mbox
+fi
+
 ./manage.py migrate --noinput
 ./manage.py collectstatic --noinput
 
