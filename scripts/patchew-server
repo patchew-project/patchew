@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+mkdir -p /data/patchew/log
+chown -R nginx:nginx /data/patchew
+cd /opt/patchew
+
+if ! test -f $PATCHEW_DATA_DIR/.blob-compressed.flag; then
+    find $PATCHEW_DATA_DIR/blob -type f \! -name '*.xz' -exec xz {} \;
+fi
+touch $PATCHEW_DATA_DIR/.blob-compressed.flag
+
+./manage.py migrate --noinput
+./manage.py collectstatic --noinput
+
+echo "from django.contrib.auth.models import User; \
+  User.objects.create_superuser('admin', \
+                                'admin@patchew.org', 'adminpass')" \
+| ./manage.py shell
+
+python3-gunicorn -b unix:/tmp/patchew-wsgi.sock -D wsgi \
+    --error-logfile /data/patchew/log/gunicorn-error.log \
+    --access-logfile /data/patchew/log/gunicorn-access.log
+nginx -c $(readlink -e nginx.conf)

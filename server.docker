@@ -7,19 +7,4 @@ RUN dnf install -y git nginx xz findutils \
     python3-django
 ADD . /opt/patchew
 ENV PATCHEW_DATA_DIR /data/patchew/
-CMD mkdir -p /data/patchew/log && \
-    chown -R nginx:nginx /data/patchew && \
-    cd /opt/patchew && \
-    test -f $PATCHEW_DATA_DIR/.blob-compressed.flag || \
-        find $PATCHEW_DATA_DIR/blob -type f \! -name '*.xz' -exec xz {} \; && \
-    touch $PATCHEW_DATA_DIR/.blob-compressed.flag && \
-    ./manage.py migrate --noinput && \
-    ./manage.py collectstatic --noinput && \
-    echo "from django.contrib.auth.models import User; \
-          User.objects.create_superuser('admin', \
-                                        'admin@patchew.org', 'adminpass')" \
-        | ./manage.py shell && \
-    python3-gunicorn -b unix:/tmp/patchew-wsgi.sock -D wsgi \
-        --error-logfile /data/patchew/log/gunicorn-error.log \
-        --access-logfile /data/patchew/log/gunicorn-access.log && \
-    nginx -c $(readlink -e nginx.conf)
+CMD /opt/patchew/scripts/patchew-server
