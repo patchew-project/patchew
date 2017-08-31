@@ -22,17 +22,18 @@ from django.contrib.auth.models import User, Group
 from mbox import MboxMessage
 from event import emit_event, declare_event
 from django.contrib import admin
+import lzma
 
 def save_blob(json_data):
     name = str(uuid.uuid4())
-    fn = os.path.join(settings.DATA_DIR, "blob", name)
-    open(fn, 'w').write(json_data)
+    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
+    lzma.open(fn, 'w').write(json_data.encode("utf-8"))
     return name
 
 def load_blob(name):
-    fn = os.path.join(settings.DATA_DIR, "blob", name)
+    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
     try:
-        return json.load(open(fn, 'r'))
+        return json.loads(lzma.open(fn, 'r').read().decode("utf-8"))
     except json.decoder.JSONDecodeError as e:
         logging.error('Failed to load blob %s: %s' %(name, e))
         return None
