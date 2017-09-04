@@ -73,10 +73,10 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         r, a, b = self.cli(args)
         self.assertEqual(r, rc,
             "Exit code {} != expected {}, stdout:\n{}\nstderr:\n{}\n".format(r, rc, a, b))
-        if stdout:
-            self.assertEqual(a, stdout)
-        if stderr:
-            self.assertEqual(b, stderr)
+        if stdout is not None:
+            self.assertEqual(stdout, a)
+        if stderr is not None:
+            self.assertEqual(stderr, b)
         return a, b
 
     def cli_login(self, username=None, password=None):
