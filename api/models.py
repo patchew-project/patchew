@@ -48,6 +48,7 @@ class Project(models.Model):
                                    help_text="""Whitespace separated tags that
                                    are required to be present messages' prefix.
                                    Tags led by '/' are treated with python regex match.
+                                   Tags led by "!" mean these mustn't exist.
                                    """)
     url = models.CharField(max_length=4096, blank=True,
                            help_text="""The URL of the project page""")
@@ -115,7 +116,8 @@ class Project(models.Model):
             return True
         return False
 
-    def verify_message(self, m):
+    def recognizes(self, m):
+        """Test if @m is considered a message in this project"""
         addr_ok = False
         for name, addr in m.get_to() + m.get_cc():
             if addr in self.mailing_list:
@@ -123,15 +125,22 @@ class Project(models.Model):
                 break
         if addr_ok:
             for t in self.prefix_tags.split():
-                ok = False
+                found = False
+                if t.startswith("!"):
+                    t = t[1:]
+                    inversed = True
+                else:
+                    inversed = False
                 for p in m.get_prefixes():
                     if t.startswith('/'):
-                        ok = re.match(t[1:], p)
+                        found = re.match(t[1:], p)
                     else:
-                        ok = t.lower() == p.lower()
-                    if ok:
+                        found = t.lower() == p.lower()
+                    if found:
+                        if inversed:
+                            return False
                         break
-                if not ok:
+                if not found and not inversed:
                     return False
             return True
         return False
@@ -202,7 +211,7 @@ class MessageManager(models.Manager):
     def add_message_from_mbox(self, mbox, user, project_name=None):
 
         def find_message_projects(m):
-            return [p for p in Project.objects.all() if p.verify_message(m)]
+            return [p for p in Project.objects.all() if p.recognizes(m)]
 
         m = MboxMessage(mbox)
         msgid = m.get_message_id()
