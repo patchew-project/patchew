@@ -77,7 +77,7 @@
 function main() {
     $(".series-subject").each(function () {
         {% for kw in keywords %}
-        $(this).html($(this).html().replace(/{{ kw | safe }}/g,
+        $(this).html($(this).html().replace(/{{ kw }}/g,
             "<span class=\"keyword-highlight\">$&</span>"));
         {% endfor %}
     })
