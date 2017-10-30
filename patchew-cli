@@ -824,7 +824,7 @@ def main():
         logging.debug("Server: %s", args.server)
     if argv and not args.cmdobj.want_argv:
         raise Exception("Unrecognized arguments:\n" + argv[0])
-    base_url = args.server
+    base_url = args.server or "https://patchew.org"
     if base_url.endswith("/"):
         base_url = base_url[:-1]
     args.cmdobj.base_url = base_url
