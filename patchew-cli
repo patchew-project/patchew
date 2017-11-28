@@ -757,7 +757,7 @@ class ApplyCommand(SubCommand):
         if len(r) > 1 and not args.any:
             print("More than one series matched:")
             for p in r:
-                print(r["project"], r["subject"])
+                print(p["project"], p["subject"])
             return 1
         if not r[0]["is_complete"]:
             print("Series not complete")
