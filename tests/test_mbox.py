@@ -34,7 +34,8 @@ Red Hat, Inc.           +1-919-301-3266
 Virtualization:  qemu.org | libvirt.org
         """.strip()
         dp = self.get_data_path("0016-nested-multipart.mbox.gz")
-        msg = mbox.MboxMessage(open(dp, "r").read())
+        with open(dp, "r") as f:
+            msg = mbox.MboxMessage(f.read())
         self.assertEqual(msg.get_body().strip(), expected)
 
 if __name__ == '__main__':
