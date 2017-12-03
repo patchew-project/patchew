@@ -34,8 +34,9 @@ MODULE_DIR = os.path.join(BASE_DIR, "mods")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '@f-l5@70om7o(7rda^oxd$f#60g3jy#&m^p7z@vkf+&$*@%!^o'
 
-DEBUG = True
 ALLOWED_HOSTS = []
+if os.environ.get("PATCHEW_TEST"):
+    ALLOWED_HOSTS = ['testserver']
 
 # Application definition
 
@@ -94,11 +95,14 @@ if DATA_DIR:
     DEBUG = os.environ.get("PATCHEW_DEBUG", False)
     ALLOWED_HOSTS = ['*']
 else:
-    if os.environ.get("PATCHEW_TEST"):
+    if os.environ.get("VIRTUAL_ENV"):
+        DEBUG = True
+        DATA_DIR = os.environ.get("VIRTUAL_ENV") + "/data"
+    elif os.environ.get("PATCHEW_TEST"):
+        DEBUG = True
         DATA_DIR = "/tmp/patchew-test-data"
-    elif DEBUG:
-        DATA_DIR = "/var/tmp/patchew-data"
     else:
+        DEBUG = os.environ.get("PATCHEW_DEBUG", False)
         DATA_DIR = "/data/patchew"
 if not os.path.isdir(DATA_DIR):
     os.mkdir(DATA_DIR)
