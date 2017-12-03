@@ -34,7 +34,6 @@ MODULE_DIR = os.path.join(BASE_DIR, "mods")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '@f-l5@70om7o(7rda^oxd$f#60g3jy#&m^p7z@vkf+&$*@%!^o'
 
-DEBUG = True
 ALLOWED_HOSTS = []
 
 # Application definition
@@ -87,21 +86,30 @@ WSGI_APPLICATION = 'patchew.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
-DATA_DIR = os.environ.get("PATCHEW_DATA_DIR")
-if not DATA_DIR:
-    DATA_DIR = os.environ.get("OPENSHIFT_DATA_DIR")
-if DATA_DIR:
-    DEBUG = os.environ.get("PATCHEW_DEBUG", False)
-    ALLOWED_HOSTS = ['*']
-else:
-    if os.environ.get("PATCHEW_TEST"):
-        DATA_DIR = "/tmp/patchew-test-data"
-    elif DEBUG:
-        DATA_DIR = "/var/tmp/patchew-data"
+def env_detect():
+    if "PATCHEW_DATA_DIR" in os.environ:
+        # Docker deployment
+        return False, os.environ.get("PATCHEW_DATA_DIR")
+    elif "OPENSHIFT_DATA_DIR" in os.environ:
+        # OpenShift deployment
+        return False, os.environ.get("OPENSHIFT_DATA_DIR")
+    elif "VIRTUAL_ENV" in os.environ or os.environ.get("PATCHEW_DEBUG", False):
+        # Development setup
+        return True, os.path.join(os.environ.get("VIRTUAL_ENV",
+                                                 "/var/tmp/patchew-dev"),
+                                  "data")
+    elif os.environ.get("PATCHEW_TEST"):
+        # Test environment
+        return True, os.environ.get("PATCHEW_TEST_DATA_DIR")
     else:
-        DATA_DIR = "/data/patchew"
+        raise Exception("Unknown running environment")
+
+DEBUG, DATA_DIR = env_detect()
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+
 if not os.path.isdir(DATA_DIR):
-    os.mkdir(DATA_DIR)
+    os.makedirs(DATA_DIR)
 
 BLOB_DIR = os.path.join(DATA_DIR, "blob")
 if not os.path.isdir(BLOB_DIR):
