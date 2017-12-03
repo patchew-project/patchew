@@ -228,7 +228,7 @@ class ImportView(APILoginRequiredView):
                 pass
         return list(projects)
 
-class DeletreView(APILoginRequiredView):
+class DeleteView(APILoginRequiredView):
     """ Delete messages """
     name = "delete"
 
@@ -246,7 +246,7 @@ class Logout(APIView):
     def handle(self, request):
         logout(request)
 
-class LoginComand(APIView):
+class LoginCommand(APIView):
     name = "login"
 
     def handle(self, request, username, password):
