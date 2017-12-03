@@ -128,7 +128,7 @@ class GitModule(PatchewModule):
                     "type": "info",
                     "char": "G",
                     })
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             if message.get_property("git.apply-failed") != None or \
                  message.get_property("git.need-apply") == None:
                 url = reverse("git_reset",
@@ -180,7 +180,7 @@ class GitModule(PatchewModule):
         return cache_repo
 
     def www_view_git_apply(self, request, series):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             raise PermissionDenied
         obj = Message.objects.find_series(series)
         if not obj:
@@ -189,7 +189,7 @@ class GitModule(PatchewModule):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_view_git_reset(self, request, series):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             raise PermissionDenied
         obj = Message.objects.find_series(series)
         if not obj:
