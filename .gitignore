@@ -1,1 +1,5 @@
 /wsgi/static/*
+__pycache__
+*.pyc
+*.pyo
+/venv
