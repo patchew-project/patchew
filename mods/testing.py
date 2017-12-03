@@ -12,7 +12,7 @@ from django.conf.urls import url
 from django.http import HttpResponse, HttpResponseForbidden, Http404, \
                         HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.template import Template, Context
 from mod import PatchewModule
 import time
