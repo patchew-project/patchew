@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -109,7 +109,7 @@ if not os.path.isdir(BLOB_DIR):
 
 if DEBUG:
     INSTALLED_APPS += ['debug_toolbar']
-    MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
 MEDIA_ROOT = os.path.join(DATA_DIR, "media")
 MEDIA_URL = "/media/"
