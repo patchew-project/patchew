@@ -144,7 +144,7 @@ Email information is configured in "INI" style:
         smtp.sendmail(from_addr, recipients, message.as_string())
 
     def www_view_email_bounce(self, request, message_id):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             raise PermissionDenied()
         m = Message.objects.find_series(message_id)
         if not m:
@@ -165,7 +165,7 @@ Email information is configured in "INI" style:
     def prepare_message_hook(self, request, message, detailed):
         if not detailed:
             return
-        if message.is_series_head and request.user.is_authenticated():
+        if message.is_series_head and request.user.is_authenticated:
             message.extra_ops.append({"url": reverse("email-bounce",
                                      kwargs={"message_id": message.message_id}),
                                             "title": "Bounce to me"})

@@ -108,7 +108,7 @@ class TestingModule(PatchewModule):
                 obj.set_property(k, None)
 
     def www_view_testing_reset(self, request, project_or_series):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return HttpResponseForbidden()
         if request.GET.get("type") == "project":
             obj = Project.objects.filter(name=project_or_series).first()
