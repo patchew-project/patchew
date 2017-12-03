@@ -74,21 +74,22 @@ class VersionView(APIView):
     def handle(self, request):
         return settings.VERSION
 
-def prepare_project(p):
-    ret = {
-        "name": p.name,
-        "mailing_list": p.mailing_list,
-        "url": p.url,
-        "git": p.git,
-        "description": p.description,
-        "properties": p.get_properties(),
-    }
-    return ret
-
 class ListProjectView(APIView):
     name = "get-projects"
 
     def handle(self, request, name=None):
+        def prepare_project(p):
+            ret = {
+                "name": p.name,
+                "mailing_list": p.mailing_list,
+                "url": p.url,
+                "git": p.git,
+                "description": p.description,
+            }
+            if p.maintained_by(request.user):
+                ret["properties"] = p.get_properties()
+            return ret
+
         r = [prepare_project(x) for x in Project.objects.all() \
                 if name == None or name == x.name]
         return r
@@ -106,7 +107,7 @@ class AddProjectView(APILoginRequiredView):
                     description=description)
         p.save()
 
-class GetProjectPropertiesView(APILoginRequiredView):
+class GetProjectPropertiesView(APIView):
     name = "get-project-properties"
 
     def handle(self, request, project):
