@@ -21,6 +21,7 @@ if test -d $PATCHEW_DATA_DIR/mbox; then
     rm -r $PATCHEW_DATA_DIR/mbox
 fi
 
+export PYTHONPATH=/opt/patchew
 ./manage.py migrate --noinput
 ./manage.py collectstatic --noinput
 
