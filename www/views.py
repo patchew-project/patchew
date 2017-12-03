@@ -12,7 +12,7 @@ import urllib.request, urllib.parse, urllib.error
 from django.shortcuts import render
 from django.template import Context
 from django.http import HttpResponse, Http404
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.conf import settings
 import api
 from mod import dispatch_module_hook

@@ -15,7 +15,7 @@ import shutil
 import hashlib
 from django.conf.urls import url
 from django.http import HttpResponse, Http404, HttpResponseRedirect
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
