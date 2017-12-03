@@ -158,6 +158,7 @@ class ProjectProperty(models.Model):
 
     class Meta:
         unique_together = ('project', 'name',)
+        verbose_name_plural = "Project Properties"
 
 declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
