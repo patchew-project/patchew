@@ -132,9 +132,10 @@ series cover letter, patch mail body and their replies.
         ob = message.get_property("obsoleted-by")
         if ob:
             new = Message.objects.find_series(ob, message.project.name)
-            message.status_tags.append({
-                "title": "Has a newer version: " + new.subject,
-                "type": "default",
-                "char": "O",
-                })
+            if new is not None:
+                message.status_tags.append({
+                    "title": "Has a newer version: " + new.subject,
+                    "type": "default",
+                    "char": "O",
+                    })
 
