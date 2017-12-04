@@ -58,19 +58,28 @@ def prepare_message(request, m, detailed):
             }]
     return m
 
-def prepare_series(request, s):
+def prepare_patches(request, m, max_depth=None):
+    if m.total_patches == 1:
+        return []
+    replies = m.get_replies().filter(is_patch=True)
+    return [prepare_message(request, x, True)
+            for x in replies]
+
+def prepare_series(request, s, skip_patches=False):
     r = []
-    def add_msg_recurse(m, depth=0):
+    def add_msg_recurse(m, skip_patches, depth=0):
         a = prepare_message(request, m, True)
         a.indent_level = min(depth, 4)
         r.append(prepare_message(request, m, True))
         replies = m.get_replies()
         non_patches = [x for x in replies if not x.is_patch]
-        patches = [x for x in replies if x.is_patch]
+        patches = []
+        if not skip_patches:
+            patches = [x for x in replies if x.is_patch]
         for x in non_patches + patches:
-            add_msg_recurse(x, depth+1)
+            add_msg_recurse(x, False, depth+1)
         return r
-    add_msg_recurse(s)
+    add_msg_recurse(s, skip_patches)
     return r
 
 def prepare_series_list(request, sl):
@@ -223,11 +232,38 @@ def view_series_detail(request, project, message_id):
     nav_path = prepare_navigate_list("View series",
                     ("series_list", {"project": project}, project))
     search = "id:" + message_id
-    ops = []
+    series = prepare_message(request, s, True)
+    is_cover_letter=not series.is_patch
     return render_page(request, 'series-detail.html',
-                       series=prepare_message(request, s, True),
+                       subject=s.subject,
+                       message_id=s.message_id,
+                       series=series,
+                       is_cover_letter=is_cover_letter,
+                       is_head=True,
                        project=project,
                        navigate_links=nav_path,
                        search=search,
-                       series_operations=ops,
-                       messages=prepare_series(request, s))
+                       patches=prepare_patches(request, s),
+                       messages=prepare_series(request, s, is_cover_letter))
+
+def view_series_message(request, project, thread_id, message_id):
+    s = api.models.Message.objects.find_series(thread_id, project)
+    if not s:
+        raise Http404("Series not found")
+    m = api.models.Message.objects.filter(message_id=message_id, in_reply_to=thread_id).first()
+    nav_path = prepare_navigate_list("View patch",
+                    ("series_list", {"project": project}, project),
+                    ("series_detail", {"project": project, "message_id": thread_id}, s.subject ))
+    search = "id:" + thread_id
+    series = prepare_message(request, s, True)
+    return render_page(request, 'series-detail.html',
+                       subject=m.subject,
+                       message_id=m.message_id,
+                       series=series,
+                       is_cover_letter=False,
+                       is_head=False,
+                       project=project,
+                       navigate_links=nav_path,
+                       search=search,
+                       patches=prepare_patches(request, s),
+                       messages=prepare_series(request, m))

@@ -13,7 +13,7 @@
 <div class="series-detail" id="top"></div>
 
 <div class="col-lg-12">
-<h2>{{ series.subject }}</h2>
+<h2>{{ subject }}</h2>
 <div class="series-header-info">
             <span class="message-author" title="{{ series.sender_full_name }}">
                 {{ series.sender_display_name }}
@@ -67,10 +67,12 @@
 </div>
 {% endfor %}
 
-{% if series.get_diff_stat %}
-<div class="panel-body">
-    <pre class="body-full">{{ series.get_diff_stat }}</pre>
-</div>
+{% if is_head %}
+    {% if series.get_diff_stat %}
+    <div class="panel-body">
+        <pre class="body-full">{{ series.get_diff_stat }}</pre>
+    </div>
+    {% endif %}
 {% endif %}
 </div>
 </div>
@@ -102,7 +104,7 @@
                         ago
                     </div>
             </div>
-            <div class="panel-body panel-collapse collapse">
+            <div class="panel-body panel-collapse collapse in">
                 {% if msg.is_patch %}
                 <pre class="body-full"><code class="diff">{{ msg.get_body }}</code></pre>
                 {% else %}
@@ -110,8 +112,26 @@
                 {% endif %}
             </div>
         </div>
+	{% if is_cover_letter and forloop.first%}
+        <ul class="panel" id="patches">
+          {% for patch in patches %}
+	  <li><span class="fa fa-lg fa-ellipsis-v"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
+	  {% endfor %}
+          </ul>
+	{% endif %}
     {% endfor %}
     </div>
+
+    {% if not is_head %}
+    <ul class="panel" id="patches">
+    {% for patch in patches %}
+    <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
+      <span class="fa fa-lg fa-ellipsis-v"></span>
+      {{ patch.subject }}
+      {% if patch.message_id != message_id %}</a>{% endif %}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
 </div>
 
 <script type="text/javascript">
