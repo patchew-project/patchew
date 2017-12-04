@@ -6,6 +6,28 @@
     font-weight: bold;
 }
 
+#patches {
+    margin: 1.5em 0;
+    list-style-type: none;
+    padding: 0em 0em 0em 2em;
+    margin-left: 0.5em;
+}
+#patches > li {
+    margin: 1em 0em;
+    padding: 0em;
+}
+#patches > li.active {
+    font-weight: bold;
+}
+#patches > li .fa {
+    position: relative;
+    color: #337ab7;
+    left: -0.5em;
+    width: 1em;
+    text-align: center;
+    display: inline-block;
+}
+
 .message-info {
     margin: 0.25em 0em;
     font-size: 90%;
@@ -14,20 +36,16 @@
 .reply-lvl-0 {
 }
 .reply-lvl-1 {
-    margin-left: 8px;
+    margin-left: 0.5em;
 }
 .reply-lvl-2 {
-    margin-left: 16px;
+    margin-left: 1em;
 }
 .reply-lvl-3 {
-    margin-left: 24px;
+    margin-left: 1.5em;
 }
 .reply-lvl-4 {
-    margin-left: 32px;
-}
-
-.panel {
-    margin-bottom: 10px;
+    margin-left: 2em;
 }
 
 #series-links::before {
