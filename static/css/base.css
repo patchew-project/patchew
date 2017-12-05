@@ -86,3 +86,15 @@ textarea {
     border: none;
     padding: 5px;
 }
+
+#pre-fixed {
+    clear: both;
+}
+@media (min-width: 1200px) {
+  .fixed {
+    position: fixed;
+    top: 0px;
+    padding-left: 0px;
+    padding-right: 35px;
+  }
+}

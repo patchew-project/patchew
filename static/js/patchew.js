@@ -15,3 +15,14 @@ function patchew_toggler_onclick(which)
         });
     }
 }
+function add_fixed_scroll_events()
+{
+    $(window).scroll(function() {
+        var pre_fixed = $('#pre-fixed');
+        var fixed = $('#fixed');
+        // add/remove the col-lg-NN attribute to the #fixed element, because
+        // "position: fixed" computes the element's width according to the document's
+        fixed.toggleClass('fixed ' + fixed.parent().attr('class'),
+                          $(window).scrollTop() >= pre_fixed.offset().top + pre_fixed.height());
+    })
+}
