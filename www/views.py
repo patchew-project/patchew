@@ -121,7 +121,7 @@ def get_page_from_request(request):
 def prepare_navigate_list(cur, *path):
     """ each path is (view_name, kwargs, title) """
     r = [{"url": reverse("project_list"),
-          "title": "Projects"}]
+          "title": "Patchew"}]
     for it in path:
         r.append({"url": reverse(it[0], kwargs=it[1]),
                   "title": it[2]})
@@ -150,15 +150,13 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
         cur = 'search "%s"' % search
         if project:
             nav_path = prepare_navigate_list(cur,
-                                             ("project_detail", {"project": project}, project),
-                                             ("series_list", {"project": project}, "Patches"))
+                                             ("series_list", {"project": project}, project))
         else:
             nav_path = prepare_navigate_list(cur)
     else:
         is_search = False
         search = "project:%s" % project
-        nav_path = prepare_navigate_list("Patches",
-                                         ("project_detail", {"project": project}, project))
+        nav_path = prepare_navigate_list(project)
     page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
     return render_page(request, 'series-list.html',
                        series=prepare_series_list(request, series),
@@ -182,7 +180,7 @@ def view_project_detail(request, project):
     if not po:
         raise Http404("Project not found")
     nav_path = prepare_navigate_list("Information",
-                        ("project_detail", {"project": project}, project))
+                        ("series_list", {"project": project}, project))
     po.extra_info = []
     po.extra_headers = []
     po.extra_ops = []
@@ -222,9 +220,8 @@ def view_series_detail(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
     if not s:
         raise Http404("Series not found")
-    nav_path = prepare_navigate_list(s.message_id,
-                    ("project_detail", {"project": project}, project),
-                    ("series_list", {"project": project}, "Patches"))
+    nav_path = prepare_navigate_list("View series",
+                    ("series_list", {"project": project}, project))
     search = "id:" + message_id
     ops = []
     return render_page(request, 'series-detail.html',
