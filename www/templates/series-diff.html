@@ -16,15 +16,15 @@
 </div>
 
 
-<script id="series_left" type="text/diff">{{series_left_text | safe}}</script>
-<script id="series_right" type="text/diff">{{series_right_text | safe}}</script>
+<textarea id="series_left" data-subject="{{series_left.subject}}" style="display: none;">{{series_left_text}}</textarea>
+<textarea id="series_right" data-subject="{{series_right.subject}}" style="display: none;">{{series_right_text}}</textarea>
 
 <script type="text/javascript">
 
-function diffUsingJS() {
+function diffUsingJS(first, second) {
     // get the baseText and newText values from the two textboxes, and split them into lines
-    var base = difflib.stringAsLines($("#series_left").text());
-    var newtxt = difflib.stringAsLines($("#series_right").text());
+    var base = difflib.stringAsLines(first.text());
+    var newtxt = difflib.stringAsLines(second.text());
 
     // create a SequenceMatcher instance that diffs the two sets of lines
     var sm = new difflib.SequenceMatcher(base, newtxt);
@@ -41,13 +41,16 @@ function diffUsingJS() {
         newTextLines: newtxt,
         opcodes: opcodes,
         // set the display titles for each resource
-        baseTextName: "{{series_left.subject}}",
-        newTextName: "{{series_right.subject}}",
+        baseTextName: first.data('subject'),
+        newTextName: second.data('subject'),
         contextSize: contextSize,
         viewType: $("inline").checked ? 1 : 0
     });
     $("#diffoutput").append(c);
 }
-$(diffUsingJS);
+
+$(function() {
+	diffUsingJS($("#series_left"), $("#series_right"));
+});
 </script>
 {% endblock %}
