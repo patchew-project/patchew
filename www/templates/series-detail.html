@@ -10,8 +10,9 @@
 
 <div id="top"></div>
 
+<div id="pre-fixed"></div>
 <div class="col-lg-2">
-    <div class="list-group">
+    <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
         {% for op in series.extra_ops %}
@@ -114,6 +115,7 @@ function main() {
             hljs.highlightBlock(block);
         });
     });
+    add_fixed_scroll_events();
 }
 
 $(main);

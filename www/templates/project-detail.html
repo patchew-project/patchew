@@ -7,8 +7,9 @@
 
 <div id="top"></div>
 
+<div id="pre-fixed"></div>
 <div class="col-lg-2">
-    <div class="list-group">
+    <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
         <a href="{% url "series_list" project=project %}" class="list-group-item list-group-item-info">Patches</a>
@@ -60,6 +61,7 @@ function main() {
     $("#btn-fold-all").click(function () {
         $(".panel-toggle").hide();
     });
+    add_fixed_scroll_events();
 }
 
 $(main);
