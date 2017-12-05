@@ -1,11 +1,15 @@
 {% extends 'base.html' %}
 
 {% block header %}
+<link rel="stylesheet" href="/static/css/project-detail.css">
 {% endblock %}
 
 {% block content %}
 
 <div id="top"></div>
+<div class="col-lg-12">
+<h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" style="float: right"/></li>{% endif %}{{ project.name }}</h2>
+{% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
 
 <div id="pre-fixed"></div>
 <div class="col-lg-2">
@@ -22,10 +26,6 @@
 </div>
 <div class="col-lg-10">
     <ul class="list-group">
-        {% if project.logo %}<li class="list-group-item"><img alt="Project Logo" src="{{ project.logo.url }}" /></li>{% endif %}
-        <li class="list-group-item">
-            Project: <strong>{{ project.name }}</strong></li>
-        {% if project.description %}<li class="list-group-item">{{ project.description }}</li>{% endif %}
         {% if project.url %}<li class="list-group-item">URL: <strong><a href="{{ project.url }}">{{ project.url }}</a></strong></li>{% endif %}
         {% if project.git %}<li class="list-group-item">Git: <strong><a href="{{ project.git }}">{{ project.git }}</a></strong></li>{% endif %}
         <li class="list-group-item">Total series: <a href="{% url "series_list" project=project %}">{{ project.total_series_count }}</a></li>
