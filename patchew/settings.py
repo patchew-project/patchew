@@ -35,6 +35,8 @@ MODULE_DIR = os.path.join(BASE_DIR, "mods")
 SECRET_KEY = '@f-l5@70om7o(7rda^oxd$f#60g3jy#&m^p7z@vkf+&$*@%!^o'
 
 ALLOWED_HOSTS = []
+if os.environ.get("PATCHEW_TEST"):
+    ALLOWED_HOSTS = ['testserver']
 
 # Application definition
 
