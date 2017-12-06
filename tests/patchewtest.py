@@ -33,6 +33,7 @@ from api.models import *
 
 PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
 RUN_DIR = tempfile.mkdtemp()
+os.environ["PATCHEW_TEST_DATA_DIR"] = os.path.join(RUN_DIR, "patchew-data")
 
 class PatchewTestCase(django.test.LiveServerTestCase):
     user = "admin"
