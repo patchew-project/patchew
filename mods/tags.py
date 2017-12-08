@@ -137,5 +137,6 @@ series cover letter, patch mail body and their replies.
                     "title": "Has a newer version: " + new.subject,
                     "type": "default",
                     "char": "O",
+                    "row_class": "obsolete"
                     })
 

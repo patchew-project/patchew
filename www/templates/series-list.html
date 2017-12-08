@@ -29,7 +29,7 @@
         </th>
     </tr>
     {% for s in series %}
-        <tr>
+      <tr class="{% for st in s.status_tags %}{% if st.row_class %}{{st.row_class}} {% endif %}{%endfor %}">
             {% if project is None %}
             <td>{{ s.project.name }}</td>
             {% endif %}
