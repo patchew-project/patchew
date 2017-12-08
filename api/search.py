@@ -188,6 +188,7 @@ Search text keyword in the email message. Example:
             q = Q(properties__name=cond)
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
+            self._projects.add(cond)
             q = Q(project__name=cond)
         else:
             # Keyword in subject is the default
@@ -200,8 +201,12 @@ Search text keyword in the email message. Example:
     def last_keywords(self):
         return getattr(self, "_last_keywords", [])
 
+    def project(self):
+        return next(iter(self._projects)) if len(self._projects) == 1 else None
+
     def search_series(self, *terms):
         self._last_keywords = []
+        self._projects = set()
         q = Message.objects.series_heads()
         for t in terms:
             q = self._process_term(q, t)

@@ -127,7 +127,7 @@ def prepare_navigate_list(cur, *path):
     r.append({"title": cur, "url": "", "class": "active"})
     return r
 
-def render_series_list_page(request, query, search, project=None, keywords=[]):
+def render_series_list_page(request, query, search=None, project=None, keywords=[]):
     sort = request.GET.get("sort")
     if sort == "replied":
         sortfield = "-last_reply_date"
@@ -143,20 +143,29 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
     params = ""
     if sort:
         params += "&" + urllib.parse.urlencode({"sort": sort})
-    if search:
+    if search is not None:
+        is_search = True
         params += "&" + urllib.parse.urlencode({"q": search})
-    page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
-    if project:
+        cur = 'search "%s"' % search
+        if project:
+            nav_path = prepare_navigate_list(cur,
+                                             ("project_detail", {"project": project}, project),
+                                             ("series_list", {"project": project}, "Patches"))
+        else:
+            nav_path = prepare_navigate_list(cur)
+    else:
+        is_search = False
+        search = "project:%s" % project
         nav_path = prepare_navigate_list("Patches",
                                          ("project_detail", {"project": project}, project))
-    else:
-        nav_path = prepare_navigate_list('search "%s"' % search)
+    page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
     return render_page(request, 'series-list.html',
                        series=prepare_series_list(request, series),
                        page_links=page_links,
                        search=search,
+                       project=project,
+                       is_search=is_search,
                        keywords=keywords,
-                       project_column=project==None,
                        order_by_reply=order_by_reply,
                        navigate_links=nav_path)
 
@@ -188,16 +197,16 @@ def view_search(request):
     terms = [x.strip() for x in search.split(" ") if x]
     se = SearchEngine()
     query = se.search_series(*terms)
-    return render_series_list_page(request, query, search,
+    return render_series_list_page(request, query, search=search,
+                                   project=se.project(),
                                    keywords=se.last_keywords())
 
 def view_series_list(request, project):
     prj = api.models.Project.objects.filter(name=project).first()
     if not prj:
         raise Http404("Project not found")
-    search = "project:%s" % project
     query = api.models.Message.objects.series_heads(prj.id)
-    return render_series_list_page(request, query, search, project=project)
+    return render_series_list_page(request, query, project=project)
 
 def view_series_mbox(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
