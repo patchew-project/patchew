@@ -1,13 +1,14 @@
-.message {
-    margin-bottom: 5px;
+.series-header-info {
+    padding-bottom: 1em;
 }
 
-.message-age {
-    text-align: right;
-}
-
-.message-age > .message-author {
+.message-author, .series-header-info .message-age {
     font-weight: bold;
+}
+
+.message-info {
+    margin: 0.25em 0em;
+    font-size: 90%;
 }
 
 .reply-lvl-0 {
