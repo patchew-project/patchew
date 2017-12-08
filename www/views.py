@@ -41,7 +41,7 @@ def prepare_message(request, m, detailed):
                 "title": "Series not complete (%d %s not received)" % \
                         (missing, "patches" if missing > 1 else "patch"),
                 "type": "warning",
-                "char": "P",
+                "char": "?",
                 })
     # hook points for plugins
     m.has_other_revisions = False
