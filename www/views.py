@@ -28,6 +28,7 @@ def prepare_message(request, m, detailed):
     name, addr = m.get_sender()
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
+    m.age = m.get_age()
     m.url = "/%s/%s" % (m.project.name, m.message_id)
     m.status_tags = []
     if m.is_series_head:

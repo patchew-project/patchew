@@ -8,7 +8,17 @@
 
 {% block content %}
 
-<div id="top"></div>
+<div class="series-detail" id="top"></div>
+
+<div class="col-lg-12">
+<h2>{{ series.subject }}</h2>
+<div class="series-header-info">
+           Posted by <span class="message-author" title="{{ series.sender_full_name }}">
+                {{ series.sender_display_name }}
+           </span> <span class="message-age" title="{{ series.date }}">
+                  {{ series.age }} ago</span>
+</div>
+</div>
 
 <div id="pre-fixed"></div>
 <div class="col-lg-2">
@@ -26,13 +36,6 @@
 </div>
 <div class="col-lg-10">
     <ul class="list-group">
-        <li class="list-group-item">Subject: {{ series.subject }}</li>
-        <li class="list-group-item">Author:
-            <span title="{{ series.sender_full_name }}">
-                {{ series.sender_display_name }}
-            </span>
-        </li>
-        <li class="list-group-item">Date: {{ series.date }}</li>
         <li class="list-group-item">Patches: {{ series.num_patches }} / {{ series.total_patches }}</li>
         {% for header in series.extra_headers %}
         <li class="list-group-item">{{ header | safe }} </li>
@@ -70,21 +73,19 @@
     {% for msg in messages %}
         <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
             <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
-                <div class="row">
-                    <div class="col-md-9 panel-title">
+                    <h3 class="panel-title">
                         {{ msg.subject }}
-                    </div>
+                    </h3>
 
-                    <div class="col-md-3 message-age">
-                        <small>Posted by</small>
+                    <div class="message-info">
+                        Posted by
                         <span class="message-author" title="{{ msg.sender_full_name }}">
-                            {{ msg.sender_display_name }}</span><small>,</small>
-                        <span class="age" title="{{ msg.date }}">
+                            {{ msg.sender_display_name }}</span>
+                        <span class="message-age" title="{{ msg.date }}">
                             {{ msg.get_age }}
                         </span>
-                        <small>ago</small>
+                        ago
                     </div>
-                </div>
             </div>
             <div class="panel-body panel-toggle panel-hidden">
                 {% if msg.is_patch %}
