@@ -70,6 +70,8 @@ Supported states:
  - reviewed - all the patches in the series is reviewed
  - obsolete or old - the series has newer version
  - complete - the series has all the patches it contains
+ - merged - the series is included in the project's git tree
+ - pull - the series is a pull request
 
 Example:
 
@@ -157,6 +159,8 @@ Search text keyword in the email message. Example:
                 lneg = term.startswith("not:")
             if cond == "complete":
                 q = Q(is_complete=True)
+            elif cond == "pull":
+                q = Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
             elif cond == "reviewed":
                 q = Q(properties__name="reviewed",
                       properties__value="true")
