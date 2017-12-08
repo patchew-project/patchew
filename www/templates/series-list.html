@@ -9,7 +9,7 @@
 {% if series %}
 <table class="table table-condensed table-striped">
     <tr>
-        {% if project_column %}
+        {% if project is None %}
         <th>Project</th>
         {% endif %}
         <th>Status</th>
@@ -30,7 +30,7 @@
     </tr>
     {% for s in series %}
         <tr>
-            {% if project_column %}
+            {% if project is None %}
             <td>{{ s.project.name }}</td>
             {% endif %}
             <td class="series-status">
