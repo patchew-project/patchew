@@ -11,3 +11,7 @@
 .dropdown a:hover, .dropdown a:focus {
     text-decoration: none;
 }
+
+tr.obsolete > td, tr.obsolete > td a {
+    color: #999999;
+}
