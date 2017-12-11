@@ -194,6 +194,10 @@ class MessageManager(models.Manager):
         if not s.last_reply_date or s.last_reply_date < msg.date:
             s.last_reply_date = msg.date
             s.save()
+        if s.get_sender_addr() != msg.get_sender_addr() and \
+           (not s.last_comment_date or s.last_comment_date < msg.date):
+            s.last_comment_date = msg.date
+            s.save()
         s.refresh_num_patches()
         cur, total = s.get_num()
         if cur == total and s.is_patch:
@@ -257,7 +261,19 @@ class Message(models.Model):
     message_id = HeaderFieldModel(db_index=True)
     in_reply_to = HeaderFieldModel(blank=True, db_index=True)
     date = models.DateTimeField(db_index=True)
+    # last_reply_date and last_comment_date are subtly different.
+    # last_reply_date came first and is used to sort the series by
+    # reply.  It includes all messages in the thread so that newer
+    # series come first, but that includes the original messages
+    # making it unsuitable for implementing "has:replies".
+    # last_comment_date instead is used exactly for "has:replies"
+    # (it could have been a bool field "has_comment" but that would
+    # be a little less flexible for future extensions).  For "has:replies"
+    # we need to block messages from the original author in order to
+    # not count "ping"s as replies, but that obviously makes it a
+    # poor sorting order.  So here's why there are two fields.
     last_reply_date = models.DateTimeField(db_index=True, null=True)
+    last_comment_date = models.DateTimeField(db_index=True, null=True)
     subject = HeaderFieldModel()
     stripped_subject = HeaderFieldModel(db_index=True)
     version = models.PositiveSmallIntegerField(default=0)
