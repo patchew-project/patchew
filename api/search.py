@@ -63,15 +63,14 @@ Filter by age of the message. Supports "d" (day), "w" (week), "m" (month) and "y
 
 ### Search by series state
 
- - Syntax: is:STATE
+Syntax:
 
-Supported states:
-
- - reviewed - all the patches in the series is reviewed
- - obsolete or old - the series has newer version
- - complete - the series has all the patches it contains
- - merged - the series is included in the project's git tree
- - pull - the series is a pull request
+ - is:reviewed - all the patches in the series is reviewed
+ - is:obsolete or is:old - the series has newer version
+ - is:complete - the series has all the patches it contains
+ - is:merged - the series is included in the project's git tree
+ - is:pull - the series is a pull request
+ - has:replies - the series received a reply (apart from patches sent by the submitter)
 
 Example:
 
@@ -97,6 +96,7 @@ Compare the address info of message. Example:
 Negative of an expression. Example:
 
     !is:reviewed     (query series that are not reviewed)
+    !has:replies     (query series that have not received any comment)
 
 ---
 
@@ -185,7 +185,10 @@ Search text keyword in the email message. Example:
                 neg = not neg
         elif term.startswith("has:"):
             cond = term[term.find(":") + 1:]
-            q = Q(properties__name=cond)
+            if cond == "replies":
+                q = Q(last_comment_date__isnull=False)
+            else:
+                q = Q(properties__name=cond)
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)
