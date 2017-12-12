@@ -16,7 +16,7 @@ import re
 import uuid
 import logging
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.contrib.auth.models import User, Group
 from mbox import MboxMessage
@@ -524,3 +524,112 @@ class Module(models.Model):
 
     def __str__(self):
         return self.name
+
+class Queue(models.Model):
+    """ Patch queue"""
+
+    project = models.ForeignKey('Project', on_delete=models.CASCADE)
+    name = models.CharField(max_length=128)
+    # JSON encoded list of user names, only those listed can update the queue
+    maintainers = models.TextField()
+    # JSON encoded list of message-ids
+    patches = models.TextField(blank=True, default="[]")
+    # JSON encoded list of (prop_key, val)
+    auto_props = models.TextField(blank=True, default="[]")
+    # Whether to maintain an auto branch for the queue
+    auto_branch = models.BooleanField(blank=True, default=True)
+    # If true, the patches should be re-applied on top of project's git head,
+    # on the queue's branch. It will be cleared once processed by applier
+    need_rebase = models.BooleanField(blank=True, default=False)
+    # The repo URI of the auto branch
+    repo = models.CharField(max_length=4096, blank=True,
+                            help_text="The git repo of the queue")
+    # The name of the auto branch
+    branch = models.CharField(max_length=4096, blank=True,
+                              help_text="The name of the queue's branch")
+
+    def maintained_by(self, user):
+        if user.is_superuser():
+            return True
+        if not self.maintainers:
+            return False
+        ms = json.loads(self.maintainers)
+        return user.name in ms
+
+    def add_maintainer(self, user):
+        if self.maintainers:
+            ms = json.loads(self.maintainers)
+        else:
+            ms = []
+        if user.name in ms:
+            return
+        self.maintainers = json.dumps(ms + [user.name])
+        self.save()
+
+    def get_maintainers(self):
+        return User.objects.filter(username__in=json.loads(self.maintainers))
+
+    def get_patches(self):
+        ret = []
+        for mid in json.loads(self.patches):
+            mo = Message.objects.filter(message_id=mid).first()
+            if not mo:
+                logging.warn("[%s] Message %s in queue %s doesn't exist" % \
+                             (self.project.name, mid, self.name))
+                continue
+            ret.append(mo)
+        return ret
+
+    def _process_auto_prop(self, m, add):
+        for k, v in json.loads(self.auto_props):
+            m.set_property(k, v if add else None)
+
+    @transaction.atomic
+    def queue_patches(self, s, save=True):
+        updated = False
+        if s.is_series_head:
+            for p in s.get_patches():
+                updated = self.queue_patches(p, False) or updated
+        elif s.is_patch:
+            patches = json.loads(self.patches)
+            if s.message_id in patches:
+                return False
+            updated = True
+            patches.append(s.message_id)
+            self.patches = json.dumps(patches)
+        else:
+            return False
+        if not updated:
+            return False
+        self.need_rebase = self.auto_branch
+        self._process_auto_prop(s, True)
+        if save:
+            self.save()
+        return True
+
+    @transaction.atomic
+    def drop_patches(self, s, save=True):
+        updated = False
+        if s.is_series_head:
+            for p in s.get_patches():
+                updated = self.drop_patches(p, False) or updated
+        elif s.is_patch:
+            patches = json.loads(self.patches)
+            new_patches = [x for x in patches if x != s.message_id]
+            updated = new_patches != patches
+            self.patches = json.dumps(new_patches)
+        else:
+            return False
+        if not updated:
+            return False
+        self.need_rebase = self.auto_branch
+        self._process_auto_prop(s, False)
+        if save:
+            self.save()
+        return True
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = ('project', 'name',)

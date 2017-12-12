@@ -368,6 +368,91 @@ class ProjectCommand(SubCommand):
                 return self.update_project(argv[1:])
         return self.list_projects(argv)
 
+class QueuesCommand(SubCommand):
+    name = "queues"
+    want_argv = True
+
+    def list_queues(self, argv):
+        parser = argparse.ArgumentParser()
+        args = parser.parse_args(argv)
+        r = self.api_do("get-queues")
+        for p in r:
+            print("[%s] %s" % (p["project"], p["name"]))
+        return 0
+
+    def show_queue(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("project", help="The name of project")
+        parser.add_argument("queue", help="The name of queue to show")
+        args = parser.parse_args(argv)
+        r = self.api_do("get-queue-info", project=args.project,
+                        queue=args.queue)
+        for p in r["patches"]:
+            print(p["subject"])
+        return 0
+
+    def add_queue(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("project", help="Which project to create queue for")
+        parser.add_argument("name", help="Name of the queue")
+        parser.add_argument("autoprop", nargs="*", help="Auto property")
+        args = parser.parse_args(argv)
+        self.api_do("add-queue",
+                    project=args.project,
+                    name=args.name,
+                    auto_props=args.autoprop)
+
+    def del_queue(self, argv):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("project", help="Which project to create queue for")
+        parser.add_argument("name", help="Name of the queue")
+        args = parser.parse_args(argv)
+        self.api_do("del-queue",
+                    project=args.project,
+                    name=args.name)
+
+    def do(self, args, argv):
+        if argv:
+            if argv[0] == "add":
+                return self.add_queue(argv[1:])
+            elif argv[0] == "del":
+                return self.del_queue(argv[1:])
+            elif argv[0] == "show":
+                return self.show_queue(argv[1:])
+        return self.list_queues(argv)
+
+class QueueCommand(SubCommand):
+    name = "queue"
+    want_argv = False
+
+    def arguments(self, parser):
+        parser.add_argument("project")
+        parser.add_argument("queue")
+        parser.add_argument("message_id", nargs="+",
+                            help="Message-id of the patch or series to queue")
+
+    def do(self, args, argv):
+        self.api_do("queue-patches",
+                    project=args.project,
+                    queue=args.queue,
+                    message_ids=args.message_id)
+
+class DropCommand(SubCommand):
+    name = "drop"
+    want_argv = False
+
+    def arguments(self, parser):
+        parser.add_argument("project")
+        parser.add_argument("queue")
+        parser.add_argument("message_id", nargs="+",
+                            help="Message-id of the patch or series to queue")
+
+    def do(self, args, argv):
+        self.api_do("drop-patches",
+                    project=args.project,
+                    queue=args.queue,
+                    message_ids=args.message_id)
+
 class SearchCommand(SubCommand):
     name = "search"
 
