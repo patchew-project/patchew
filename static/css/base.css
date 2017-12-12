@@ -93,7 +93,7 @@ textarea {
 @media (min-width: 1200px) {
   .fixed {
     position: fixed;
-    top: 0px;
+    top: 10px;
     padding-left: 0px;
     padding-right: 35px;
   }
