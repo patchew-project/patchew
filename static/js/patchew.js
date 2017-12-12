@@ -23,6 +23,6 @@ function add_fixed_scroll_events()
         // add/remove the col-lg-NN attribute to the #fixed element, because
         // "position: fixed" computes the element's width according to the document's
         fixed.toggleClass('fixed ' + fixed.parent().attr('class'),
-                          $(window).scrollTop() >= pre_fixed.offset().top + pre_fixed.height());
+                          $(window).scrollTop() + 10 >= pre_fixed.offset().top + pre_fixed.height());
     })
 }
