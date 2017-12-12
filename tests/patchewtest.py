@@ -75,8 +75,12 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         self.assertEqual(r, rc,
             "Exit code {} != expected {}, stdout:\n{}\nstderr:\n{}\n".format(r, rc, a, b))
         if stdout is not None:
+            if isinstance(stdout, list):
+                stdout = os.linesep.join(stdout)
             self.assertEqual(stdout, a)
         if stderr is not None:
+            if isinstance(stderr, list):
+                stderr = os.linesep.join(stderr)
             self.assertEqual(stderr, b)
         return a, b
 

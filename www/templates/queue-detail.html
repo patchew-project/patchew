@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/message-thread.css">
+<link rel="stylesheet" href="/static/highlight/default.css">
+<script src="/static/highlight/highlight.pack.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div id="top"></div>
+
+<div class="col-lg-2">
+    <div class="list-group">
+        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+    </div>
+</div>
+<div class="col-lg-10">
+    <div id="thread">
+    {% for msg in queue.patches %}
+        <div class="panel panel-default message">
+            <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
+                <div class="row">
+                    <div class="col-md-9 panel-title">
+                        {{ msg.subject }}
+                    </div>
+
+                    <div class="col-md-3 message-age">
+                        <small>Posted by</small>
+                        <span class="message-author" title="{{ msg.sender_full_name }}">
+                            {{ msg.sender_display_name }}</span><small>,</small>
+                        <span class="age" title="{{ msg.date }}">
+                            {{ msg.get_age }}
+                        </span>
+                        <small>ago</small>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body panel-toggle panel-hidden">
+                <pre class="body-full"><code class="diff">{{ msg.get_body }}</code></pre>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+
+<script type="text/javascript">
+
+function main() {
+    $("#btn-expand-all").click(function () {
+        $(".panel-toggle").show();
+    });
+    $("#btn-fold-all").click(function () {
+        $(".panel-toggle").hide();
+    });
+    $(document).ready(function() {
+        $('pre code').each(function(i, block) {
+            hljs.highlightBlock(block);
+        });
+    });
+}
+
+$(main);
+
+</script>
+
+{% endblock %}

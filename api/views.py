@@ -14,12 +14,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
-from .models import Project, Message
+from .models import Project, Message, Queue
 import json
 from .search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from mod import dispatch_module_hook
+from django.contrib.auth.models import User
 
 class APIView(View):
     name = None
@@ -261,3 +262,103 @@ class LoginComand(APIView):
         else:
                 raise PermissionDenied("Wrong user name or password")
 
+class GetQueuesComand(APIView):
+    name = "get-queues"
+
+    def handle(self, request, project=None, maintainer=None):
+        queues = Queue.objects.all()
+        if project:
+            queues = req.filter(project_name=project)
+        mo = None
+        if maintainer:
+            mo = User.objects.filter(name=maintainer).first()
+            if not mo:
+                raise Exception("Maintainer not found")
+        ret = []
+        for x in queues:
+            if not mo or x.maintained_by(mo):
+                ret.append({"project": x.project.name,
+                            "name": x.name,
+                            })
+        return ret
+
+class AddQueueComand(APILoginRequiredView):
+    name = "add-queue"
+
+    def handle(self, request, project, name, auto_props=[]):
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Exception("Project not found")
+        aps = []
+        for ap in auto_props:
+            if "=" in ap:
+                aps.append(ap.split("=", 2))
+            else:
+                aps.append((ap, "1"))
+        q = Queue(project=po,
+                  name=name,
+                  maintainers=json.dumps([request.user.username]),
+                  auto_props=json.dumps(aps),
+                  )
+        q.save()
+
+class DelQueueComand(APILoginRequiredView):
+    name = "del-queue"
+
+    def handle(self, request, project, name):
+        qo = Queue.objects.filter(project__name=project, name=name).first()
+        if not qo:
+            raise Exception("Queue not found")
+        for p in qo.get_patches():
+            qo.drop_patches(p)
+        qo.delete()
+
+class QueuePatchesComand(APILoginRequiredView):
+    name = "queue-patches"
+
+    def handle(self, request, project, queue, message_ids=[]):
+        qo = Queue.objects.filter(project__name=project, name=queue).first()
+        if not qo:
+            raise Exception("Queue not found")
+        mos = []
+        for mid in message_ids:
+            mo = Message.objects.filter(message_id=mid).first()
+            if not mo:
+                raise Exception("Patch not found")
+            mos.append(mo)
+        if not mos:
+            raise Exception("No patch to queue")
+        for mo in mos[:-1]:
+            qo.queue_patches(mo, False)
+        qo.queue_patches(mos[-1], True)
+
+class DropPatchesComand(APILoginRequiredView):
+    name = "drop-patches"
+
+    def handle(self, request, project, queue, message_ids=[]):
+        qo = Queue.objects.filter(project__name=project, name=queue).first()
+        if not qo:
+            raise Exception("Queue not found")
+        mos = []
+        for mid in message_ids:
+            mo = Message.objects.filter(message_id=mid).first()
+            if not mo:
+                raise Exception("Patch not found")
+            mos.append(mo)
+        if not mos:
+            raise Exception("No patch to queue")
+        for mo in mos[:-1]:
+            qo.drop_patches(mo, False)
+        qo.drop_patches(mos[-1], True)
+
+class GetQueueInfoComand(APILoginRequiredView):
+    name = "get-queue-info"
+
+    def handle(self, request, project, queue):
+        qo = Queue.objects.filter(project__name=project, name=queue).first()
+        if not qo:
+            raise Exception("Queue not found")
+        resp = {"patches": []}
+        for p in qo.get_patches():
+            resp["patches"].append(prepare_patch(p))
+        return resp

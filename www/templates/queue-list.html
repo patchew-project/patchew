@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/series-detail.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="top"></div>
+
+<div class="col-lg-2">
+    <div class="list-group">
+        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+    </div>
+</div>
+<div class="col-lg-10">
+
+    {% for q in queues %}
+    <div class="panel panel-success">
+        <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">&quot;{{ q.name }}&quot; queue</div>
+        <div class="panel-body panel-toggle">
+            <ul class="list-group">
+                <li class="list-group-item">Maintainer(s): {{ q.maintainers }}</li>
+                <li class="list-group-item">Queued patches: <a href="{{ q.detail_url }}">{{ q.patches | length }}</a></li>
+                {% if q.repo and q.branch %}
+                    <li class="list-group-item">Git: {{ q.repo }} {{ q.branch }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script type="text/javascript">
+
+function main() {
+    $("#btn-expand-all").click(function () {
+        $(".panel-toggle").show();
+    });
+    $("#btn-fold-all").click(function () {
+        $(".panel-toggle").hide();
+    });
+}
+
+$(main);
+
+</script>
+
+{% endblock %}

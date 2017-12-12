@@ -66,6 +66,10 @@ class ModuleAdmin(admin.ModelAdmin):
             request, object_id, form_url, extra_context=extra_context,
         )
 
+class QueueAdmin(admin.ModelAdmin):
+    inlines = [
+        ]
+
 admin_site = admin.site
 
 admin_site.site_header = 'Patchew admin'
@@ -75,3 +79,4 @@ admin_site.index_title = 'Patchew administration'
 admin_site.register(Project, ProjectAdmin)
 admin_site.register(Message, MessageAdmin)
 admin_site.register(Module, ModuleAdmin)
+admin_site.register(Queue, QueueAdmin)

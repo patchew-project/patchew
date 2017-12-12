@@ -88,7 +88,24 @@ crossorigin="anonymous"></script>
     {% if navigate_links %}
         <ol class="breadcrumb navigate">
         {% for n in navigate_links %}
-            <li class="{{ n.class }}"><a href="{{ n.url }}">{{ n.title }}</a></li>
+          <li class=" {% if n.active %}active{% endif %} {% if n.menu %}dropdown{% endif %} ">
+             {% if n.menu %}
+                  <a href="{{ n.url }}"
+                 class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                      {{ n.title }}<span class="caret"></span></a>
+                  <ul class="dropdown-menu">
+                      {% for me in n.menu %}
+                        {% if me is None %}
+                            <li role="separator" class="divider"></li>
+                        {% else %}
+                            <li><a href="{{ me.url }}">{{ me.title }}</a></li>
+                        {% endif %}
+                      {% endfor %}
+                  </ul>
+                 {% else %}
+                 <a href="{{ n.url }}">{{ n.title }}</a>
+                 {% endif %}
+          </li>
         {% endfor %}
         </ol>
     {% endif %}

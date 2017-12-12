@@ -117,15 +117,37 @@ def get_page_from_request(request):
     except:
         return 1
 
-def prepare_navigate_list(cur, *path):
-    """ each path is (view_name, kwargs, title) """
-    r = [{"url": reverse("project_list"),
-          "title": "Projects"}]
-    for it in path:
-        r.append({"url": reverse(it[0], kwargs=it[1]),
-                  "title": it[2]})
-    r.append({"title": cur, "url": "", "class": "active"})
-    return r
+class NavigateItem(object):
+    def __init__(self, title, url, active=False, menu=[]):
+        self.title = title
+        self.url = url
+        self.menu = menu
+        self.active = active
+
+def project_navigate_menu(project, skip=None):
+    def add_separator():
+        if len(ret) and ret[-1] is not None:
+            # None is rendered as a separate
+            ret.append(None)
+    ret = []
+    if skip != "All patches":
+        ret.append(NavigateItem("All patches",
+                reverse("series_list", kwargs={"project": project})))
+    if skip != "New patches":
+        ret.append(NavigateItem("New patches",
+            reverse("search") + "?q=project:%s not:merged" % project))
+    if skip != "Merged patches":
+        ret.append(NavigateItem("Merged patches",
+            reverse("search") + "?q=project:%s is:merged" % project))
+    add_separator()
+    ret.append(NavigateItem("Queues",
+        reverse("queue_list", kwargs={"project": project})))
+    if skip != "Project info":
+        ret.append(NavigateItem("Project info",
+            reverse("project_detail", kwargs={"project": project})))
+    if ret and ret[-1] is None:
+        ret.pop()
+    return ret
 
 def render_series_list_page(request, query, search, project=None, keywords=[]):
     sort = request.GET.get("sort")
@@ -147,10 +169,13 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
         params += "&" + urllib.parse.urlencode({"q": search})
     page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
     if project:
-        nav_path = prepare_navigate_list("Patches",
-                                         ("project_detail", {"project": project}, project))
+        navs = [NavigateItem(project,
+                              reverse("project_detail", kwargs={"project": project})),
+                NavigateItem("All patches", "#", True,
+                             menu=project_navigate_menu(project, "All patches")),
+               ]
     else:
-        nav_path = prepare_navigate_list('search "%s"' % search)
+        navs = [NavigateItem('search "%s"' % search, "#", True)]
     return render_page(request, 'series-list.html',
                        series=prepare_series_list(request, series),
                        page_links=page_links,
@@ -158,29 +183,73 @@ def render_series_list_page(request, query, search, project=None, keywords=[]):
                        keywords=keywords,
                        project_column=project==None,
                        order_by_reply=order_by_reply,
-                       navigate_links=nav_path)
+                       navigate_links=navs)
 
 def view_search_help(request):
     from markdown import markdown
-    nav_path = prepare_navigate_list("Search help")
+    navs = [NavigateItem('Search help' % search, "#", True)]
     return render_page(request, 'search-help.html',
-                       navigate_links=nav_path,
+                       navigate_links=navs,
                        search_help_doc=markdown(api.search.SearchEngine.__doc__))
 
 def view_project_detail(request, project):
     po = api.models.Project.objects.filter(name=project).first()
     if not po:
         raise Http404("Project not found")
-    nav_path = prepare_navigate_list("Information",
-                        ("project_detail", {"project": project}, project))
+    navs = [NavigateItem("Projects", reverse("project_list")),
+            NavigateItem(project, "#", True,
+                         menu=project_navigate_menu(project, "Project info")),
+           ]
     po.extra_info = []
     po.extra_headers = []
     po.extra_ops = []
     dispatch_module_hook("prepare_project_hook", request=request, project=po)
     return render_page(request, "project-detail.html",
                        project=po,
-                       navigate_links=nav_path,
+                       navigate_links=navs,
                        search="")
+
+def render_queue(request, q):
+    patches = q.get_patches()
+    return {"name": q.name,
+            "maintainers": ", ".join([m.username for m in q.get_maintainers()]),
+            "repo": q.repo,
+            "branch": q.branch,
+            "patches": [prepare_message(request, m, False) for m in patches],
+            "detail_url": reverse("queue_detail",
+                                  kwargs={"project": q.project.name,
+                                          "queue": q.name}),
+            }
+
+def view_queue_list(request, project):
+    po = api.models.Project.objects.filter(name=project).first()
+    if not po:
+        raise Http404("Project not found")
+    navs = [NavigateItem(project, "#"),
+            NavigateItem("Queues", "#", True,
+                         menu=project_navigate_menu(project, "Project info")),
+           ]
+    queues = api.models.Queue.objects.filter(project=po)
+    return render_page(request, "queue-list.html",
+                       project=po,
+                       navigate_links=navs,
+                       queues=[render_queue(request, q) for q in queues])
+
+def view_queue_detail(request, project, queue):
+    qo = api.models.Queue.objects.filter(project__name=project, name=queue).first()
+    if not qo:
+        raise Http404("Queue not found")
+    navs = [NavigateItem(project,
+                         reverse("project_detail", kwargs={"project": project})),
+            NavigateItem("Queues",
+                         reverse("queue_list", kwargs={"project": project})),
+            NavigateItem(queue, "#",
+                         menu=project_navigate_menu(project)),
+           ]
+    return render_page(request, "queue-detail.html",
+                       project=qo.project,
+                       navigate_links=navs,
+                       queue=render_queue(request, qo))
 
 def view_search(request):
     from api.search import SearchEngine
@@ -212,15 +281,16 @@ def view_series_detail(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
     if not s:
         raise Http404("Series not found")
-    nav_path = prepare_navigate_list(s.message_id,
-                    ("project_detail", {"project": project}, project),
-                    ("series_list", {"project": project}, "Patches"))
+    navs = [NavigateItem(project,
+                         reverse("project_detail", kwargs={"project": project})),
+            NavigateItem(message_id, "#", True,
+                         menu=project_navigate_menu(project))]
     search = "id:" + message_id
     ops = []
     return render_page(request, 'series-detail.html',
                        series=prepare_message(request, s, True),
                        project=project,
-                       navigate_links=nav_path,
+                       navigate_links=navs,
                        search=search,
                        series_operations=ops,
                        messages=prepare_series(request, s))
