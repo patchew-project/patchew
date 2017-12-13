@@ -115,6 +115,10 @@ def env_detect():
 DEBUG, DATA_DIR = env_detect()
 if DEBUG:
     ALLOWED_HOSTS = ["*"]
+else:
+    # On deployment environments, we are behind apache/nginx so allow local
+    # address only
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR)
