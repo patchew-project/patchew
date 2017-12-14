@@ -111,35 +111,9 @@ offlineimap_import()
     done
 }
 
-archive_import()
-{
-    KNOWN_DIR=$BASEDIR/known
-    mkdir -p $KNOWN_DIR
-    files=$(curl $ARCHIVE_URL -s |
-            grep -o '[^"]*\.txt\.gz' | head -n 2)
-
-    for fn in $files; do
-        mkdir -p $BASEDIR/archive-download
-        gzmbox=$BASEDIR/archive-download/$fn
-        echo "Downloading $fn"
-        timeout 1800 wget --quiet $ARCHIVE_URL$fn -O $gzmbox
-        echo "Uncompressing $fn"
-        gunzip -fk $gzmbox || rm $gzmbox
-        echo "Importing $fn"
-        $PATCHEW_CLI import ${gzmbox%.gz} -k $KNOWN_DIR
-    done
-}
-
 while :; do
-    $PATCHEW_CLI login "$PATCHEW_UESR" "$PATCHEW_PASS"
-    case "$PATCHEW_IMPORT_METHOD" in
-        offlineimap)
-            offlineimap_import
-        ;;
-        archive)
-            archive_import
-        ;;
-    esac
+    $PATCHEW_CLI login "$PATCHEW_USER" "$PATCHEW_PASS"
+    offlineimap_import
     while :; do
         wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
         if (cd $wd; $PATCHEW_CLI apply --applier-mode); then
