@@ -27,8 +27,13 @@
 {% endfor %}
 
 <script type="text/javascript">
+function toggleDiff()
+{
+    tgt = $(this).parents("table").find("tbody");
+    tgt.toggle();
+}
 
-function diffUsingJS(left, right, opcodes) {
+function diffUsingJS(left, right, opcodes, trivial) {
     var contextSize = 5;
 
     // build the diff view and add it to the current DOM
@@ -42,7 +47,12 @@ function diffUsingJS(left, right, opcodes) {
         contextSize: contextSize,
         viewType: $("inline").checked ? 1 : 0
     });
+    if (trivial) {
+        $(c).find("tbody").hide();
+        $(c).addClass("trivial");
+    }
     $("#diffoutput").append(c);
+    return c;
 }
 
 function deleteFromArray(arr, element) {
@@ -173,7 +183,9 @@ function crossDiff(left, right) {
     for (j = 0; j < orig_right_length; j++) {
         i = matching[j][0];
         var ops = matching[j][2];
-        diffUsingJS(left[i], right[j], ops);
+        // Never hide the cover letter
+        var hide = i > 0 && quick_left[i] != -1;
+        diffUsingJS(left[i], right[j], ops, hide);
         deleteFromArray(remaining_lhs_patches, i);
 
         // Deleted LHS patches are printed after all their prerequisites
@@ -183,7 +195,7 @@ function crossDiff(left, right) {
             var jj = deleted_lhs_patches[ii];
             var ops = matching[jj][2];
             console.log("can now emit lhs patch " + ii);
-            diffUsingJS(left[ii], right[jj], ops);
+            diffUsingJS(left[ii], right[jj], ops, true);
             remaining_lhs_patches.shift();
         }
     }
@@ -199,6 +211,7 @@ $(function() {
     right.push($("#right{{forloop.counter}}"));
 {% endfor %}
     crossDiff(left, right);
+    $(".diff thead th").click(toggleDiff);
 });
 </script>
 {% endblock %}

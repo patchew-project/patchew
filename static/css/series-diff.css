@@ -12,6 +12,9 @@
 .diff thead th, .diff thead td {
   background: #ddd;
 }
+.diff.trivial thead th {
+  color: #999;
+}
 .diff tbody td {
   border-bottom-color: #ddd;
 }
@@ -19,6 +22,10 @@
 .diff div {
   overflow-x: hidden;
   white-space: pre;
+}
+
+.diff thead th {
+  cursor: pointer;
 }
 
 /* Hide line numbers since we already have them in the diff.  */
