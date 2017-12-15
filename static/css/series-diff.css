@@ -1,0 +1,63 @@
+.diff {
+  width: 100%;
+  table-layout: fixed;
+  margin-top: 1em;
+  border: 1px solid #999;
+}
+.diff th, .diff td {
+  width: 50%;
+  border: 1px solid #999;
+  vertical-align: top;
+}
+.diff thead th, .diff thead td {
+  background: #ddd;
+}
+.diff tbody td {
+  border-bottom-color: #ddd;
+}
+
+.diff div {
+  overflow-x: hidden;
+  white-space: pre;
+}
+
+/* Hide line numbers since we already have them in the diff.  */
+.diff th {
+  display: none;
+}
+.diff th.author {
+  display: table-cell;
+}
+.diff th.texttitle {
+  display: table-cell;
+}
+
+/* Colors for the body of the diff */
+.diff td.delete, .diff td.replace.left {
+  border-bottom-color: #ebb;
+  background: #fcc;
+}
+.diff td.insert, .diff td.replace.right {
+  border-bottom-color: #beb;
+  background: #cfc;
+}
+.diff td.equal {
+  border-bottom-color: #eee;
+  background: #fff;
+}
+.diff td.empty {
+  border-bottom-color: #ddd;
+  background: #eee;
+}
+.diff td.skip {
+  background-color: #f3f3ff;
+  border-bottom: 1px solid #cce;
+  padding: 0;
+}
+.diff td.skip div {
+  /* Use a top border on the div to "bypass" the table's collapsed borders.  */
+  border-top: 1px solid #cce;
+  height: 6px;
+  text-align: center;
+  padding: 0;
+}
