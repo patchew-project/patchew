@@ -257,5 +257,5 @@ Email information is configured in "INI" style:
             return
         project.extra_info.append({"title": "Email notifications",
                                    "class": "info",
-                                   "content": self.build_config_html(request,
-                                                                     project)})
+                                   "content_html": self.build_config_html(request,
+                                                                          project)})
