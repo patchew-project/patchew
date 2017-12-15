@@ -57,7 +57,9 @@
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">{{ info.title }}</div>
         <div class="panel-body panel-toggle panel-hidden" {% if info.content_url %}data-content-url="{{ info.content_url | safe }}"{% endif %}>
             {% if info.content %}
-                {{ info.content | safe }}
+                <pre>{{ info.content }}</pre>
+            {% elif info.content_html %}
+                {{ info.content_html | safe }}
             {% elif info.content_url %}
             <div class="progress">
                 <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">

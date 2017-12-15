@@ -294,8 +294,8 @@ class TestingModule(PatchewModule):
             return
         project.extra_info.append({"title": "Testing configuration",
                                    "class": "info",
-                                   "content": self.build_config_html(request,
-                                                                     project)})
+                                   "content_html": self.build_config_html(request,
+                                                                          project)})
         ti = self._testers_info(project)
         if ti:
             project.extra_headers.append(ti)

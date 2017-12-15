@@ -107,7 +107,7 @@ class GitModule(PatchewModule):
             failed = message.get_property("git.apply-failed")
             message.extra_info.append({"title": "Git apply log",
                                        "class": 'danger' if failed else 'default',
-                                       "content": '<pre>%s</pre>' % l})
+                                       "content": l})
             git_url = message.get_property("git.url")
             git_repo = message.get_property("git.repo")
             git_tag = message.get_property("git.tag")
@@ -143,8 +143,8 @@ class GitModule(PatchewModule):
             return
         project.extra_info.append({"title": "Git configuration",
                                    "class": "info",
-                                   "content": self.build_config_html(request,
-                                                                     project)})
+                                   "content_html": self.build_config_html(request,
+                                                                          project)})
 
     def prepare_series_hook(self, request, series, response):
         po = series.project
