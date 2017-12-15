@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/static/css/series-diff.css">
 <script src="/static/jsdifflib/difflib.js"></script>
 <script src="/static/jsdifflib/diffview.js"></script>
+<script src="/static/jsdifflib/munkres.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -17,41 +18,187 @@
 </div>
 
 
-<textarea id="series_left" data-subject="{{series_left.subject}}" style="display: none;">{{series_left_text}}</textarea>
-<textarea id="series_right" data-subject="{{series_right.subject}}" style="display: none;">{{series_right_text}}</textarea>
+<textarea id="null" data-subject="" style="display: none;"></textarea>
+{% for subject, body in series_left %}
+<textarea id="left{{forloop.counter}}" data-subject="{{subject}}" style="display: none;">{{body}}</textarea>
+{% endfor %}
+{% for subject, body in series_right %}
+<textarea id="right{{forloop.counter}}" data-subject="{{subject}}" style="display: none;">{{body}}</textarea>
+{% endfor %}
 
 <script type="text/javascript">
 
-function diffUsingJS(first, second) {
-    // get the baseText and newText values from the two textboxes, and split them into lines
-    var base = difflib.stringAsLines(first.text());
-    var newtxt = difflib.stringAsLines(second.text());
-
-    // create a SequenceMatcher instance that diffs the two sets of lines
-    var sm = new difflib.SequenceMatcher(base, newtxt);
-
-    // get the opcodes from the SequenceMatcher instance
-    // opcodes is a list of 3-tuples describing what changes should be made to the base text
-    // in order to yield the new text
-    var opcodes = sm.get_opcodes();
+function diffUsingJS(left, right, opcodes) {
     var contextSize = 5;
 
     // build the diff view and add it to the current DOM
     c = diffview.buildView({
-        baseTextLines: base,
-        newTextLines: newtxt,
+        baseTextLines: left.lines,
+        newTextLines: right.lines,
         opcodes: opcodes,
         // set the display titles for each resource
-        baseTextName: first.data('subject'),
-        newTextName: second.data('subject'),
+        baseTextName: left.data('subject') || 'New patch',
+        newTextName: right.data('subject') || 'Deleted patch',
         contextSize: contextSize,
         viewType: $("inline").checked ? 1 : 0
     });
     $("#diffoutput").append(c);
 }
 
+function deleteFromArray(arr, element) {
+    found = false;
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i] == element) {
+            found = true;
+        }
+        if (found) {
+            arr[i] = arr[i+1];
+        }
+    }
+    if (found) {
+        arr.pop()
+    }
+}
+
+function computeWeight(opcodes) {
+    w = 0;
+    for (var i = 0; i < opcodes.length; i++) {
+        // opcodes[1..2] is the range in the source
+        // opcodes[3..4] is the range in the destination
+        op = opcodes[i];
+        if (op[0] != "equal") {
+            w += (op[4]-op[3]+1) + (op[2]-op[1]+1);
+        }
+    }
+    return w;
+}
+
+function crossDiff(left, right) {
+    var i, j;
+    var n;
+    var orig_left_length = left.length;
+    var orig_right_length = right.length;
+    var quick_left = Array();
+    var quick_right = Array();
+    var opcodes = Array();
+    var weights = Array();
+    var remaining_lhs_patches = Array();
+
+    // Pad the arrays to the same length, using dummy textareas.
+    for (i = left.length; i < right.length; i++)
+        left.push($("#null"));
+    for (i = right.length; i < left.length; i++)
+        right.push($("#null"));
+
+    // Preparation pass: create two NxN matrices (opcodes and weights) and
+    // split the textareas in lines
+    n = left.length;
+    for (i = 0; i < n; i++) {
+        left[i].lines = difflib.stringAsLines(left[i].text())
+        right[i].lines = difflib.stringAsLines(right[i].text())
+        opcodes.push(Array()); opcodes[i].length = n;
+        weights.push(Array()); weights[i].length = n;
+        quick_left.push(-1);
+        quick_right.push(-1);
+    }
+
+    // As an optimization, look for equal patches
+    // Also, the cover letters always go against each other
+    quick_left[0] = quick_right[0] = 0
+    for (i = 1; i < orig_left_length; i++) {
+        for (j = 1; j < orig_right_length; j++) {
+            if (left[i].text() == right[j].text()) {
+                console.log(i + "," + j + " --> exact match");
+                quick_left[i] = j
+                quick_right[j] = i
+                break;
+            }
+        }
+    }
+
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < n; j++) {
+            // Skip diff for "impossible" matches
+            if ((quick_left[i] != -1 || quick_right[j] != -1) &&
+                quick_left[i] != j) {
+                weights[i][j] = 100000;
+                continue;
+            }
+
+            // create a SequenceMatcher instance that diffs the two sets of lines
+            // opcodes is a list of 3-tuples describing what changes should be made to the base text
+            // in order to yield the new text
+            var base = left[i].lines;
+            var newtxt = right[j].lines;
+            var sm = new difflib.SequenceMatcher(base, newtxt);
+            opcodes[i][j] = sm.get_opcodes();
+            if (quick_left[i] == j) {
+                weights[i][j] = 0;
+            } else {
+                weights[i][j] = computeWeight(opcodes[i][j]);
+            }
+            console.log(i + "," + j + " --> " + weights[i][j]);
+        }
+    }
+
+    // Matching is an array of pairs (two-element arrays) corresponding
+    // to the LHS and RHS respectively
+    matching = computeMunkres(weights);
+
+    // We'll print the patches according to the order of the "new" side
+    // After this step, matching[j][1] == j
+    matching = matching.sort(function(a, b) { return a[1]-b[1]; });
+
+    // Let garbage collection get rid of unused diffs
+    for (j = 0; j < n; j++) {
+        i = matching[j][0];
+        console.log(i + ":" + j + " (cost " + weights[i][j] + ")");
+        matching[j].push(opcodes[i][j]);
+    }
+    opcodes = null;
+    weights = null;
+
+    // Mark the left patches that maps to a dummy right side
+    deleted_lhs_patches = {}
+    for (j = orig_right_length; j < n; j++) {
+        i = matching[j][0];
+        deleted_lhs_patches[i] = j;
+        console.log("found deleted lhs patch " + i);
+    }
+
+    // This array is used later to order the diffs from the left-side series.
+    for (i = 0; i < orig_left_length; i++)
+        remaining_lhs_patches[i] = i;
+
+    for (j = 0; j < orig_right_length; j++) {
+        i = matching[j][0];
+        var ops = matching[j][2];
+        diffUsingJS(left[i], right[j], ops);
+        deleteFromArray(remaining_lhs_patches, i);
+
+        // Deleted LHS patches are printed after all their prerequisites
+        while (remaining_lhs_patches.length > 0 &&
+               (remaining_lhs_patches[0] in deleted_lhs_patches)) {
+            var ii = remaining_lhs_patches[0];
+            var jj = deleted_lhs_patches[ii];
+            var ops = matching[jj][2];
+            console.log("can now emit lhs patch " + ii);
+            diffUsingJS(left[ii], right[jj], ops);
+            remaining_lhs_patches.shift();
+        }
+    }
+}
+
 $(function() {
-	diffUsingJS($("#series_left"), $("#series_right"));
+    var left = Array();
+    var right = Array();
+{% for subject, body in series_left %}
+    left.push($("#left{{forloop.counter}}"));
+{% endfor %}
+{% for subject, body in series_right %}
+    right.push($("#right{{forloop.counter}}"));
+{% endfor %}
+    crossDiff(left, right);
 });
 </script>
 {% endblock %}

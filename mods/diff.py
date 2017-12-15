@@ -11,6 +11,7 @@
 import os
 import shutil
 import hashlib
+from collections import OrderedDict
 from django.conf.urls import url
 from django.http import Http404
 from django.urls import reverse
@@ -46,35 +47,33 @@ class DiffModule(PatchewModule):
                                       "title": "Diff against v" + str(v),
                                      })
 
-    def _get_series_text(self, s):
+    def _get_series_for_diff(self, s):
         def _get_message_text(m):
-            return "\n%s\n%s\n%s\n\n" % (m.subject, "-" * 80, m.get_body())
-        ret = ""
+            filtered = ""
+            sep = ""
+            for l in m.get_body().splitlines():
+                for pat, repl in [(r"index [0-9a-f]+\.\.[0-9a-f]+",
+                                   r"index XXXXXXX..XXXXXXX"),
+                                  (r"@@ -[0-9]+,[0-9]+ \+[0-9]+,[0-9]+ @@ ",
+                                   r"@@ -XXX,XX +XXX,XX @@ ")]:
+                    l = re.sub(pat, repl, l)
+                filtered += sep + l
+                sep = "\n"
+            return filtered
+
+        ret = OrderedDict()
         if not s.is_patch:
-            ret += _get_message_text(s)
+            ret[s.subject] = _get_message_text(s)
         for p in s.get_patches():
-            ret += _get_message_text(p)
-        ret_filtered = ""
-        sep = ""
-        for l in ret.splitlines():
-            for pat, repl in [(r"index [0-9a-f]+\.\.[0-9a-f]+",
-                               r"index XXXXXXX..XXXXXXX"),
-                              (r"@@ -[0-9]+,[0-9]+ \+[0-9]+,[0-9]+ @@ ",
-                               r"@@ -XXX,XX +XXX,XX @@ ")]:
-                l = re.sub(pat, repl, l)
-            ret_filtered += sep + l
-            sep = "\n"
-        return ret_filtered
+            ret[p.subject] = _get_message_text(p)
+        return ret
 
     def www_view_series_diff(self, request, series_left, series_right):
         sl = Message.objects.filter(message_id=series_left).first()
         sr = Message.objects.filter(message_id=series_right).first()
-        if not sl or not sr:
-            raise Http404("Unknown series")
         return render_page(request, "series-diff.html",
-                           series_left=sl, series_right=sr,
-                           series_left_text=self._get_series_text(sl),
-                           series_right_text=self._get_series_text(sr))
+                           series_left=self._get_series_for_diff(sl).items(),
+                           series_right=self._get_series_for_diff(sr).items())
 
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^series-diff/(?P<series_left>.*)/(?P<series_right>.*)/",
