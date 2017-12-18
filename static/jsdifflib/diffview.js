@@ -26,6 +26,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The views and conclusions contained in the software and documentation are those of the
 authors and should not be interpreted as representing official policies, either expressed
 or implied, of Chas Emerick.
+
+---
+customizations for patchew:
+- add "left" and "right" classes to cells
+- add a <div> inside text cells
+- add a title attribute (tooltip) to "skip" cells
 */
 var diffview = {
 	/**
@@ -68,14 +74,19 @@ var diffview = {
 		
 		function telt (name, text) {
 			var e = document.createElement(name);
-			e.appendChild(document.createTextNode(text));
+			var node = document.createTextNode(text);
+			if (name == "td") {
+				var child = document.createElement("div");
+				child.appendChild(node);
+				node = child;
+			}
+			e.appendChild(node);
 			return e;
 		}
 		
 		function ctelt (name, clazz, text) {
-			var e = document.createElement(name);
+			var e = telt(name, text);
 			e.className = clazz;
-			e.appendChild(document.createTextNode(text));
 			return e;
 		}
 	
@@ -145,9 +156,12 @@ var diffview = {
 						n += jump;
 						i += jump - 1;
 						node.appendChild(telt("th", "..."));
-						if (!inline) node.appendChild(ctelt("td", "skip", ""));
+						skipText = "Skipped " + jump + " identical lines";
+						if (!inline) node.appendChild(skip = ctelt("td", "skip", ""));
+						skip.setAttribute("title", skipText);
 						node.appendChild(telt("th", "..."));
-						node.appendChild(ctelt("td", "skip", ""));
+						node.appendChild(skip = ctelt("td", "skip", ""));
+						skip.setAttribute("title", skipText);
 						
 						// skip last lines if they're all equal
 						if (idx + 1 == opcodes.length) {
@@ -173,8 +187,8 @@ var diffview = {
 						addCellsInline(node, b++, n++, baseTextLines, change);
 					}
 				} else {
-					b = addCells(node, b, be, baseTextLines, change);
-					n = addCells(node, n, ne, newTextLines, change);
+					b = addCells(node, b, be, baseTextLines, change + " left");
+					n = addCells(node, n, ne, newTextLines, change + " right");
 				}
 			}
 
