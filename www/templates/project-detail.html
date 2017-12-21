@@ -11,6 +11,21 @@
 <h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" style="float: right"/></li>{% endif %}{{ project.name }}</h2>
 {% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
 
+<div class="status">
+{% for status in project.extra_status %}
+ <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
+ {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
+ {% elif status.kind == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
+ {% elif status.kind == "alert" %} <span class="fa fa-lg fa-warning"></span>
+ {% elif status.kind == "good" %} <span class="fa fa-lg fa-check"></span>{% endif %}
+ <div>{{ status.html }}</div>
+ {% if status.extra %}
+  <div class="status-extra" id="{{status.id}}">{{ status.extra }}</div>
+ {% endif %}
+</div>
+{% endfor %}
+</div>
+
 <div id="pre-fixed"></div>
 <div class="col-lg-2">
     <div id="fixed" class="list-group">
