@@ -53,7 +53,7 @@
     {% for info in project.extra_info %}
     <div class="panel panel-{{ info.class }}">
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">{{ info.title }}</div>
-        <div class="panel-body panel-toggle panel-hidden"}>
+        <div class="panel-body panel-collapse collapse">
             {% if info.content_html %}{{ info.content_html | safe }}{% endif %}
         </div>
     </div>
@@ -64,10 +64,10 @@
 
 function main() {
     $("#btn-expand-all").click(function () {
-        $(".panel-toggle").show();
+        $(".panel-collapse").collapse("show");
     });
     $("#btn-fold-all").click(function () {
-        $(".panel-toggle").hide();
+        $(".panel-collapse").collapse("hide");
     });
     $(document).ready(function() {
         $(".cbox-inline").colorbox({inline:true, width:"90%", className:'colorbox-pre'})
