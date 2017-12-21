@@ -96,6 +96,7 @@ h1, h2, h3, .h1, .h2, .h3 {
 }
 
 #pre-fixed {
+    margin-top: 1em;
     clear: both;
 }
 @media (min-width: 1200px) {
@@ -105,4 +106,37 @@ h1, h2, h3, .h1, .h2, .h3 {
     padding-left: 0px;
     padding-right: 35px;
   }
+}
+
+.status {
+    padding-right: 15px;
+}
+.status .status-content:last-child {
+    border-bottom: 0px;
+    margin-bottom: 15px;
+}
+.status-content {
+    border-bottom: 1px solid #dddddd;
+    padding-bottom: 0.5em;
+    margin: 0.5em 0em;
+}
+
+.status-content > .fa {
+    position: absolute;
+    width: 40px;
+    margin-top: 0.166666em;
+    text-align: center;
+}
+
+.status-content > .fa {
+    color: #337ab7;
+}
+.status-content.status-alert > .fa {
+    color: #CC0000;
+}
+.status-content.status-good > .fa {
+    color: #009900;
+}
+.status-content > div {
+    margin-left: 40px;
 }

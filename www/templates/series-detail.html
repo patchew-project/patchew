@@ -13,10 +13,34 @@
 <div class="col-lg-12">
 <h2>{{ series.subject }}</h2>
 <div class="series-header-info">
-           Posted by <span class="message-author" title="{{ series.sender_full_name }}">
+            <span class="message-author" title="{{ series.sender_full_name }}">
                 {{ series.sender_display_name }}
-           </span> <span class="message-age" title="{{ series.date }}">
-                  {{ series.age }} ago</span>
+	    </span> posted <span class="patch-count">
+		    {{ series.total_patches }}
+		    patch{% if series.total_patches != 1 %}es{% endif %}
+	    </span> <span class="message-age" title="{{ series.date }}">
+		    {{ series.age }} ago</span>
+</div>
+
+<div class="status">
+{% if series.num_patches < series.total_patches %}
+<div class="status-content status-alert">
+   <span class="fa fa-lg fa-warning"></span>
+   <div>Only {{ series.num_patches }} patches received!</div>
+</div>
+{% endif %}
+{% for status in series.extra_status %}
+ <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
+ {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
+ {% elif status.kind == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
+ {% elif status.kind == "alert" %} <span class="fa fa-lg fa-warning"></span>
+ {% elif status.kind == "good" %} <span class="fa fa-lg fa-check"></span>{% endif %}
+ <div>{{ status.html }}</div>
+ {% if status.extra %}
+  <div class="status-extra" id="{{status.id}}">{{ status.extra }}</div>
+ {% endif %}
+</div>
+{% endfor %}
 </div>
 </div>
 
@@ -35,12 +59,13 @@
     </div>
 </div>
 <div class="col-lg-10">
+    {% if series.extra_headers %}
     <ul class="list-group">
-        <li class="list-group-item">Patches: {{ series.num_patches }} / {{ series.total_patches }}</li>
         {% for header in series.extra_headers %}
         <li class="list-group-item">{{ header | safe }} </li>
         {% endfor %}
     </ul>
+    {% endif %}
     {% if series.get_diff_stat %}
     <div class="panel panel-default">
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
