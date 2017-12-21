@@ -236,6 +236,7 @@ def view_series_detail(request, project, message_id):
     is_cover_letter=not series.is_patch
     return render_page(request, 'series-detail.html',
                        subject=s.subject,
+                       stripped_subject=s.stripped_subject,
                        message_id=s.message_id,
                        series=series,
                        is_cover_letter=is_cover_letter,
@@ -258,6 +259,7 @@ def view_series_message(request, project, thread_id, message_id):
     series = prepare_message(request, s, True)
     return render_page(request, 'series-detail.html',
                        subject=m.subject,
+                       stripped_subject=s.stripped_subject,
                        message_id=m.message_id,
                        series=series,
                        is_cover_letter=False,

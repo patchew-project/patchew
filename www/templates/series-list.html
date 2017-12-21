@@ -8,8 +8,12 @@
 
 <div id="top"></div>
 <div class="col-lg-12">
-<h2>{% if is_search %}Search results{% else %}All series{% endif %}
-{% if project is not None %}for {{ project }}{% endif %}</h2>
+<h2>
+ {% block title %}
+ {% if is_search %}Search results{% else %}All series{% endif %}
+ {% if project is not None %}for {{ project }}{% endif %}
+ {% endblock %}
+</h2>
 {% if not is_search %}
 <p><a href="{% url "project_detail" project=project %}">More information about {{ project }}...</a></p>
 {% endif %}
