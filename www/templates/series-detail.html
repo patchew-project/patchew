@@ -4,6 +4,8 @@
 <link rel="stylesheet" href="/static/css/series-detail.css">
 <link rel="stylesheet" href="/static/highlight/default.css">
 <script src="/static/highlight/highlight.pack.js"></script>
+<link rel="stylesheet" href="/static/css/colorbox.css">
+<script src="/static/js/jquery.colorbox-min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -59,13 +61,6 @@
     </div>
 </div>
 <div class="col-lg-10">
-    {% if series.extra_headers %}
-    <ul class="list-group">
-        {% for header in series.extra_headers %}
-        <li class="list-group-item">{{ header | safe }} </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
     {% if series.get_diff_stat %}
     <div class="panel panel-default">
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
@@ -142,6 +137,8 @@ function main() {
         $('pre code').each(function(i, block) {
             hljs.highlightBlock(block);
         });
+        $(".cbox-inline").colorbox({inline:true, width:"90%", className:'colorbox-pre'})
+        $(".cbox-log").colorbox({width:"90%", className:'colorbox-pre'})
     });
     add_fixed_scroll_events();
 }

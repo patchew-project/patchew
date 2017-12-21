@@ -17,6 +17,7 @@ from django.conf.urls import url
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
+from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Project, Message, MessageProperty
@@ -105,12 +106,8 @@ class GitModule(PatchewModule):
         l = message.get_property("git.apply-log")
         if l:
             failed = message.get_property("git.apply-failed")
-            message.extra_info.append({"title": "Git apply log",
-                                       "class": 'danger' if failed else 'default',
-                                       "content": l})
-            git_url = message.get_property("git.url")
-            git_repo = message.get_property("git.repo")
-            git_tag = message.get_property("git.tag")
+            colorbox_a = format_html('<a class="cbox-inline" href="#gitlog">apply log</a>')
+            colorbox_div = l
             if failed:
                 title = "Failed in applying to current master"
                 message.status_tags.append({
@@ -118,16 +115,29 @@ class GitModule(PatchewModule):
                     "type": "default",
                     "char": "G",
                     })
+                message.extra_status.append({
+                    "kind": "alert",
+                    "html": format_html('{} ({})', title, colorbox_a),
+                    "extra": colorbox_div,
+                    "id": "gitlog"
+                })
             else:
-                html = 'Git: <a href="%s">%s</a><br><pre>git fetch %s %s</pre>' % (git_url, git_url, git_repo, git_tag)
-                message.extra_headers.append(html)
-                title = "Applied as tag %s in repo %s" % (git_tag, git_repo)
+                git_url = message.get_property("git.url")
+                git_repo = message.get_property("git.repo")
+                git_tag = message.get_property("git.tag")
                 message.status_tags.append({
                     "url": git_url,
-                    "title": title,
+                    "title": format_html("Applied as tag {} in repo {}", git_tag, git_repo),
                     "type": "info",
                     "char": "G",
                     })
+                message.extra_status.append({
+                    "kind": "good",
+                    "html": format_html('Patches applied successfully (<a href="{}">tree</a>, {}).<br/><samp>git fetch {} {}</samp>',
+                                        git_url, colorbox_a, git_repo, git_tag),
+                    "extra": colorbox_div,
+                    "id": "gitlog"
+                })
         if request.user.is_authenticated:
             if message.get_property("git.apply-failed") != None or \
                  message.get_property("git.need-apply") == None:

@@ -46,7 +46,6 @@ def prepare_message(request, m, detailed):
                 "char": "P",
                 })
     m.extra_info = []
-    m.extra_headers = []
     m.extra_status = []
     m.extra_ops = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
