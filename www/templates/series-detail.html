@@ -66,7 +66,7 @@
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         Changeset
         </div>
-        <div class="panel-body panel-toggle">
+        <div class="panel-body panel-collapse collapse in">
             <pre class="body-full">{{ series.get_diff_stat }}</pre>
         </div>
     </div>
@@ -90,7 +90,7 @@
                         ago
                     </div>
             </div>
-            <div class="panel-body panel-toggle panel-hidden">
+            <div class="panel-body panel-collapse collapse">
                 {% if msg.is_patch %}
                 <pre class="body-full"><code class="diff">{{ msg.get_body }}</code></pre>
                 {% else %}
@@ -109,10 +109,10 @@ function main() {
         $(o).attr("title", new Date(1000 * $(o).attr("title")));
     });
     $("#btn-expand-all").click(function () {
-        $(".panel-toggle").show();
+        $(".panel-collapse").collapse("show");
     });
     $("#btn-fold-all").click(function () {
-        $(".panel-toggle").hide();
+        $(".panel-collapse").collapse("hide");
     });
     $(document).ready(function() {
         $('pre code').each(function(i, block) {

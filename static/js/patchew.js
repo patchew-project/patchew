@@ -6,8 +6,8 @@ function patchew_api_do(method, data)
 }
 function patchew_toggler_onclick(which)
 {
-    tgt = $(which).parent().find(".panel-toggle");
-    tgt.toggle();
+    tgt = $(which).parent().find(".panel-collapse");
+    tgt.collapse("toggle");
 }
 function add_fixed_scroll_events()
 {

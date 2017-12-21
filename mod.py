@@ -320,7 +320,7 @@ TMPL_MAP_ITEM = """
         {{ item_schema.title }}
         <strong id="item-name">{{ item.name }}</strong>
     </div>
-    <div class="panel-body panel-toggle panel-hidden">
+    <div class="panel-body panel-collapse collapse">
         {{ item.html }}
         <div class="form-group">
             <button type="button"
