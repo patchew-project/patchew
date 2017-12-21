@@ -2,16 +2,24 @@
 
 {% block header %}
 <link rel="stylesheet" href="/static/css/project-detail.css">
+<link rel="stylesheet" href="/static/css/colorbox.css">
+<script src="/static/js/jquery.colorbox-min.js"></script>
 {% endblock %}
 
 {% block content %}
 
 <div id="top"></div>
 <div class="col-lg-12">
-<h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" style="float: right"/></li>{% endif %}{{ project.name }}</h2>
+<h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" class="project-logo"/></li>{% endif %}{{ project.name }}</h2>
 {% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
 
 <div class="status">
+<div class="status-content">
+  <span class="fa fa-lg fa-external-link"></span><div>URL: <a href="{{ project.url }}">{{ project.url }}</a></div>
+</div>
+<div class="status-content">
+  <span class="fa fa-lg fa-git"></span><div>Git: <a href="{{ project.git }}">{{ project.git }}</a></div>
+</div>
 {% for status in project.extra_status %}
  <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
  {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
@@ -24,6 +32,9 @@
  {% endif %}
 </div>
 {% endfor %}
+<div class="status-content">
+  <div><a href="{% url "series_list" project=project %}">View {{ project.total_series_count }} series</a></div>
+</div>
 </div>
 
 <div id="pre-fixed"></div>
@@ -31,7 +42,6 @@
     <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
-        <a href="{% url "series_list" project=project %}" class="list-group-item list-group-item-info">Patches</a>
         {% for op in project.extra_ops %}
             <a href="{{ op.url }}"
                class="list-group-item list-group-item-{% if op.class %}{{ op.class }}{% else %}info{% endif %}">{{ op.title }}
@@ -40,14 +50,13 @@
     </div>
 </div>
 <div class="col-lg-10">
+    {% if project.extra_headers %}
     <ul class="list-group">
-        {% if project.url %}<li class="list-group-item">URL: <strong><a href="{{ project.url }}">{{ project.url }}</a></strong></li>{% endif %}
-        {% if project.git %}<li class="list-group-item">Git: <strong><a href="{{ project.git }}">{{ project.git }}</a></strong></li>{% endif %}
-        <li class="list-group-item">Total series: <a href="{% url "series_list" project=project %}">{{ project.total_series_count }}</a></li>
         {% for header in project.extra_headers %}
             <li class="list-group-item">{{ header }}</li>
         {% endfor %}
     </ul>
+    {% endif %}
 
     {% for info in project.extra_info %}
     <div class="panel panel-{{ info.class }}">
@@ -77,6 +86,10 @@ function main() {
     });
     $("#btn-fold-all").click(function () {
         $(".panel-toggle").hide();
+    });
+    $(document).ready(function() {
+        $(".cbox-inline").colorbox({inline:true, width:"90%", className:'colorbox-pre'})
+        $(".cbox-log").colorbox({width:"90%", className:'colorbox-pre'})
     });
     add_fixed_scroll_events();
 }

@@ -4,6 +4,12 @@ html, body {
 textarea {
     font-family: monospace;
 }
+samp {
+    padding: 2px 4px;
+    font-size: 90%;
+    background-color: #eeeeee;
+    border-radius: 4px;
+}
 .wrapper {
     min-height: 100%;
     height: auto !important;
@@ -139,4 +145,16 @@ h1, h2, h3, .h1, .h2, .h3 {
 }
 .status-content > div {
     margin-left: 40px;
+}
+.status-extra {
+    display: none;
+}
+#colorbox .status-extra {
+    display: block;
+}
+.colorbox-pre #cboxLoadedContent {
+    white-space: pre;
+    font-family: monospace;
+    font-size: 90%;
+    background-color: #eeeeee;
 }
