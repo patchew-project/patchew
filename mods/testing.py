@@ -13,6 +13,7 @@ from django.http import HttpResponse, HttpResponseForbidden, Http404, \
                         HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
+from django.utils.html import format_html
 from django.template import Template, Context
 from mod import PatchewModule
 import time
@@ -198,7 +199,6 @@ class TestingModule(PatchewModule):
                 continue
             tn = pn[len("testing.report."):]
             failed = not p["passed"]
-            passed_str = "failed" if failed else "passed"
             log_prop = "testing.log." + tn
             if isinstance(obj, Message):
                 typearg = "type=message"
@@ -212,9 +212,12 @@ class TestingModule(PatchewModule):
                                   kwargs={"project_or_series": obj.name,
                                           "testing_name": tn})
             log_url += "?" + typearg
-            obj.extra_info.append({"title": "Test %s: %s" % (passed_str, tn),
-                                  "class": 'danger' if failed else 'success',
-                                  "content_url": log_url})
+            passed_str = "failed" if failed else "passed"
+            html = format_html('Test <b>{}</b> <a class="cbox-log" href="{}">{}</a>', tn, log_url, passed_str)
+            obj.extra_status.append({
+                "kind": "alert" if failed else "good",
+                "html": html,
+            })
 
     def _build_reset_ops(self, obj):
         if isinstance(obj, Message):
@@ -250,7 +253,6 @@ class TestingModule(PatchewModule):
         if not message.is_series_head:
             return
         self.prepare_testing_report(message)
-
         if message.project.maintained_by(request.user) \
                 and message.get_property("testing.started"):
             message.extra_ops += self._build_reset_ops(message)
@@ -274,7 +276,7 @@ class TestingModule(PatchewModule):
                 "char": "T",
                 })
 
-    def _testers_info(self, project):
+    def check_active_testers(self, project):
         at = []
         for k, v in project.get_properties().items():
             prefix = "testing.check_in."
@@ -287,7 +289,10 @@ class TestingModule(PatchewModule):
             at.append("%s (%dmin)" % (tn, math.ceil(age / 60)))
         if not at:
             return
-        return "Active testers: " + ", ".join(at)
+        project.extra_status.append({
+            "kind": "running",
+            "html":  "Active testers: " + ", ".join(at)
+        })
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
@@ -296,9 +301,7 @@ class TestingModule(PatchewModule):
                                    "class": "info",
                                    "content_html": self.build_config_html(request,
                                                                           project)})
-        ti = self._testers_info(project)
-        if ti:
-            project.extra_headers.append(ti)
+        self.check_active_testers(project)
         self.prepare_testing_report(project)
 
         if project.maintained_by(request.user) \
