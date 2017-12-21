@@ -45,7 +45,6 @@ def prepare_message(request, m, detailed):
                 "type": "warning",
                 "char": "P",
                 })
-    m.extra_info = []
     m.extra_status = []
     m.extra_ops = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
@@ -182,7 +181,6 @@ def view_project_detail(request, project):
     nav_path = prepare_navigate_list("Information",
                         ("series_list", {"project": project}, project))
     po.extra_info = []
-    po.extra_headers = []
     po.extra_status = []
     po.extra_ops = []
     dispatch_module_hook("prepare_project_hook", request=request, project=po)
