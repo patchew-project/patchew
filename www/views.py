@@ -47,6 +47,7 @@ def prepare_message(request, m, detailed):
                 })
     m.extra_status = []
     m.extra_ops = []
+    m.extra_links = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
                          detailed=detailed)
     if m.is_merged:

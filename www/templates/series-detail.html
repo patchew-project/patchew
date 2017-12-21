@@ -22,8 +22,20 @@
 		    patch{% if series.total_patches != 1 %}es{% endif %}
 	    </span> <span class="message-age" title="{{ series.date }}">
 		    {{ series.age }} ago</span>
+  <ul id="series-links">
+    <li>
+      <span class="fa fa-download"></span> <a
+        href="/{{ project }}/{{ series.message_id }}/mbox">Download series mbox</a></li>
+    </li>
+    {% for op in series.extra_links %}
+    <li>
+      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span>
+        {{ op.html }}</li>
+    {% endfor %}
+  </ul>
 </div>
 
+{% if series.extra_ops %}
 <div id="detail-ops">
   <ul>
     {% for op in series.extra_ops %}
@@ -31,11 +43,9 @@
       <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span><a
         href="{{ op.url }}">{{ op.title }}</a></li>
     {% endfor %}
-    <li>
-      <span class="fa fa-download"></span><a
-        href="/{{ project }}/{{ series.message_id }}/mbox">Download series mbox</a></li>
   </ul>
 </div>
+{% endif %}
 
 <div class="status">
 {% if series.num_patches < series.total_patches %}
