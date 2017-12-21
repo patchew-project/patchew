@@ -156,5 +156,6 @@ h1, h2, h3, .h1, .h2, .h3 {
     white-space: pre;
     font-family: monospace;
     font-size: 90%;
-    background-color: #eeeeee;
+    color: #eeeeee;
+    background-color: #333333;
 }
