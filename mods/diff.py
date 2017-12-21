@@ -44,6 +44,7 @@ class DiffModule(PatchewModule):
                           kwargs={"series_right": message.message_id,
                                   "series_left": o.message_id})
             message.extra_ops.append({"url": url,
+                                      "icon": "exchange",
                                       "title": "Diff against v" + str(v),
                                      })
 

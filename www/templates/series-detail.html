@@ -24,6 +24,19 @@
 		    {{ series.age }} ago</span>
 </div>
 
+<div id="detail-ops">
+  <ul>
+    {% for op in series.extra_ops %}
+    <li>
+      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span><a
+        href="{{ op.url }}">{{ op.title }}</a></li>
+    {% endfor %}
+    <li>
+      <span class="fa fa-download"></span><a
+        href="/{{ project }}/{{ series.message_id }}/mbox">Download series mbox</a></li>
+  </ul>
+</div>
+
 <div class="status">
 {% if series.num_patches < series.total_patches %}
 <div class="status-content status-alert">
@@ -51,13 +64,6 @@
     <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
-        {% for op in series.extra_ops %}
-            <a href="{{ op.url }}"
-                class="list-group-item list-group-item-{% if op.class %}{{ op.class }}{% else %}info{% endif %}">
-                {{ op.title }}
-            </a>
-        {% endfor %}
-        <a href="/{{ project }}/{{ series.message_id }}/mbox" class="list-group-item list-group-item-info">Download mbox</a>
     </div>
 </div>
 <div class="col-lg-10">

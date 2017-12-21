@@ -159,3 +159,37 @@ h1, h2, h3, .h1, .h2, .h3 {
     color: #eeeeee;
     background-color: #333333;
 }
+
+@media (min-width: 1200px) {
+  #detail-ops {
+    clear: right;
+    float: right;
+    padding-left: 15px;
+    padding-bottom: 15px;
+    background-color: white;
+  }
+}
+#detail-ops {
+  padding-bottom: 15px;
+  padding-right: 15px;
+}
+
+#detail-ops > ul {
+    list-style-type: none;
+    color: #1708f;
+    background-color: #d9edf7;
+    border-radius: 4px;
+    padding: 0px 1em 0px 2em;
+    border: 1px solid #dddddd;
+}
+#detail-ops > ul > li {
+    margin: 1em 0.5em;
+    padding: 0em;
+}
+#detail-ops > ul > li > .fa {
+    position: relative;
+    left: -1em;
+    width: 1em;
+    text-align: center;
+    display: inline-block;
+}
