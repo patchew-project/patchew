@@ -15,6 +15,8 @@ from collections import OrderedDict
 from django.conf.urls import url
 from django.http import Http404
 from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from mod import PatchewModule
 from api.models import Project, Message
 from www.views import render_page
@@ -32,21 +34,27 @@ class DiffModule(PatchewModule):
         assert _instance == None
         _instance = self
 
+    def get_other_versions_urls(self, message_id, other_versions):
+        left = False
+        for o in sorted(other_versions, key=lambda y: y.version):
+            if o.message_id == message_id:
+                left = True
+                continue
+            # The oldest series always goes on the left
+            kwargs={"series_left": message_id if left else o.message_id,
+                    "series_right": o.message_id if left else message_id}
+            yield o.version, reverse("series_diff", kwargs=kwargs)
+
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head or not detailed:
             return
         other_versions = message.get_alternative_revisions()
-        for o in other_versions:
-            if message.message_id == o.message_id:
-                continue
-            v = o.version
-            url = reverse("series_diff",
-                          kwargs={"series_right": message.message_id,
-                                  "series_left": o.message_id})
-            message.extra_ops.append({"url": url,
-                                      "icon": "exchange",
-                                      "title": "Diff against v" + str(v),
-                                     })
+        if len(other_versions) <= 1:
+            return
+        html = "Diff against"
+        for v, url in self.get_other_versions_urls(message.message_id, other_versions):
+            html = html + format_html(' <a href="{}">v{}</a>', url, v)
+        message.extra_links.append({"html": mark_safe(html), "icon": "exchange" })
 
     def _get_series_for_diff(self, s):
         def _get_message_text(m):
