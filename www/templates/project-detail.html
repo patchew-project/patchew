@@ -13,6 +13,18 @@
 <h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" class="project-logo"/></li>{% endif %}{{ project.name }}</h2>
 {% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
 
+{% if project.extra_ops %}
+<div id="detail-ops">
+  <ul>
+    {% for op in project.extra_ops %}
+    <li>
+      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span><a
+        href="{{ op.url }}">{{ op.title }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <div class="status">
 <div class="status-content">
   <span class="fa fa-lg fa-external-link"></span><div>URL: <a href="{{ project.url }}">{{ project.url }}</a></div>
@@ -42,11 +54,6 @@
     <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
-        {% for op in project.extra_ops %}
-            <a href="{{ op.url }}"
-               class="list-group-item list-group-item-{% if op.class %}{{ op.class }}{% else %}info{% endif %}">{{ op.title }}
-            </a>
-        {% endfor %}
     </div>
 </div>
 <div class="col-lg-10">

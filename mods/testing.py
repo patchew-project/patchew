@@ -233,6 +233,7 @@ class TestingModule(PatchewModule):
         ret = [{"url": url,
                 "title": "Reset all testing states",
                 "class": "warning",
+                "icon": "refresh",
                }]
         for pn, p in obj.get_properties().items():
             if not pn.startswith("testing.report."):
@@ -240,8 +241,9 @@ class TestingModule(PatchewModule):
             tn = pn[len("testing.report."):]
             failed = not p["passed"]
             ret.append({"url": url + "&test=" + tn,
-                        "title": "Reset testing states of '%s'" % tn,
+                        "title": format_html("Reset <b>{}</b> testing state", tn),
                         "class": "warning",
+                        "icon": "refresh",
                         })
         return ret
 

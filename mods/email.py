@@ -167,8 +167,9 @@ Email information is configured in "INI" style:
             return
         if message.is_series_head and request.user.is_authenticated:
             message.extra_ops.append({"url": reverse("email-bounce",
-                                     kwargs={"message_id": message.message_id}),
-                                            "title": "Bounce to me"})
+                                                     kwargs={"message_id": message.message_id}),
+                                      "icon": "mail-forward",
+                                      "title": "Bounce to me"})
 
     def _sections_by_event(self, event):
         conf = self.get_config_obj()

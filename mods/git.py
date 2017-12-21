@@ -144,6 +144,7 @@ class GitModule(PatchewModule):
                 url = reverse("git_reset",
                               kwargs={"series": message.message_id})
                 message.extra_ops.append({"url": url,
+                                          "icon": "refresh",
                                           "title": "Git reset",
                                           "class": "warning",
                                          })
