@@ -66,6 +66,12 @@
  {% endif %}
 </div>
 {% endfor %}
+
+{% if series.get_diff_stat %}
+<div class="panel-body">
+    <pre class="body-full">{{ series.get_diff_stat }}</pre>
+</div>
+{% endif %}
 </div>
 </div>
 
@@ -76,18 +82,8 @@
         <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
     </div>
 </div>
-<div class="col-lg-10">
-    {% if series.get_diff_stat %}
-    <div class="panel panel-default">
-        <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
-        Changeset
-        </div>
-        <div class="panel-body panel-collapse collapse in">
-            <pre class="body-full">{{ series.get_diff_stat }}</pre>
-        </div>
-    </div>
-    {% endif %}
 
+<div class="col-lg-10">
     <div id="thread">
     {% for msg in messages %}
         <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
