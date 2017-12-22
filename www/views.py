@@ -12,6 +12,7 @@ import urllib.request, urllib.parse, urllib.error
 from django.shortcuts import render
 from django.template import Context
 from django.http import HttpResponse, Http404
+from django.db.models import Exists, OuterRef
 from django.urls import reverse
 from django.conf import settings
 import api
@@ -62,6 +63,8 @@ def prepare_patches(request, m, max_depth=None):
     if m.total_patches == 1:
         return []
     replies = m.get_replies().filter(is_patch=True)
+    commit_replies = api.models.Message.objects.filter(in_reply_to=OuterRef('message_id'))
+    replies = replies.annotate(has_replies=Exists(commit_replies))
     return [prepare_message(request, x, True)
             for x in replies]
 

@@ -115,7 +115,7 @@
 	{% if is_cover_letter and forloop.first%}
         <ul class="panel" id="patches">
           {% for patch in patches %}
-	  <li><span class="fa fa-lg fa-ellipsis-v"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
+	  <li><span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
 	  {% endfor %}
           </ul>
 	{% endif %}
@@ -126,7 +126,7 @@
     <ul class="panel" id="patches">
     {% for patch in patches %}
     <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
-      <span class="fa fa-lg fa-ellipsis-v"></span>
+      <span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}
       {% if patch.message_id != message_id %}</a>{% endif %}</li>
     {% endfor %}
