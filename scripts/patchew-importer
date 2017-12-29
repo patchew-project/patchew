@@ -10,24 +10,11 @@
 
 set -e
 
-CONFIG="$HOME/.patchew-importer/config"
+. /data/patchew/config
 
-while getopts "c:" FLAG; do
-    case $FLAG in
-        c)  #set option "c"
-            echo $OPTARG
-            CONFIG=$OPTARG
-            ;;
-    esac
-done
+BASEDIR="/data/patchew"
 
-BASEDIR="/data/patchew-importer"
-
-mkdir -p $BASEDIR
-
-. $CONFIG
-
-PATCHEW_CLI="$(realpath ./patchew-cli) --nodebug -s $PATCHEW_SERVER"
+PATCHEW_CLI="/opt/patchew/patchew-cli -s $PATCHEW_SERVER"
 
 offlineimap_rc=$BASEDIR/offlineimap.rc
 maildir="$BASEDIR/maildir"
@@ -90,7 +77,7 @@ import()
         cp $@ $BAD_MESSAGES_DIR
         echo "(bad message saved in $BAD_MESSAGES_DIR)"
     fi
-    if test -n "$IMAP_DELETE_AFTER_IMPORT"; then
+    if test "$IMAP_DELETE_AFTER_IMPORT" = y; then
         rm -f $f
         echo "Deleted $f"
     fi

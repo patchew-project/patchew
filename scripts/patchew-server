@@ -1,36 +1,19 @@
 #!/bin/sh
 
 set -e
-mkdir -p /data/patchew/log
-chown -R nginx:nginx /data/patchew
+export logdir=$PATCHEW_DATA_DIR/log
+mkdir -p $logdir
+
+chown -R nginx:nginx $PATCHEW_DATA_DIR
 cd /opt/patchew
 
-if ! test -f $PATCHEW_DATA_DIR/.blob-compressed.flag; then
-    find $PATCHEW_DATA_DIR/blob -type f \! -name '*.xz' -exec xz {} \;
-fi
-touch $PATCHEW_DATA_DIR/.blob-compressed.flag
+. venv/bin/activate
 
-if test -d $PATCHEW_DATA_DIR/mbox; then
-    ls $PATCHEW_DATA_DIR/mbox | \
-        while read msgid; do
-            blob_file="$PATCHEW_DATA_DIR/blob/$msgid.xz"
-            test -f "$blob_file" || \
-                xz -c "$PATCHEW_DATA_DIR/mbox/$msgid" > "$blob_file"
-            rm "$PATCHEW_DATA_DIR/mbox/$msgid"
-        done
-    rm -r $PATCHEW_DATA_DIR/mbox
-fi
-
-export PYTHONPATH=/opt/patchew
 ./manage.py migrate --noinput
 ./manage.py collectstatic --noinput
 
-echo "from django.contrib.auth.models import User; \
-  User.objects.create_superuser('admin', \
-                                'admin@patchew.org', 'adminpass')" \
-| ./manage.py shell
-
-python3-gunicorn -b unix:/tmp/patchew-wsgi.sock -D wsgi \
-    --error-logfile /data/patchew/log/gunicorn-error.log \
-    --access-logfile /data/patchew/log/gunicorn-access.log
-nginx -c $(readlink -e nginx.conf)
+gunicorn -b unix:/data/patchew/gunicorn.sock -D wsgi \
+    --error-logfile $logdir/gunicorn-error.log \
+    --access-logfile $logdir/gunicorn-access.log
+rm -f /data/patchew/nginx.sock
+nginx -c $(readlink -e scripts/patchew-server.nginx.conf)

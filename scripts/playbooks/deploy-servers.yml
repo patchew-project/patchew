@@ -1,0 +1,41 @@
+- hosts: servers
+  vars_prompt:
+    - name: instance_name
+      prompt: "Instance name of the webserver"
+      default: patchew-server
+      private: no
+    - name: superuser_name
+      prompt: "Admin account to create (optional)"
+      default: ""
+      private: no
+    - name: superuser_pass
+      prompt: "Admin password (optional)"
+      default: "adminpass"
+      private: yes
+  vars:
+    base_dir: "/data/{{ instance_name }}"
+    src_dir: "{{ base_dir }}/src"
+    data_dir: "{{ base_dir }}/data"
+  tasks:
+    - name: Create data dir
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+    - import_tasks: tasks/docker-deploy.yml
+      vars:
+        instance_role: server
+    - name: Create superuser
+      when: superuser_name != ""
+      shell: |
+        docker exec -i {{ instance_name }} bash -c "
+        cd /opt/patchew &&
+        . venv/bin/activate &&
+        ./manage.py migrate &&
+        (
+        echo 'from django.contrib.auth.models import User;'
+        echo 'if not User.objects.filter(username=\"{{ superuser_name }}\").first():'
+        echo '    User.objects.create_superuser(\"{{ superuser_name }}\",'
+        echo '                                  \"{{ superuser_name }}@example.com\",'
+        echo '                                  \"{{ superuser_pass }}\")'
+        ) | ./manage.py shell
+        "
