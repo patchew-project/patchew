@@ -1,0 +1,20 @@
+FROM centos:7
+EXPOSE 80
+RUN yum install -y epel-release
+RUN yum install -y git nginx xz findutils python34 python34-pip
+COPY requirements.txt /tmp/requirements.txt
+ENV PYTHONPATH .
+RUN /bin/bash -c "mkdir -p /opt/patchew && \
+    cd /opt/patchew && \
+    python3 -m venv ./venv && \
+    . venv/bin/activate && \
+    pip3 install -r /tmp/requirements.txt"
+COPY . /tmp/patchew/
+# Be careful not to overwrite the venv we've just initialized
+RUN rm -rf /tmp/patchew/venv
+RUN mv /tmp/patchew/* /opt/patchew/
+RUN /bin/bash -c "cd /opt/patchew && \
+    . venv/bin/activate && \
+    ./manage.py migrate --no-input && \
+    ./manage.py collectstatic --no-input"
+CMD /opt/patchew/scripts/patchew-server
