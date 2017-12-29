@@ -1,0 +1,18 @@
+- hosts: localhost
+  tasks:
+    - debug:
+        msg: Patchew deploy starting
+
+- name: Include server deploy playbook
+  import_playbook: deploy-servers.yml
+
+- name: Include importer deploy playbook
+  import_playbook: deploy-importers.yml
+
+- name: Include testsrs deploy playbook
+  import_playbook: deploy-testers.yml
+
+- hosts: localhost
+  tasks:
+    - debug:
+        msg: Patchew deploy done

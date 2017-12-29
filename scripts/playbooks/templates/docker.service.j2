@@ -1,0 +1,16 @@
+[Unit]
+Description=Patchew docker instance control service for {{ instance_name }}
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStartPre=-/usr/bin/docker stop {{ instance_name }} ; -/usr/bin/docker rm {{ instance_name }}
+ExecStart=/usr/bin/docker run --privileged --name {{ instance_name }} \
+    -v {{ data_dir }}:/data/patchew:rw \
+    -e PATCHEW_DATA_DIR=/data/patchew \
+    patchew:{{ instance_name }}
+ExecStop=/usr/bin/docker stop -t 10 {{ instance_name }}
+
+[Install]
+WantedBy=default.target

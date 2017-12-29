@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+#
+# Copyright 2017 Red Hat, Inc.
+#
+# Authors:
+#     Fam Zheng <famz@redhat.com>
+#
+# This work is licensed under the MIT License.  Please see the LICENSE file or
+# http://opensource.org/licenses/MIT.
+import os
+import sys
+import argparse
+import tempfile
+import subprocess
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", "-s", dest="web_server",
+                        help="Web server host address")
+    parser.add_argument("--tester", "-t", nargs="*", dest="testers",
+                        help="Tester host address")
+    parser.add_argument("--importer", "-i", nargs="?",
+                        help="Importer host address")
+    parser.add_argument("--debug", "-d", action="store_true",
+                        help="Enable debug output")
+    return parser.parse_known_args()
+
+def generate_inventory_file(args):
+    f = tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8")
+    f.write("""\
+[servers]
+%s
+
+[importers]
+%s
+
+[testers]
+%s""" \
+        % (args.web_server or "",
+           args.importer or "",
+           "\n".join(args.testers or [])))
+    f.flush()
+    return f
+
+def main():
+    args, argv = parse_args()
+    inventory_file = generate_inventory_file(args)
+    playbooks_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "playbooks")
+    playbooks = []
+    if args.web_server:
+        playbooks.append("deploy-servers.yml")
+    if args.testers:
+        playbooks.append("deploy-testers.yml")
+    if args.importer:
+        playbooks.append("deploy-importers.yml")
+    if not playbooks:
+        print("At least one host (web server, importer or tester) must be specified")
+        print("Run: '%s -h' for more information" % sys.argv[0])
+        return 1
+    v = ["-vvv"] if args.debug else []
+    cmd = ["ansible-playbook"] + v + \
+          ["-i", inventory_file.name] + argv + \
+          [os.path.join(playbooks_dir, x) for x in playbooks]
+    if args.debug:
+        print(" ".join(cmd))
+    subprocess.check_call(cmd)
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

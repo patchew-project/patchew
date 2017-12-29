@@ -1,0 +1,55 @@
+- hosts: importers
+  vars_prompt:
+    - name: instance_name
+      prompt: "The instance name"
+      default: patchew-importer
+      private: no
+    - name: "patchew_server"
+      prompt: "The address of patchew server"
+      default: "https://patchew.org"
+      private: no
+    - name: "importer_user"
+      prompt: "Username for the importer to login to the server"
+      private: no
+      default: "importer"
+    - name: "importer_pass"
+      prompt: "Password for the importer to login to the server"
+      private: yes
+    - name: "imap_server"
+      prompt: "IMAP server address to download patches"
+      private: no
+    - name: "imap_user"
+      prompt: "IMAP user account"
+      private: no
+    - name: "imap_pass"
+      prompt: "IMAP password"
+      private: yes
+    - name: "imap_cert_fingerprint"
+      prompt: "IMAP cert fingerprint"
+      default: ""
+      private: no
+    - name: "imap_folders"
+      prompt: "IMAP folders to look for patches"
+      default: "INBOX"
+      private: no
+    - name: "imap_delete_after_import"
+      prompt: "Delete message from IMAP folder(s) after import (y/n)"
+      default: "y"
+      private: no
+  vars:
+    base_dir: "/data/{{ instance_name }}"
+    src_dir: "{{ base_dir }}/src"
+    data_dir: "{{ base_dir }}/data"
+    config_file: "{{ data_dir }}/config"
+  tasks:
+    - name: Create data dir
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+    - name: Create config
+      template:
+        src: "templates/importer-config.j2"
+        dest: "{{ config_file }}"
+    - import_tasks: tasks/docker-deploy.yml
+      vars:
+        instance_role: importer

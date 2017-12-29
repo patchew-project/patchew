@@ -1,0 +1,42 @@
+- hosts: testers
+  vars_prompt:
+    - name: instance_name
+      prompt: "The instance name"
+      default: patchew-tester
+      private: no
+    - name: "patchew_server"
+      prompt: "The address of patchew server"
+      default: "https://patchew.org"
+      private: no
+    - name: "tester_user"
+      prompt: "Username for the tester to login to the server"
+      private: no
+      default: "tester"
+    - name: "tester_pass"
+      prompt: "Password for the tester to login to the server"
+      private: yes
+    - name: "tester_project"
+      prompt: "Project name to test"
+      private: no
+  tasks:
+    - debug:
+        msg: Patchew tester deploy starting
+    - name: Copy patchew-cli
+      synchronize:
+        src: ../../../patchew-cli
+        dest: .
+    - name: Generate password file
+      shell: "echo {{ tester_pass }} > $HOME/.patchew-tester-pass"
+    - name: Login with patchew-cli
+      shell: "./patchew-cli login tester $(cat .patchew-tester-pass)"
+    - name: Define PATCHEW env in cron
+      cron:
+        name: PATCHEW
+        env: yes
+        value: "./patchew-cli -s {{ patchew_server }}"
+    - cron:
+        name: "Patchew tester {{ instance_name }}"
+        user: patchew
+        minute: "*/10"
+        job: "{ $PATCHEW login tester $(cat .patchew-tester-pass); $PATCHEW tester --name {{ instance_name }} --singleton -p {{ tester_project }}; } >>$HOME/patchew-tester.log 2>&1"
+
