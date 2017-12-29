@@ -707,8 +707,8 @@ class ApplyCommand(SubCommand):
             print("No series need apply")
             return 3
         logf = tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8")
-        push_repo = toapply["git.push_to"]
-        public_repo = toapply["git.public_repo"]
+        push_repo = toapply.get("git.push_to")
+        public_repo = toapply.get("git.public_repo")
         wd = tempfile.mkdtemp(dir="/var/tmp")
         try:
             if toapply.get("git.repo"):
@@ -728,13 +728,16 @@ class ApplyCommand(SubCommand):
                                            cwd=wd).decode('utf-8') \
                     .strip()
             self._apply(wd, toapply, branch, force_branch, tag, logf)
-            self._push(wd, push_repo, tag, logf)
-            url = toapply["git.url_template"].replace("%t", tag)
+            if push_repo:
+                self._push(wd, push_repo, tag, logf)
+            url = toapply.get("git.url_template", "").replace("%t", tag)
         except Exception as e:
             if not isinstance(e, ApplyFailedException):
                 traceback.print_exc(file=logf)
             logf.seek(0)
-            log = logf.read().replace(push_repo, public_repo)
+            log = logf.read()
+            if push_repo:
+                log = log.replace(push_repo, public_repo)
             print(log)
             self.api_do("applier-report",
                         project=toapply["project"],
@@ -745,7 +748,9 @@ class ApplyCommand(SubCommand):
         finally:
             shutil.rmtree(wd)
         logf.seek(0)
-        log = logf.read().replace(push_repo, public_repo)
+        log = logf.read()
+        if push_repo:
+            log = log.replace(push_repo, public_repo)
         self.api_do("applier-report",
                     project=toapply["project"],
                     message_id=toapply["message-id"],
