@@ -308,6 +308,15 @@ class ProjectCommand(SubCommand):
         msgids = [x[len("message-id:"):].strip() for x in output.splitlines()]
         logging.debug("message ids: \n%s" % \
                 "\n".join(["  " + x for x in msgids]))
+        push_to = project["properties"].get("git.push_to")
+        if push_to:
+            try:
+                subprocess.check_call(["git", "push", "--force", push_to,
+                                       "%s:%s" % (new_head, branch)],
+                                      cwd=clone)
+            except Exception as e:
+                logging.warn("Failed to push the new head to patchew mirror: %s",
+                             str(e))
         self.api_do("update-project-head", project=project["name"],
                                            old_head=old_head,
                                            new_head=new_head,
