@@ -29,6 +29,7 @@ django.setup()
 
 import django.test
 from django.contrib.auth.models import User, Group
+import rest_framework.test
 from api.models import *
 
 PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
@@ -40,6 +41,9 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     email = "admin@test"
     password = "adminpass"
     client = django.test.Client()
+    api_client = rest_framework.test.APIClient()
+
+    REST_BASE = 'http://testserver/api/v1/'
 
     def get_tmpdir(self):
         if not hasattr(self, "_tmpdir"):

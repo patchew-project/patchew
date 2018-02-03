@@ -8,9 +8,11 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from django.conf.urls import url
+from django.conf.urls import url, include
+from rest_framework.routers import DefaultRouter
 
 from . import views
+from . import rest
 
 def _build_urls(base=None, r=[]):
     for cls in (base or views.APIView).__subclasses__():
@@ -22,7 +24,13 @@ def _build_urls(base=None, r=[]):
             _build_urls(cls, r)
     return r
 
+router = DefaultRouter(trailing_slash=True)
+router.include_format_suffixes = False
+router.register('users', rest.UsersViewSet)
+router.register('projects', rest.ProjectsViewSet)
+
 urlpatterns = _build_urls() + [
+        url(r"v1/", include(router.urls)),
         # Use the base class's handler by default
         url(r".*", views.APIView.as_view())
     ]
