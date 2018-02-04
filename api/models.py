@@ -237,7 +237,7 @@ class MessageManager(models.Manager):
                           stripped_subject=m.get_subject(strip_tags=True),
                           version=m.get_version(),
                           sender=json.dumps(m.get_from()),
-                          receivers=json.dumps(m.get_to() + m.get_cc()),
+                          recipients=json.dumps(m.get_to() + m.get_cc()),
                           prefixes=json.dumps(m.get_prefixes()),
                           is_series_head=m.is_series_head(),
                           is_patch=m.is_patch(),
@@ -278,7 +278,7 @@ class Message(models.Model):
     stripped_subject = HeaderFieldModel(db_index=True)
     version = models.PositiveSmallIntegerField(default=0)
     sender = HeaderFieldModel(db_index=True)
-    receivers = models.TextField()
+    recipients = models.TextField()
     # JSON encoded list
     prefixes = models.TextField(blank=True)
     is_series_head = models.BooleanField()
@@ -412,8 +412,8 @@ class Message(models.Model):
     def get_sender(self):
         return json.loads(self.sender)
 
-    def get_receivers(self):
-        return json.loads(self.receivers)
+    def get_recipients(self):
+        return json.loads(self.recipients)
 
     def get_sender_addr(self):
         return self.get_sender()[1]

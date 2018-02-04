@@ -141,7 +141,7 @@ Search text keyword in the email message. Example:
             q = Q(sender__icontains=cond)
         elif term.startswith("to:"):
             cond = term[term.find(":") + 1:]
-            q = Q(receivers__icontains=cond)
+            q = Q(recipients__icontains=cond)
         elif term.startswith("subject:"):
             cond = term[term.find(":") + 1:]
             q = Q(subject__icontains=cond)
