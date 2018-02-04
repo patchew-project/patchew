@@ -100,6 +100,22 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
+    def rest_results_hook(self, message, results):
+        l = message.get_property("git.apply-log")
+        if l:
+            if message.get_property("git.apply-failed"):
+                result = {'status' : 'failure'}
+            else:
+                git_repo = message.get_property("git.repo")
+                git_tag = message.get_property("git.tag")
+                data = {'repo': git_repo, 'tag': 'refs/tags/' + git_tag}
+                result = {'status': 'success', 'data': data}
+            result['log_url'] = reverse("git-log",
+                                        kwargs={'series': message.message_id})
+        else:
+            result = {'status': 'pending'}
+        results['git'] = result
+
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
@@ -211,6 +227,15 @@ class GitModule(PatchewModule):
         obj.set_property("git.need-apply", True)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+    def www_view_git_log(self, request, series):
+        obj = Message.objects.find_series(series)
+        if not obj:
+            raise Http404("Object not found: " + series)
+        log = obj.get_property("git.apply-log")
+        if log is None:
+            raise Http404("Git apply log not found")
+        return HttpResponse(log, content_type='text/plain')
+
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
                                self.www_view_git_apply,
@@ -218,6 +243,9 @@ class GitModule(PatchewModule):
         urlpatterns.append(url(r"^git-reset/(?P<series>.*)/",
                                self.www_view_git_reset,
                                name="git_reset"))
+        urlpatterns.append(url(r"^logs/(?P<series>.*)/git/",
+                               self.www_view_git_log,
+                               name="git-log"))
 
 class ApplierGetView(APILoginRequiredView):
     name = "applier-get"

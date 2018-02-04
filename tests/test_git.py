@@ -10,6 +10,7 @@
 
 import sys
 import os
+import re
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 import json
@@ -30,10 +31,11 @@ class GitTest(PatchewTestCase):
         subprocess.check_output(["git", "add", "foo"], cwd=self.repo)
         subprocess.check_output(["git", "commit", "-m", "initial commit"],
                                 cwd=self.repo)
-        p = self.add_project("QEMU", "qemu-devel@nongnu.org", git_repo=self.repo)
-        p.set_property("git.push_to", self.repo)
-        p.set_property("git.public_repo", self.repo)
-        p.set_property("git.url_template", self.repo + " %t")
+        self.p = self.add_project("QEMU", "qemu-devel@nongnu.org", git_repo=self.repo)
+        self.p.set_property("git.push_to", self.repo)
+        self.p.set_property("git.public_repo", self.repo)
+        self.p.set_property("git.url_template", self.repo + " %t")
+        self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
     def cleanUp(self):
         shutil.rmtree(self.repo)
@@ -100,6 +102,32 @@ class GitTest(PatchewTestCase):
         self.assertEqual(s.get_property("git.url"),
                          self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
 
+    def test_rest_need_apply(self):
+        resp = self.apply_and_retrieve("0013-foo-patch.mbox.gz", self.p.id,
+                                       "20160628014747.20971-1-famz@redhat.com")
+        self.assertEqual(resp.data['results']['git']['status'], 'pending')
+
+    def test_rest_apply_failure(self):
+        self.cli_import("0014-bar-patch.mbox.gz")
+        self.do_apply()
+        resp = self.api_client.get(self.REST_BASE + 'series/?q=project:QEMU')
+        self.assertEqual(resp.data['results'][0]['is_complete'], True)
+        self.assertEqual(resp.data['results'][0]['results']['git']['status'], 'failure')
+        self.assertEqual('repo' in resp.data['results'][0]['results']['git'], False)
+        self.assertEqual('tag' in resp.data['results'][0]['results']['git'], False)
+        log = self.client.get(resp.data['results'][0]['results']['git']['log_url'])
+        self.assertEquals(log.status_code, 200)
+
+    def test_rest_apply_success(self):
+        self.cli_import("0013-foo-patch.mbox.gz")
+        self.do_apply()
+        resp = self.api_client.get(self.REST_BASE + 'series/?q=project:QEMU')
+        self.assertEqual(resp.data['results'][0]['is_complete'], True)
+        self.assertEqual(resp.data['results'][0]['results']['git']['status'], 'success')
+        self.assertEqual(resp.data['results'][0]['results']['git']['data']['repo'], self.repo)
+        self.assertEqual(resp.data['results'][0]['results']['git']['data']['tag'], "refs/tags/patchew/20160628014747.20971-1-famz@redhat.com")
+        log = self.client.get(resp.data['results'][0]['results']['git']['log_url'])
+        self.assertEquals(log.status_code, 200)
 
 if __name__ == '__main__':
     main()
