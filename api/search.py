@@ -207,13 +207,14 @@ Search text keyword in the email message. Example:
     def project(self):
         return next(iter(self._projects)) if len(self._projects) == 1 else None
 
-    def search_series(self, *terms):
+    def search_series(self, *terms, queryset=None):
         self._last_keywords = []
         self._projects = set()
-        q = Message.objects.series_heads()
+        if queryset is None:
+            queryset = Message.objects.series_heads()
         for t in terms:
-            q = self._process_term(q, t)
-        return q
+            queryset = self._process_term(queryset, t)
+        return queryset
 
     def _process_age_term(self, query, cond):
         import datetime
