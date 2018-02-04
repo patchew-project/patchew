@@ -161,5 +161,34 @@ class RestTest(PatchewTestCase):
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/')
         self.assertEqual(resp.data['count'], 0)
 
+    def test_series_search(self):
+        resp1 = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                        self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        resp2 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
+
+        resp = self.api_client.get(self.REST_BASE + 'series/?q=quorum')
+        self.assertEqual(resp.data['count'], 1)
+        self.assertEqual(resp.data['results'][0]['resource_uri'], resp2.data['resource_uri'])
+        self.assertEqual(resp.data['results'][0]['subject'], resp2.data['subject'])
+        self.assertEqual('replies' in resp.data['results'][0], False)
+        self.assertEqual('patches' in resp.data['results'][0], False)
+
+        resp = self.api_client.get(self.REST_BASE + 'series/?q=project:QEMU')
+        self.assertEqual(resp.data['count'], 2)
+        self.assertEqual(resp.data['results'][0]['resource_uri'], resp1.data['resource_uri'])
+        self.assertEqual(resp.data['results'][0]['subject'], resp1.data['subject'])
+        self.assertEqual('replies' in resp.data['results'][0], False)
+        self.assertEqual('patches' in resp.data['results'][0], False)
+        self.assertEqual(resp.data['results'][1]['resource_uri'], resp2.data['resource_uri'])
+        self.assertEqual(resp.data['results'][1]['subject'], resp2.data['subject'])
+        self.assertEqual('replies' in resp.data['results'][1], False)
+        self.assertEqual('patches' in resp.data['results'][1], False)
+
+        resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=quorum')
+        self.assertEqual(resp.data['count'], 0)
+        resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=project:QEMU')
+        self.assertEqual(resp.data['count'], 0)
+
 if __name__ == '__main__':
     main()

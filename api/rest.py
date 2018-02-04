@@ -9,10 +9,15 @@
 # http://opensource.org/licenses/MIT.
 
 from django.contrib.auth.models import User
+from django.template import loader
+
 from .models import Project, Message
-from rest_framework import permissions, serializers, viewsets, mixins
+from .search import SearchEngine
+from rest_framework import permissions, serializers, viewsets, filters, mixins
 from rest_framework.fields import SerializerMethodField
 from rest_framework.relations import HyperlinkedIdentityField
+
+SEARCH_PARAM = 'q'
 
 # patchew-specific permission classes
 
@@ -137,9 +142,36 @@ class SeriesSerializerFull(SeriesSerializer):
     patches = PatchSerializer(many=True)
     replies = ReplySerializer(many=True)
 
+class PatchewSearchFilter(filters.BaseFilterBackend):
+    search_param = SEARCH_PARAM
+    search_title = 'Search'
+    search_description = 'A search term.'
+    template = 'rest_framework/filters/search.html'
+
+    def filter_queryset(self, request, queryset, view):
+        search = request.query_params.get(self.search_param) or ''
+        terms = [x.strip() for x in search.split(" ") if x]
+        se = SearchEngine()
+        query = se.search_series(queryset=queryset, *terms)
+        return query
+
+    def to_html(self, request, queryset, view):
+        if not getattr(view, 'search_fields', None):
+            return ''
+
+        term = request.query_params.get(self.search_param) or ''
+        context = {
+            'param': self.search_param,
+            'term': term
+        }
+        template = loader.get_template(self.template)
+        return template.render(context)
+
 class SeriesViewSet(BaseMessageViewSet):
     serializer_class = SeriesSerializer
     queryset = Message.objects.filter(is_series_head=True).order_by('-last_reply_date')
+    filter_backends = (PatchewSearchFilter,)
+    search_fields = (SEARCH_PARAM,)
 
 class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
                            SeriesViewSet):
