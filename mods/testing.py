@@ -138,7 +138,7 @@ class TestingModule(PatchewModule):
         urlpatterns.append(url(r"^testing-reset/(?P<project_or_series>.*)/",
                                self.www_view_testing_reset,
                                name="testing-reset"))
-        urlpatterns.append(url(r"^testing-log/(?P<project_or_series>.*)/(?P<testing_name>.*)/",
+        urlpatterns.append(url(r"^logs/(?P<project_or_series>.*)/testing.(?P<testing_name>.*)/",
                                self.www_view_testing_log,
                                name="testing-log"))
 
@@ -250,6 +250,25 @@ class TestingModule(PatchewModule):
     def _build_message_prop_url(message, prop):
         return reverse("testing-get-prop",
                        kwargs={"project_or_series": obj.message_id})
+
+    def rest_results_hook(self, message, results):
+        for pn, p in message.get_properties().items():
+            if not pn.startswith("testing.report."):
+                continue
+            tn = pn[len("testing.report."):]
+            failed = not p["passed"]
+            log_prop = "testing.log." + tn
+            typearg = "type=message"
+            log_url = reverse("testing-log",
+                              kwargs={"project_or_series": message.message_id,
+                                      "testing_name": tn})
+            log_url += "?" + typearg
+            passed_str = "failure" if failed else "success"
+            result = {
+                'status': passed_str,
+                'log_url': log_url
+            }
+            results['testing.' + tn] = result
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
