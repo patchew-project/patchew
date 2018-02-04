@@ -11,6 +11,7 @@
 from django.contrib.auth.models import User
 from django.template import loader
 
+from mod import dispatch_module_hook
 from .models import Project, Message
 from .search import SearchEngine
 from rest_framework import permissions, serializers, viewsets, filters, mixins, renderers
@@ -38,6 +39,33 @@ class IsMaintainerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return request.method in permissions.SAFE_METHODS or \
                obj.maintained_by(request.user)
+
+# pluggable field for plugin support
+
+class PluginMethodField(SerializerMethodField):
+    """
+    A read-only field that get its representation from calling a method on
+    the plugin class. The method called will be of the form
+    "get_{field_name}", and should take a single argument, which is the
+    object being serialized.
+
+    For example:
+
+        fields['extra_info'] = api.rest.PluginMethodField(obj=self)
+
+        def get_extra_info(self, obj):
+            return ...  # Calculate some data to return.
+    """
+
+    def __init__(self, obj=None, method_name=None, **kwargs):
+        self.obj = obj
+        super(PluginMethodField, self).__init__(method_name=method_name, **kwargs)
+
+    def to_representation(self, value):
+        method = getattr(self.obj, self.method_name)
+        request = self.context['request']
+        format = self.context.get('format', None)
+        return method(value, request, format)
 
 # Users
 
@@ -130,11 +158,26 @@ class SeriesSerializer(BaseMessageSerializer):
         model = Message
         fields = ('resource_uri',) + BaseMessageSerializer.Meta.fields + (
              'message', 'stripped_subject', 'last_comment_date', 'last_reply_date',
-             'is_complete', 'is_merged', 'num_patches', 'total_patches')
+             'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results')
 
     resource_uri = HyperlinkedMessageField(view_name='series-detail')
     message = HyperlinkedMessageField(view_name='messages-detail')
     total_patches = SerializerMethodField()
+    results = SerializerMethodField()
+
+    def __init__(self, *args, **kwargs):
+        self.detailed = kwargs.pop('detailed', False)
+        super(SeriesSerializer, self).__init__(*args, **kwargs)
+
+    def get_fields(self):
+        fields = super(SeriesSerializer, self).get_fields()
+        dispatch_module_hook("rest_series_fields_hook", fields=fields, detailed=self.detailed)
+        return fields
+
+    def get_results(self, message):
+        results = {}
+        dispatch_module_hook("rest_results_hook", message=message, results=results)
+        return results
 
     def get_total_patches(self, obj):
         return obj.get_total_patches()
@@ -146,6 +189,11 @@ class SeriesSerializerFull(SeriesSerializer):
 
     patches = PatchSerializer(many=True)
     replies = ReplySerializer(many=True)
+
+    def __init__(self, *args, **kwargs):
+        if not 'detailed' in kwargs:
+            kwargs['detailed'] = True
+        super(SeriesSerializerFull, self).__init__(*args, **kwargs)
 
 class PatchewSearchFilter(filters.BaseFilterBackend):
     search_param = SEARCH_PARAM
@@ -225,6 +273,11 @@ class MessageSerializer(BaseMessageSerializer):
     def get_mbox(self, obj):
         return obj.get_mbox()
     mbox = SerializerMethodField()
+
+    def get_fields(self):
+        fields = super(MessageSerializer, self).get_fields()
+        dispatch_module_hook("rest_message_fields_hook", fields=fields)
+        return fields
 
 class StaticTextRenderer(renderers.BaseRenderer):
     media_type = 'text/plain'
