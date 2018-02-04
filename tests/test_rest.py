@@ -122,13 +122,17 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['total_patches'], 2)
         self.assertEqual(len(resp.data['replies']), 2)
         self.assertEqual(len(resp.data['patches']), 2)
+        self.assertEqual(resp.data['replies'][0]['resource_uri'], self.PROJECT_BASE + 'messages/5792265A.5070507@redhat.com/')
         self.assertEqual(resp.data['replies'][0]['in_reply_to'], '1469192015-16487-1-git-send-email-berrange@redhat.com')
         self.assertEqual(resp.data['replies'][0]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['replies'][1]['resource_uri'], self.PROJECT_BASE + 'messages/e0858c00-ccb6-e533-ee3e-9ba84ca45a7b@redhat.com/')
         self.assertEqual(resp.data['replies'][1]['in_reply_to'], '1469192015-16487-1-git-send-email-berrange@redhat.com')
         self.assertEqual(resp.data['replies'][1]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
 
+        self.assertEqual(resp.data['patches'][0]['resource_uri'], self.PROJECT_BASE + 'messages/1469192015-16487-2-git-send-email-berrange@redhat.com/')
         self.assertEqual(resp.data['patches'][0]['subject'], '[Qemu-devel] [PATCH v4 1/2] crypto: add support for querying parameters for block encryption')
         self.assertEqual(resp.data['patches'][0]['stripped_subject'], 'crypto: add support for querying parameters for block encryption')
+        self.assertEqual(resp.data['patches'][1]['resource_uri'], self.PROJECT_BASE + 'messages/1469192015-16487-3-git-send-email-berrange@redhat.com/')
         self.assertEqual(resp.data['patches'][1]['subject'], '[Qemu-devel] [PATCH v4 2/2] block: export LUKS specific data to qemu-img info')
         self.assertEqual(resp.data['patches'][1]['stripped_subject'], 'block: export LUKS specific data to qemu-img info')
 
@@ -189,6 +193,38 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['count'], 0)
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=project:QEMU')
         self.assertEqual(resp.data['count'], 0)
+
+    def test_message(self):
+        series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                         self.p.id, '20160628014747.20971-1-famz@redhat.com')
+
+        message = series.data['patches'][0]['resource_uri']
+        resp = self.api_client.get(message)
+        self.assertEqual(resp.data['mbox'], Message.objects.all()[0].get_mbox())
+
+    def test_message_mbox(self):
+        series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                         self.p.id, '20160628014747.20971-1-famz@redhat.com')
+
+        message = series.data['patches'][0]['resource_uri']
+        resp = self.client.get(message + 'mbox/')
+        self.assertEqual(resp.data, Message.objects.all()[0].get_mbox())
+
+    def test_message_replies(self):
+        series = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                         self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+
+        message = series.data['message']
+        resp = self.api_client.get(message + 'replies/')
+        self.assertEqual(resp.data['count'], 4)
+        self.assertEqual(resp.data['results'][0]['resource_uri'], self.PROJECT_BASE + 'messages/1469192015-16487-2-git-send-email-berrange@redhat.com/')
+        self.assertEqual(resp.data['results'][0]['subject'], '[Qemu-devel] [PATCH v4 1/2] crypto: add support for querying parameters for block encryption')
+        self.assertEqual(resp.data['results'][1]['resource_uri'], self.PROJECT_BASE + 'messages/1469192015-16487-3-git-send-email-berrange@redhat.com/')
+        self.assertEqual(resp.data['results'][1]['subject'], '[Qemu-devel] [PATCH v4 2/2] block: export LUKS specific data to qemu-img info')
+        self.assertEqual(resp.data['results'][2]['resource_uri'], self.PROJECT_BASE + 'messages/5792265A.5070507@redhat.com/')
+        self.assertEqual(resp.data['results'][2]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['results'][3]['resource_uri'], self.PROJECT_BASE + 'messages/e0858c00-ccb6-e533-ee3e-9ba84ca45a7b@redhat.com/')
+        self.assertEqual(resp.data['results'][3]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
 
 if __name__ == '__main__':
     main()
