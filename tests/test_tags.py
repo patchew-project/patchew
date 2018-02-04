@@ -27,5 +27,27 @@ class ImportTest(PatchewTestCase):
                                        self.p.id, '1504250391-6353-1-git-send-email-thuth@redhat.com')
         self.assertEquals(resp.status_code, 404)
 
+    def test_rest_single(self):
+        resp = self.apply_and_retrieve('0003-single-patch-reviewed.mbox.gz',
+                                       self.p.id, '20160722095540.5887-1-paul.burton@imgtec.com')
+        uri = resp.data['message']
+        message = self.api_client.get(uri)
+        self.assertEquals(message.data['tags'], ['Reviewed-by: Aurelien Jarno <aurelien@aurel32.net>'])
+
+    def test_rest_head(self):
+        resp = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                       self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        uri = resp.data['message']
+        message = self.api_client.get(uri)
+        self.assertEquals(message.data['tags'], ['Reviewed-by: Eric Blake <eblake@redhat.com>'])
+        for patch in resp.data['patches']:
+            uri = patch['resource_uri']
+            message = self.api_client.get(uri)
+            self.assertEquals(message.data['tags'], [])
+        for patch in resp.data['replies']:
+            uri = patch['resource_uri']
+            message = self.api_client.get(uri)
+            self.assertEquals(message.data['tags'], [])
+
 if __name__ == '__main__':
     main()

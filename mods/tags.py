@@ -12,6 +12,7 @@ from mod import PatchewModule
 from mbox import parse_address
 from event import register_handler, emit_event, declare_event
 from api.models import Message
+from api.rest import PluginMethodField
 
 REV_BY_PREFIX = "Reviewed-by:"
 BASED_ON_PREFIX = "Based-on:"
@@ -56,7 +57,7 @@ series cover letter, patch mail body and their replies.
 
     def update_tags(self, s):
         old = s.get_property("tags", [])
-        new = self.get_tags(s)
+        new = self.look_for_tags(s)
         if set(old) != set(new):
             s.set_property("tags", list(set(new)))
             return True
@@ -110,14 +111,20 @@ series cover letter, patch mail body and their replies.
                     r.append(l)
         return r
 
-    def get_tags(self, m):
+    def look_for_tags(self, m):
         # Incorporate tags from non-patch replies
         r = self.parse_message_tags(m)
         for x in m.get_replies():
             if x.is_patch:
                 continue
-            r += self.get_tags(x)
+            r += self.look_for_tags(x)
         return r
+
+    def get_tags(self, m, request, format):
+        return m.get_property("tags", [])
+
+    def rest_message_fields_hook(self, fields):
+        fields['tags'] = PluginMethodField(obj=self)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
