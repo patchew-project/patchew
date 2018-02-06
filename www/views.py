@@ -34,10 +34,7 @@ def prepare_message(request, m, detailed):
     m.status_tags = []
     if m.is_series_head:
         m.num_patches = m.get_num_patches()
-        if m.get_num():
-            m.total_patches = m.get_num()[1] or 1
-        else:
-            m.total_patches = 1
+        m.total_patches = m.get_total_patches()
         if m.num_patches < m.total_patches:
             missing = m.total_patches - m.num_patches
             m.status_tags.append({

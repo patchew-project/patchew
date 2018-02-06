@@ -120,6 +120,18 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         resp = self.client.post('/api/%s/' % method, {"params": json.dumps(params)})
         return json.loads(resp.content.decode('utf-8')) if resp.content else None
 
+    def apply_and_retrieve(self, mbox, project_id, msgid):
+        # TODO: change this to a REST import when it is added
+        self.cli_login()
+        self.cli_import(mbox)
+        self.cli_logout()
+
+        response = self.api_client.get('%sprojects/%d/series/%s/' % (self.REST_BASE, project_id, msgid))
+        if response.status_code == 200:
+            uri = response.data['resource_uri']
+            self.assertEqual(uri, '%sprojects/%d/series/%s/' % (self.REST_BASE, project_id, msgid))
+        return response
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", "-d", action="store_true",

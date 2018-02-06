@@ -18,14 +18,14 @@ class ImportTest(PatchewTestCase):
 
     def setUp(self):
         self.create_superuser()
-        self.cli_login()
-        p = self.add_project("QEMU", "qemu-devel@nongnu.org")
-        p.prefix_tags = "!qemu-web"
-        p.save()
+        self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        self.p.prefix_tags = "!qemu-web"
+        self.p.save()
 
     def test_import_one(self):
-        self.cli_import("0017-qemu-web-is-not-qemu.mbox.gz")
-        self.check_cli(["search"], stdout='')
+        resp = self.apply_and_retrieve('0017-qemu-web-is-not-qemu.mbox.gz',
+                                       self.p.id, '1504250391-6353-1-git-send-email-thuth@redhat.com')
+        self.assertEquals(resp.status_code, 404)
 
 if __name__ == '__main__':
     main()

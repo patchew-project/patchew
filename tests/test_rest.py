@@ -98,5 +98,68 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['display_order'], data['display_order'])
         self.assertEquals(resp.data['logo'], None)
 
+    def test_series_single(self):
+        resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                       self.p.id, '20160628014747.20971-1-famz@redhat.com')
+
+        self.assertEqual(resp.data['subject'], '[Qemu-devel] [PATCH] quorum: Only compile when supported')
+        self.assertEqual(resp.data['stripped_subject'], 'quorum: Only compile when supported')
+        self.assertEqual(resp.data['is_complete'], True)
+        self.assertEqual(resp.data['total_patches'], 1)
+        self.assertEqual(len(resp.data['replies']), 0)
+        self.assertEqual(len(resp.data['patches']), 1)
+
+        self.assertEqual(resp.data['patches'][0]['subject'], resp.data['subject'])
+        self.assertEqual(resp.data['patches'][0]['stripped_subject'], resp.data['stripped_subject'])
+
+    def test_series_multiple(self):
+        resp = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                       self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+
+        self.assertEqual(resp.data['subject'], '[Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['stripped_subject'], 'Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['is_complete'], True)
+        self.assertEqual(resp.data['total_patches'], 2)
+        self.assertEqual(len(resp.data['replies']), 2)
+        self.assertEqual(len(resp.data['patches']), 2)
+        self.assertEqual(resp.data['replies'][0]['in_reply_to'], '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        self.assertEqual(resp.data['replies'][0]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['replies'][1]['in_reply_to'], '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        self.assertEqual(resp.data['replies'][1]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+
+        self.assertEqual(resp.data['patches'][0]['subject'], '[Qemu-devel] [PATCH v4 1/2] crypto: add support for querying parameters for block encryption')
+        self.assertEqual(resp.data['patches'][0]['stripped_subject'], 'crypto: add support for querying parameters for block encryption')
+        self.assertEqual(resp.data['patches'][1]['subject'], '[Qemu-devel] [PATCH v4 2/2] block: export LUKS specific data to qemu-img info')
+        self.assertEqual(resp.data['patches'][1]['stripped_subject'], 'block: export LUKS specific data to qemu-img info')
+
+    def test_series_incomplete(self):
+        resp = self.apply_and_retrieve('0012-incomplete-series.mbox.gz',
+                                       self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+
+        self.assertEqual(resp.data['subject'], '[Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['stripped_subject'], 'Report format specific info for LUKS block driver')
+        self.assertEqual(resp.data['is_complete'], False)
+        self.assertEqual(resp.data['total_patches'], 2)
+        self.assertEqual(len(resp.data['replies']), 2)
+        self.assertEqual(len(resp.data['patches']), 1)
+
+        self.assertEqual(resp.data['patches'][0]['subject'], '[Qemu-devel] [PATCH v4 1/2] crypto: add support for querying parameters for block encryption')
+        self.assertEqual(resp.data['patches'][0]['stripped_subject'], 'crypto: add support for querying parameters for block encryption')
+
+    def test_series_list(self):
+        resp1 = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                        self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        resp2 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
+
+        resp = self.api_client.get(self.REST_BASE + 'series/')
+        self.assertEqual(resp.data['count'], 2)
+
+        resp = self.api_client.get(self.PROJECT_BASE + 'series/')
+        self.assertEqual(resp.data['count'], 2)
+
+        resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/')
+        self.assertEqual(resp.data['count'], 0)
+
 if __name__ == '__main__':
     main()
