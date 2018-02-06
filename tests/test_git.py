@@ -44,27 +44,27 @@ class GitTest(PatchewTestCase):
             self.assertFalse(s.get_property("git.need-apply"))
 
     def test_need_apply(self):
-        self.check_cli(["import", self.get_data_path("0001-simple-patch.mbox.gz")])
+        self.cli_import("0001-simple-patch.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
         self.assertEqual(s.get_property("git.need-apply"), True)
         self.do_apply()
 
     def test_need_apply_multiple(self):
-        self.check_cli(["import", self.get_data_path("0004-multiple-patch-reviewed.mbox.gz")])
+        self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
         self.assertEqual(s.get_property("git.need-apply"), True)
         self.do_apply()
 
     def test_need_apply_incomplete(self):
-        self.check_cli(["import", self.get_data_path("0012-incomplete-series.mbox.gz")])
+        self.cli_import("0012-incomplete-series.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, False)
         self.assertEqual(s.get_property("git.need-apply"), None)
 
     def test_apply(self):
-        self.check_cli(["import", self.get_data_path("0013-foo-patch.mbox.gz")])
+        self.cli_import("0013-foo-patch.mbox.gz")
         self.do_apply()
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
@@ -75,9 +75,9 @@ class GitTest(PatchewTestCase):
                          self.repo + " patchew/20160628014747.20971-1-famz@redhat.com")
 
     def test_apply_with_base(self):
-        self.check_cli(["import", self.get_data_path("0013-foo-patch.mbox.gz")])
+        self.cli_import("0013-foo-patch.mbox.gz")
         self.do_apply()
-        self.check_cli(["import", self.get_data_path("0014-bar-patch.mbox.gz")])
+        self.cli_import("0014-bar-patch.mbox.gz")
         self.do_apply()
         s = Message.objects.series_heads().filter(message_id="20160628014747.20971-2-famz@redhat.com")[0]
         self.assertEqual(s.is_complete, True)
@@ -88,9 +88,9 @@ class GitTest(PatchewTestCase):
                          self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
 
     def test_apply_with_base_and_brackets(self):
-        self.check_cli(["import", self.get_data_path("0013-foo-patch.mbox.gz")])
+        self.cli_import("0013-foo-patch.mbox.gz")
         self.do_apply()
-        self.check_cli(["import", self.get_data_path("0015-bar-patch-with-brackets.mbox.gz")])
+        self.cli_import("0015-bar-patch-with-brackets.mbox.gz")
         self.do_apply()
         s = Message.objects.series_heads().filter(message_id="20160628014747.20971-2-famz@redhat.com")[0]
         self.assertEqual(s.is_complete, True)

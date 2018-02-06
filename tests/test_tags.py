@@ -24,7 +24,7 @@ class ImportTest(PatchewTestCase):
         p.save()
 
     def test_import_one(self):
-        self.check_cli(["import", self.get_data_path("0017-qemu-web-is-not-qemu.mbox.gz")])
+        self.cli_import("0017-qemu-web-is-not-qemu.mbox.gz")
         self.check_cli(["search"], stdout='')
 
 if __name__ == '__main__':
