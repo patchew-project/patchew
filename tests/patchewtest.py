@@ -90,6 +90,9 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     def cli_logout(self):
         self.check_cli(["logout"])
 
+    def cli_import(self, mbox, rc=0):
+        self.check_cli(["import", self.get_data_path(mbox)], rc)
+
     def get_data_path(self, fname):
         r = tempfile.NamedTemporaryFile(dir=RUN_DIR, prefix="test-data-", delete=False)
         d = os.path.join(BASE_DIR, "tests", "data", fname)

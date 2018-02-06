@@ -22,21 +22,19 @@ class ImportTest(PatchewTestCase):
         self.add_project("QEMU", "qemu-devel@nongnu.org")
 
     def test_import_one(self):
-        self.check_cli(["import", self.get_data_path("0001-simple-patch.mbox.gz")])
+        self.cli_import("0001-simple-patch.mbox.gz")
         self.check_cli(["search"],
                        stdout='[Qemu-devel] [PATCH] quorum: Only compile when supported')
 
     def test_import_belong_to_multiple_projects(self):
         self.check_cli(["project", "add", "QEMU2",
                        "--mailing-list", "qemu-devel@nongnu.org"])
-        self.check_cli(["import",
-                        self.get_data_path("0001-simple-patch.mbox.gz")])
+        self.cli_import("0001-simple-patch.mbox.gz")
         a = '[Qemu-devel] [PATCH] quorum: Only compile when supported\n' * 2
         self.check_cli(["search"], stdout=a.strip())
 
     def test_case_insensitive(self):
-        self.check_cli(["import",
-                       self.get_data_path("0002-unusual-cased-tags.mbox.gz")])
+        self.cli_import("0002-unusual-cased-tags.mbox.gz")
         a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
         ao = json.loads(a)[0]
         self.assertEqual(["Fam Zheng", "famz@redhat.com"],
@@ -47,20 +45,16 @@ class ImportTest(PatchewTestCase):
                       ao["properties"]["tags"])
 
     def test_non_utf_8(self):
-        self.check_cli(["import",
-                       self.get_data_path("0005-non-utf-8.mbox.gz")])
+        self.cli_import("0005-non-utf-8.mbox.gz")
 
     def test_non_utf_8_multiplart(self):
-        self.check_cli(["import",
-                       self.get_data_path("0006-multi-part-non-utf-8.mbox.gz")])
+        self.cli_import("0006-multi-part-non-utf-8.mbox.gz")
 
     def test_import_invalid_charset(self):
-        self.check_cli(["import",
-                       self.get_data_path("0007-invalid-charset.mbox.gz")])
+        self.cli_import("0007-invalid-charset.mbox.gz")
 
     def test_obsoleted_by(self):
-        self.check_cli(["import",
-                       self.get_data_path("0009-obsolete-by.mbox.gz")])
+        self.cli_import("0009-obsolete-by.mbox.gz")
         a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
         ao = json.loads(a)
         for m in ao:
@@ -71,8 +65,7 @@ class ImportTest(PatchewTestCase):
 
     def test_import_invalid_byte(self):
         self.add_project("EDK2", "edk2-devel@lists.01.org")
-        self.check_cli(["import",
-                       self.get_data_path("0010-invalid-byte.mbox.gz")])
+        self.cli_import("0010-invalid-byte.mbox.gz")
         self.check_cli(["search"],
                        stdout='[edk2] [PATCH 0/3] Revert "ShellPkg: Fix echo to support displaying special characters"')
 
@@ -89,8 +82,7 @@ class UnprivilegedImportTest(ImportTest):
     test_import_belong_to_multiple_projects = None
 
     def check_import_should_fail(self):
-        self.check_cli(["import",
-                       self.get_data_path("0001-simple-patch.mbox.gz")], 1)
+        self.cli_import("0001-simple-patch.mbox.gz", 1)
         a, b = self.check_cli(["search"])
         self.assertNotIn('[Qemu-devel] [PATCH] quorum: Only compile when supported',
                          a.splitlines())
