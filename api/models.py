@@ -368,6 +368,10 @@ class Message(models.Model):
                                 .count()
         self.save()
 
+    def get_total_patches(self):
+        num = self.get_num() or (1,1)
+        return num[1] or 1
+
     def get_num_patches(self):
         if not self.is_series_head:
             raise Exception("Can not get patches for a non-series message")
