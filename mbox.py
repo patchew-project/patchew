@@ -18,7 +18,7 @@ def _parse_header(header):
     r = ''
     for h, c in email.header.decode_header(header):
         if isinstance(h, bytes):
-            h = h.decode(c or 'utf-8')
+            h = h.decode(c or 'utf-8', 'replace')
         r += h
     if '\n' in r:
         r = " ".join([x.strip() for x in r.splitlines()])
@@ -83,6 +83,7 @@ class MboxMessage(object):
     def _get_addr_list(self, field, text):
         ret = []
         f = self._m.get_all(field, [])
+        f = (_parse_header(x) for x in f)
         addrs = email.utils.getaddresses(f)
         for name, addr in addrs:
             name = name or addr

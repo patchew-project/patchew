@@ -38,5 +38,13 @@ Virtualization:  qemu.org | libvirt.org
             msg = mbox.MboxMessage(f.read())
         self.assertEqual(msg.get_body().strip(), expected)
 
+    def test_mime_word_recipient(self):
+        dp = self.get_data_path("0018-mime-word-recipient.mbox.gz")
+        with open(dp, "r") as f:
+            msg = mbox.MboxMessage(f.read())
+        utf8_recipient = msg.get_cc()[1]
+        self.assertEqual(utf8_recipient[0], "Philippe Mathieu-Daudé")
+        self.assertEqual(utf8_recipient[1], "f4bug@amsat.org")
+
 if __name__ == '__main__':
     main()
