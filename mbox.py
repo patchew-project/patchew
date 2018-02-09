@@ -83,6 +83,7 @@ class MboxMessage(object):
     def _get_addr_list(self, field, text):
         ret = []
         f = self._m.get_all(field, [])
+        f = (_parse_header(x) for x in f)
         addrs = email.utils.getaddresses(f)
         for name, addr in addrs:
             name = name or addr
