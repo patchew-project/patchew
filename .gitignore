@@ -3,3 +3,4 @@ __pycache__
 *.pyc
 *.pyo
 /venv
+/patchew-db-small.tar.xz

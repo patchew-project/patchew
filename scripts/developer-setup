@@ -11,6 +11,11 @@ run() {
    "$@")
 }
 
+if ! test -f patchew-db-small.tar.xz; then
+  echo Downloading sample database...
+  wget http://people.redhat.com/pbonzini/patchew-db-small.tar.xz
+fi
+
 if test -d venv; then
   echo Virtual environment already present in $PWD/venv
   echo To start from scratch, rerun scripts/developer-setup after typing
@@ -20,6 +25,7 @@ else
   run python3 -m venv ./venv
   . venv/bin/activate
   export PYTHONPATH=.
+  run tar xf patchew-db-small.tar.xz
   run pip install -r requirements.txt
   run easy_install gunicorn
   run ./manage.py migrate --noinput
