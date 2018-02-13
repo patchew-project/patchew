@@ -19,11 +19,11 @@
 
 
 <textarea id="null" data-subject="" style="display: none;"></textarea>
-{% for subject, body in series_left %}
-<textarea id="left{{forloop.counter}}" data-subject="{{subject}}" style="display: none;">{{body}}</textarea>
+{% for m in series_left %}
+<textarea id="left{{forloop.counter}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
 {% endfor %}
-{% for subject, body in series_right %}
-<textarea id="right{{forloop.counter}}" data-subject="{{subject}}" style="display: none;">{{body}}</textarea>
+{% for m in series_right %}
+<textarea id="right{{forloop.counter}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
 {% endfor %}
 
 <script type="text/javascript">
@@ -204,10 +204,10 @@ function crossDiff(left, right) {
 $(function() {
     var left = Array();
     var right = Array();
-{% for subject, body in series_left %}
+{% for m in series_left %}
     left.push($("#left{{forloop.counter}}"));
 {% endfor %}
-{% for subject, body in series_right %}
+{% for m in series_right %}
     right.push($("#right{{forloop.counter}}"));
 {% endfor %}
     crossDiff(left, right);

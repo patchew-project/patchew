@@ -11,7 +11,7 @@
 import os
 import shutil
 import hashlib
-from collections import OrderedDict
+from collections import namedtuple
 from django.conf.urls import url
 from django.http import Http404
 from django.urls import reverse
@@ -26,6 +26,8 @@ from schema import *
 import re
 
 _instance = None
+
+PatchInfo = namedtuple('PatchInfo', ['subject', 'body'])
 
 class DiffModule(PatchewModule):
     """Diff module"""
@@ -74,7 +76,7 @@ class DiffModule(PatchewModule):
         message.extra_links.append({"html": mark_safe(html), "icon": "exchange" })
 
     def _get_series_for_diff(self, s):
-        def _get_message_text(m):
+        def _get_message_data(m):
             filtered = ""
             sep = ""
             for l in m.get_body().splitlines():
@@ -85,21 +87,26 @@ class DiffModule(PatchewModule):
                     l = re.sub(pat, repl, l)
                 filtered += sep + l
                 sep = "\n"
-            return filtered
 
-        ret = OrderedDict()
+            return PatchInfo(
+                subject=m.subject,
+                body=filtered)
+
+        ret = list()
         if not s.is_patch:
-            ret[s.subject] = _get_message_text(s)
+            data = _get_message_data(s)
+            ret.append(data)
         for p in s.get_patches():
-            ret[p.subject] = _get_message_text(p)
+            data = _get_message_data(p)
+            ret.append(data)
         return ret
 
     def www_view_series_diff(self, request, project, series_left, series_right):
         sl = Message.objects.filter(project__name=project, message_id=series_left).first()
         sr = Message.objects.filter(project__name=project, message_id=series_right).first()
         return render_page(request, "series-diff.html",
-                           series_left=self._get_series_for_diff(sl).items(),
-                           series_right=self._get_series_for_diff(sr).items())
+                           series_left=self._get_series_for_diff(sl),
+                           series_right=self._get_series_for_diff(sr))
 
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^(?P<project>[^/]*)/(?P<series_left>.*)/diff/(?P<series_right>.*)/",
