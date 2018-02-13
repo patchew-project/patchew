@@ -31,6 +31,7 @@
 /* Hide line numbers since we already have them in the diff.  */
 .diff th {
   display: none;
+  vertical-align: middle;
 }
 .diff th.author {
   display: table-cell;
@@ -67,4 +68,20 @@
   height: 6px;
   text-align: center;
   padding: 0;
+}
+
+.diff th.texttitle > div {
+    padding: 0em 0em 0em 2em;
+}
+
+.diff th.texttitle > div.patch-link {
+    margin: 0.3em 0em;
+    padding: 0em;
+}
+.diff th.texttitle > div.patch-link .fa {
+    position: relative;
+    color: #337ab7;
+    width: 1.5em;
+    text-align: center;
+    display: inline-block;
 }
