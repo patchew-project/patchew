@@ -70,6 +70,7 @@ class DiffModule(PatchewModule):
         other_versions = message.get_alternative_revisions()
         if len(other_versions) <= 1:
             return
+        message.has_other_revisions = True
         html = "Diff against"
         for v, url in self.get_other_versions_urls(message.project, message.message_id, other_versions):
             html = html + format_html(' <a href="{}">v{}</a>', url, v)

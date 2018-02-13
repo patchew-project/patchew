@@ -8,7 +8,7 @@
 <script src="/static/js/jquery.colorbox-min.js"></script>
 {% endblock %}
 
-{% block title %}{{ stripped_subject }}{% endblock %}
+{% block title %}{% if has_other_revisions %}[v{{ version }}] {% endif %}{{ stripped_subject }}{% endblock %}
 
 {% block content %}
 

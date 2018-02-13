@@ -43,6 +43,8 @@ def prepare_message(request, m, detailed):
                 "type": "warning",
                 "char": "P",
                 })
+    # hook points for plugins
+    m.has_other_revisions = False
     m.extra_status = []
     m.extra_ops = []
     m.extra_links = []
@@ -237,6 +239,8 @@ def view_series_detail(request, project, message_id):
     return render_page(request, 'series-detail.html',
                        subject=s.subject,
                        stripped_subject=s.stripped_subject,
+                       has_other_revisions=series.has_other_revisions,
+                       version=s.version,
                        message_id=s.message_id,
                        series=series,
                        is_cover_letter=is_cover_letter,
@@ -260,6 +264,8 @@ def view_series_message(request, project, thread_id, message_id):
     return render_page(request, 'series-detail.html',
                        subject=m.subject,
                        stripped_subject=s.stripped_subject,
+                       has_other_revisions=series.has_other_revisions,
+                       version=m.version,
                        message_id=m.message_id,
                        series=series,
                        is_cover_letter=False,
