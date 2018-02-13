@@ -19,6 +19,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User, Group
+from django.urls import reverse
 from mbox import MboxMessage
 from event import emit_event, declare_event
 from django.contrib import admin
@@ -499,6 +500,22 @@ class Message(models.Model):
         if cur:
             ret = cur
         return "\n".join(ret)
+
+    def get_message_view_url(self):
+        assert self.is_patch or self.is_series_head
+        if self.is_series_head:
+            return reverse("series_detail",
+                           kwargs={
+                               'project': self.project.name,
+                               'message_id': self.message_id
+                           })
+        else:
+            return reverse("series_message",
+                           kwargs={
+                               'project': self.project.name,
+                               'thread_id': self.in_reply_to,
+                               'message_id': self.message_id
+                           })
 
     def get_alternative_revisions(self):
         assert self.is_series_head

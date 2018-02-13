@@ -27,7 +27,7 @@ import re
 
 _instance = None
 
-PatchInfo = namedtuple('PatchInfo', ['subject', 'body'])
+PatchInfo = namedtuple('PatchInfo', ['subject', 'link', 'has_replies', 'body'])
 
 class DiffModule(PatchewModule):
     """Diff module"""
@@ -90,6 +90,8 @@ class DiffModule(PatchewModule):
 
             return PatchInfo(
                 subject=m.subject,
+                link=m.get_message_view_url(),
+                has_replies=m.last_comment_date is not None,
                 body=filtered)
 
         ret = list()
