@@ -32,6 +32,7 @@ customizations for patchew:
 - add "left" and "right" classes to cells
 - add a <div> inside text cells
 - add a title attribute (tooltip) to "skip" cells
+- allow passing a DOM element as title
 */
 var diffview = {
 	/**
@@ -66,6 +67,10 @@ var diffview = {
 		if (!opcodes)
 			throw "Canno build diff view; opcodes is not defined.";
 		
+		function isDOM(obj) {
+			return obj && obj.nodeType & obj.nodeType > 0;
+		}
+
 		function celt (name, clazz) {
 			var e = document.createElement(name);
 			e.className = clazz;
@@ -90,18 +95,30 @@ var diffview = {
 			return e;
 		}
 	
+		if (!isDOM(baseTextName))
+			baseTextName = document.createTextNode(baseTextName);
+		if (!isDOM(newTextName))
+			newTextName = document.createTextNode(newTextName);
 		var tdata = document.createElement("thead");
 		var node = document.createElement("tr");
 		tdata.appendChild(node);
 		if (inline) {
 			node.appendChild(document.createElement("th"));
 			node.appendChild(document.createElement("th"));
-			node.appendChild(ctelt("th", "texttitle", baseTextName + " vs. " + newTextName));
+			th = celt("th", "texttitle");
+			th.appendChild(baseTextName);
+			th.appendChild(document.createTextNode(" vs. "));
+			th.appendChild(newTextName);
+			node.appendChild(th);
 		} else {
 			node.appendChild(document.createElement("th"));
-			node.appendChild(ctelt("th", "texttitle", baseTextName));
+			th = celt("th", "texttitle");
+			th.appendChild(baseTextName);
+			node.appendChild(th);
 			node.appendChild(document.createElement("th"));
-			node.appendChild(ctelt("th", "texttitle", newTextName));
+			th = celt("th", "texttitle");
+			th.appendChild(newTextName);
+			node.appendChild(th);
 		}
 		tdata = [tdata];
 		
