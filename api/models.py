@@ -519,7 +519,8 @@ class Message(models.Model):
 
     def get_alternative_revisions(self):
         assert self.is_series_head
-        return Message.objects.series_heads().filter(stripped_subject=self.stripped_subject)
+        return Message.objects.series_heads().filter(project=self.project,
+                                                     stripped_subject=self.stripped_subject)
 
     def set_complete(self):
         if self.is_complete:
