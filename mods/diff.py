@@ -36,14 +36,15 @@ class DiffModule(PatchewModule):
         assert _instance == None
         _instance = self
 
-    def get_other_versions_urls(self, message_id, other_versions):
+    def get_other_versions_urls(self, project, message_id, other_versions):
         left = False
         for o in sorted(other_versions, key=lambda y: y.version):
             if o.message_id == message_id:
                 left = True
                 continue
             # The oldest series always goes on the left
-            kwargs={"series_left": message_id if left else o.message_id,
+            kwargs={"project": project.name,
+                    "series_left": message_id if left else o.message_id,
                     "series_right": o.message_id if left else message_id}
             yield o.version, reverse("series_diff", kwargs=kwargs)
 
@@ -68,7 +69,7 @@ class DiffModule(PatchewModule):
         if len(other_versions) <= 1:
             return
         html = "Diff against"
-        for v, url in self.get_other_versions_urls(message.message_id, other_versions):
+        for v, url in self.get_other_versions_urls(message.project, message.message_id, other_versions):
             html = html + format_html(' <a href="{}">v{}</a>', url, v)
         message.extra_links.append({"html": mark_safe(html), "icon": "exchange" })
 
@@ -93,14 +94,14 @@ class DiffModule(PatchewModule):
             ret[p.subject] = _get_message_text(p)
         return ret
 
-    def www_view_series_diff(self, request, series_left, series_right):
-        sl = Message.objects.filter(message_id=series_left).first()
-        sr = Message.objects.filter(message_id=series_right).first()
+    def www_view_series_diff(self, request, project, series_left, series_right):
+        sl = Message.objects.filter(project__name=project, message_id=series_left).first()
+        sr = Message.objects.filter(project__name=project, message_id=series_right).first()
         return render_page(request, "series-diff.html",
                            series_left=self._get_series_for_diff(sl).items(),
                            series_right=self._get_series_for_diff(sr).items())
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^series-diff/(?P<series_left>.*)/(?P<series_right>.*)/",
+        urlpatterns.append(url(r"^(?P<project>[^/]*)/(?P<series_left>.*)/diff/(?P<series_right>.*)/",
                                self.www_view_series_diff,
                                name="series_diff"))
