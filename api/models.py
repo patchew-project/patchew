@@ -69,6 +69,13 @@ class Project(models.Model):
     display_order = models.IntegerField(default=0,
                                         help_text="""Order number of the project
                                         to display, higher number first""")
+    parent_project = models.ForeignKey('Project', on_delete=models.CASCADE,
+                                       blank=True, null=True,
+                                       help_text="""Parent project which this
+                                       project belongs to. The parent must be a
+                                       top project which has
+                                       parent_project=NULL""")
+
     def __str__(self):
         return self.name
 
@@ -151,6 +158,9 @@ class Project(models.Model):
             return True
         return False
 
+    def get_subprojects(self):
+        return Project.objects.filter(parent_project=self)
+
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, db_index=True)
@@ -175,9 +185,12 @@ class MessageManager(models.Manager):
         q = super(MessageManager, self).get_queryset()\
                 .filter(is_series_head=True).prefetch_related('properties', 'project')
         if isinstance(project, str):
-            q = q.filter(project__name=project)
+            po = Project.objects.get(name=project)
         elif isinstance(project, int):
-            q = q.filter(project__id=project)
+            po = Project.objects.get(id=project)
+        else:
+            return q
+        q = q.filter(project=po) | q.filter(project__parent_project=po)
         return q
 
     def find_series(self, message_id, project_name=None):

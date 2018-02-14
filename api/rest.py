@@ -89,7 +89,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
         fields = ('resource_uri', 'name', 'mailing_list', 'prefix_tags', 'url', 'git', \
-                  'description', 'display_order', 'logo')
+                  'description', 'display_order', 'logo', 'parent_project')
 
 class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')

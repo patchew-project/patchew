@@ -88,10 +88,10 @@ def prepare_series_list(request, sl):
     return [prepare_message(request, s, False) for s in sl]
 
 def prepare_projects():
-    return api.models.Project.objects.all().order_by('-display_order', 'name')
+    return api.models.Project.objects.filter(parent_project=None).order_by('-display_order', 'name')
 
 def view_project_list(request):
-    return render_page(request, "project-list.html", projects=prepare_projects)
+    return render_page(request, "project-list.html", projects=prepare_projects())
 
 def gen_page_links(total, cur_page, pagesize, extra_params):
     max_page = int((total + pagesize - 1) / pagesize)
