@@ -155,17 +155,32 @@ class GitModule(PatchewModule):
                 git_url = message.get_property("git.url")
                 git_repo = message.get_property("git.repo")
                 git_tag = message.get_property("git.tag")
-                message.status_tags.append({
-                    "url": git_url,
-                    "title": format_html("Applied as tag {} in repo {}", git_tag, git_repo),
-                    "type": "info",
-                    "char": "G",
+                if git_url:
+                    message.status_tags.append({
+                        "url": git_url,
+                        "title": format_html("Applied as tag {} in repo {}", git_tag, git_repo),
+                        "type": "info",
+                        "char": "G",
+                        })
+                    if git_repo and git_tag:
+                        message.extra_status.append({
+                            "kind": "good",
+                            "html": format_html('Patches applied successfully (<a href="{}">tree</a>, {}).<br/><samp>git fetch {} {}</samp>',
+                                                git_url, colorbox_a, git_repo, git_tag),
+                        })
+                else:
+                    message.status_tags.append({
+                        "title": format_html("Patches applied successfully"),
+                        "type": "info",
+                        "char": "G",
+                        })
+                    message.extra_status.append({
+                        "kind": "good",
+                        "html": format_html('Patches applied successfully ({})',
+                                            colorbox_a),
+                        "extra": colorbox_div,
+                        "id": "gitlog"
                     })
-                message.extra_status.append({
-                    "kind": "good",
-                    "html": format_html('Patches applied successfully (<a href="{}">tree</a>, {}).<br/><samp>git fetch {} {}</samp>',
-                                        git_url, colorbox_a, git_repo, git_tag),
-                })
         if request.user.is_authenticated:
             if message.get_property("git.apply-failed") != None or \
                  message.get_property("git.need-apply") == None:
