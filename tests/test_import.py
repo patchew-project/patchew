@@ -13,6 +13,7 @@ import os
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 import json
+from api.models import Message
 
 class ImportTest(PatchewTestCase):
 
@@ -68,6 +69,31 @@ class ImportTest(PatchewTestCase):
         self.cli_import("0010-invalid-byte.mbox.gz")
         self.check_cli(["search"],
                        stdout='[edk2] [PATCH 0/3] Revert "ShellPkg: Fix echo to support displaying special characters"')
+
+    def test_import_to_subproject(self):
+        tp = self.add_project("Libvirt", "libvir-list@redhat.com, libvirt-list@redhat.com",
+                              "git://libvirt.org/libvirt.git")
+        tp.prefix_tags = "!python"
+        tp.save()
+        sp = self.add_project("Libvirt-python", "libvir-list@redhat.com, libvirt-list@redhat.com",
+                              "https://github.com/libvirt/libvirt-python")
+        sp.prefix_tags = "python"
+        sp.parent_project = tp
+        sp.save()
+        self.cli_import("0019-libvirt-python.mbox.gz")
+        subj = '[libvirt] [python PATCH] event-test.py: Remove extra ( in --help output'
+        self.check_cli(["search", "project:Libvirt"], stdout=subj)
+        self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
+        sh = Message.objects.series_heads()
+        self.assertEqual(len(sh), 1)
+        s = sh[0]
+        self.assertTrue(s.get_property("git.need-apply", True))
+        self.assertTrue(s.project.name, sp.name)
+
+        self.cli_import("0020-libvirt.mbox.gz")
+        subj2 = subj + '\n[libvirt]  [PATCH v2] vcpupin: add clear feature'
+        self.check_cli(["search", "project:Libvirt"], stdout=subj2)
+        self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
 
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
