@@ -9,8 +9,7 @@
 # http://opensource.org/licenses/MIT.
 
 from django.conf.urls import url
-from django.http import HttpResponse, HttpResponseForbidden, Http404, \
-                        HttpResponseRedirect
+from django.http import HttpResponseForbidden, Http404, HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.utils.html import format_html
@@ -25,6 +24,7 @@ from api.views import APILoginRequiredView
 from api.models import Message, Project, MessageProperty
 from api.search import SearchEngine
 from event import emit_event, declare_event
+from patchew.logviewer import LogView
 from schema import *
 
 _instance = None
@@ -35,6 +35,22 @@ TESTING_SCRIPT_DEFAULT = """#!/bin/bash
 # branch
 exit 0
 """
+
+class TestingLogViewer(LogView):
+    def content(self, request, **kwargs):
+        project_or_series = kwargs['project_or_series']
+        testing_name = kwargs['testing_name']
+        if request.GET.get("type") == "project":
+            obj = Project.objects.filter(name=project_or_series).first()
+        else:
+            obj = Message.objects.find_series(project_or_series)
+        if not obj:
+            raise Http404("Object not found: " + project_or_series)
+        log = obj.get_property("testing.log." + testing_name)
+        if log is None:
+            raise Http404("Testing log not found: " + testing_name)
+        return log
+
 
 class TestingModule(PatchewModule):
     """Testing module"""
@@ -122,24 +138,12 @@ class TestingModule(PatchewModule):
         self.remove_testing_properties(obj, request.GET.get("test", ""))
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
-    def www_view_testing_log(self, request, project_or_series, testing_name):
-        if request.GET.get("type") == "project":
-            obj = Project.objects.filter(name=project_or_series).first()
-        else:
-            obj = Message.objects.find_series(project_or_series)
-        if not obj:
-            raise Http404("Object not found: " + project_or_series)
-        log = obj.get_property("testing.log." + testing_name)
-        if log is None:
-            raise Http404("Testing log not found: " + testing_name)
-        return HttpResponse(log, content_type='text/plain')
-
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^testing-reset/(?P<project_or_series>.*)/",
                                self.www_view_testing_reset,
                                name="testing-reset"))
         urlpatterns.append(url(r"^logs/(?P<project_or_series>.*)/testing.(?P<testing_name>.*)/",
-                               self.www_view_testing_log,
+                               TestingLogViewer.as_view(),
                                name="testing-log"))
 
     def add_test_report(self, user, project, tester, test, head,

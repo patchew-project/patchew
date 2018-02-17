@@ -14,7 +14,7 @@ import tempfile
 import shutil
 import hashlib
 from django.conf.urls import url
-from django.http import HttpResponse, Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
@@ -22,9 +22,22 @@ from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Project, Message, MessageProperty
 from api.views import APILoginRequiredView, prepare_series
+from patchew.logviewer import LogView
 from schema import *
 
 _instance = None
+
+class GitLogViewer(LogView):
+    def content(self, request, **kwargs):
+        series = kwargs['series']
+        obj = Message.objects.find_series(series)
+        if not obj:
+            raise Http404("Object not found: " + series)
+        log = obj.get_property("git.apply-log")
+        if log is None:
+            raise Http404("Git apply log not found")
+        return log
+
 
 class GitModule(PatchewModule):
     """Git module"""
@@ -227,15 +240,6 @@ class GitModule(PatchewModule):
         obj.set_property("git.need-apply", True)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
-    def www_view_git_log(self, request, series):
-        obj = Message.objects.find_series(series)
-        if not obj:
-            raise Http404("Object not found: " + series)
-        log = obj.get_property("git.apply-log")
-        if log is None:
-            raise Http404("Git apply log not found")
-        return HttpResponse(log, content_type='text/plain')
-
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
                                self.www_view_git_apply,
@@ -244,7 +248,7 @@ class GitModule(PatchewModule):
                                self.www_view_git_reset,
                                name="git_reset"))
         urlpatterns.append(url(r"^logs/(?P<series>.*)/git/",
-                               self.www_view_git_log,
+                               GitLogViewer.as_view(),
                                name="git-log"))
 
 class ApplierGetView(APILoginRequiredView):
