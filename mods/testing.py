@@ -216,8 +216,10 @@ class TestingModule(PatchewModule):
                                   kwargs={"project_or_series": obj.name,
                                           "testing_name": tn})
             log_url += "?" + typearg
+            html_log_url = log_url + "&html=1"
             passed_str = "failed" if failed else "passed"
-            html = format_html('Test <b>{}</b> <a class="cbox-log" href="{}">{}</a>', tn, log_url, passed_str)
+            html = format_html('Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
+                               tn, html_log_url, log_url, passed_str)
             obj.extra_status.append({
                 "kind": "alert" if failed else "good",
                 "html": html,

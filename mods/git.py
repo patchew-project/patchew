@@ -135,8 +135,11 @@ class GitModule(PatchewModule):
         l = message.get_property("git.apply-log")
         if l:
             failed = message.get_property("git.apply-failed")
-            colorbox_a = format_html('<a class="cbox-inline" href="#gitlog">apply log</a>')
-            colorbox_div = l
+            log_url = reverse("git-log",
+                              kwargs={"series": message.message_id})
+            html_log_url = log_url + "?html=1"
+            colorbox_a = format_html('<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
+                                     html_log_url, log_url)
             if failed:
                 title = "Failed in applying to current master"
                 message.status_tags.append({
@@ -147,8 +150,6 @@ class GitModule(PatchewModule):
                 message.extra_status.append({
                     "kind": "alert",
                     "html": format_html('{} ({})', title, colorbox_a),
-                    "extra": colorbox_div,
-                    "id": "gitlog"
                 })
             else:
                 git_url = message.get_property("git.url")
@@ -164,8 +165,6 @@ class GitModule(PatchewModule):
                     "kind": "good",
                     "html": format_html('Patches applied successfully (<a href="{}">tree</a>, {}).<br/><samp>git fetch {} {}</samp>',
                                         git_url, colorbox_a, git_repo, git_tag),
-                    "extra": colorbox_div,
-                    "id": "gitlog"
                 })
         if request.user.is_authenticated:
             if message.get_property("git.apply-failed") != None or \
