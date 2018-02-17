@@ -63,9 +63,6 @@
  {% elif status.kind == "alert" %} <span class="fa fa-lg fa-warning"></span>
  {% elif status.kind == "good" %} <span class="fa fa-lg fa-check"></span>{% endif %}
  <div>{{ status.html }}</div>
- {% if status.extra %}
-  <div class="status-extra" id="{{status.id}}">{{ status.extra }}</div>
- {% endif %}
 </div>
 {% endfor %}
 
@@ -152,8 +149,15 @@ function main() {
         $('pre code').each(function(i, block) {
             hljs.highlightBlock(block);
         });
-        $(".cbox-inline").colorbox({inline:true, width:"90%", className:'colorbox-pre'})
-        $(".cbox-log").colorbox({width:"90%", className:'colorbox-pre'})
+        $(".cbox-log").colorbox({width:"90%", height: "80%", iframe: true,
+                                 href: function() {
+                                     link = $(this).data('link');
+                                     return link ? link : $(this).attr('href');
+                                 }, onComplete: function() {
+                                     setTimeout(function() {
+                                         $('.cboxIframe')[0].contentWindow.focus();
+                                      }, 400);
+                                 }});
     });
     add_fixed_scroll_events();
 }
