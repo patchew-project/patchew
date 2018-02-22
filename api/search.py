@@ -192,7 +192,7 @@ Search text keyword in the email message. Example:
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)
-            q = Q(project__name=cond)
+            q = Q(project__name=cond) | Q(project__parent_project__name=cond)
         else:
             # Keyword in subject is the default
             q = as_keywords(term)

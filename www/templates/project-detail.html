@@ -32,6 +32,15 @@
 <div class="status-content">
   <span class="fa fa-lg fa-git"></span><div>Git: <a href="{{ project.git }}">{{ project.git }}</a></div>
 </div>
+{% if project.get_subprojects %}
+<div class="status-content">
+  <span class="fa fa-lg fa-sitemap"></span><div>Subprojects:
+    {% for p in project.get_subprojects %}
+      <a href="{% url "project_detail" project=p %}">{{ p.name }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% for status in project.extra_status %}
  <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
  {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
