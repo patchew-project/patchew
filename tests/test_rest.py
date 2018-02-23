@@ -27,6 +27,12 @@ class RestTest(PatchewTestCase):
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
         self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
+        self.sp = self.add_project("QEMU Block Layer", "qemu-block@nongnu.org")
+        self.sp.parent_project = self.p
+        self.sp.prefix_tags = "block"
+        self.sp.save()
+        self.SUBPROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.sp.id)
+
         self.admin = User.objects.get(username='admin')
         self.USER_BASE = '%susers/%d/' % (self.REST_BASE, self.admin.id)
 
@@ -43,16 +49,25 @@ class RestTest(PatchewTestCase):
 
     def test_projects(self):
         resp = self.api_client.get(self.REST_BASE + 'projects/')
-        self.assertEquals(resp.data['count'], 1)
+        self.assertEquals(resp.data['count'], 2)
         self.assertEquals(resp.data['results'][0]['resource_uri'], self.PROJECT_BASE)
         self.assertEquals(resp.data['results'][0]['name'], "QEMU")
         self.assertEquals(resp.data['results'][0]['mailing_list'], "qemu-devel@nongnu.org")
+        self.assertEquals(resp.data['results'][1]['resource_uri'], self.SUBPROJECT_BASE)
+        self.assertEquals(resp.data['results'][1]['name'], "QEMU Block Layer")
+        self.assertEquals(resp.data['results'][1]['mailing_list'], "qemu-block@nongnu.org")
+        self.assertEquals(resp.data['results'][1]['parent_project'], self.PROJECT_BASE)
 
     def test_project(self):
         resp = self.api_client.get(self.PROJECT_BASE)
         self.assertEquals(resp.data['resource_uri'], self.PROJECT_BASE)
         self.assertEquals(resp.data['name'], "QEMU")
         self.assertEquals(resp.data['mailing_list'], "qemu-devel@nongnu.org")
+        resp = self.api_client.get(self.SUBPROJECT_BASE)
+        self.assertEquals(resp.data['resource_uri'], self.SUBPROJECT_BASE)
+        self.assertEquals(resp.data['name'], "QEMU Block Layer")
+        self.assertEquals(resp.data['mailing_list'], "qemu-block@nongnu.org")
+        self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
     def test_project_post_minimal(self):
         data = {
@@ -75,6 +90,7 @@ class RestTest(PatchewTestCase):
             'git': 'https://gitlab.com/keycodemap/keycodemapdb/',
             'description': 'keycodemapdb generates code to translate key codes',
             'display_order': 4321,
+            'parent_project': self.PROJECT_BASE,
         }
         resp = self.api_client.post(self.REST_BASE + 'projects/', data=data)
         self.assertEquals(resp.status_code, 201)
@@ -87,6 +103,7 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['description'], data['description'])
         self.assertEquals(resp.data['display_order'], data['display_order'])
         self.assertEquals(resp.data['logo'], None)
+        self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
         resp = self.api_client.get(resp.data['resource_uri'])
         self.assertEquals(resp.data['name'], data['name'])
@@ -97,6 +114,7 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['description'], data['description'])
         self.assertEquals(resp.data['display_order'], data['display_order'])
         self.assertEquals(resp.data['logo'], None)
+        self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
     def test_series_single(self):
         resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
