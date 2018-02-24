@@ -73,7 +73,7 @@ imported()
 import()
 {
     echo import $@
-    if ! $PATCHEW_CLI import $@; then
+    if ! timeout -k 600 600 $PATCHEW_CLI import $@; then
         cp $@ $BAD_MESSAGES_DIR
         echo "(bad message saved in $BAD_MESSAGES_DIR)"
     fi
