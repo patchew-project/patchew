@@ -88,11 +88,11 @@ offlineimap_import()
 {
     if ! timeout -k 2000 1800 offlineimap -c $offlineimap_rc; then
         sleep 300
-        continue
+        return
     fi
     find "$maildir" -type f | while read f; do
         if imported "$f"; then
-            continue
+            return
         fi
         import "$f" || true
     done
