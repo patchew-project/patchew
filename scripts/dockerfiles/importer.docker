@@ -6,4 +6,5 @@ RUN ssh-keygen -t rsa -q -C patchew-importer -f ~/.ssh/id_rsa
 RUN echo StrictHostKeyChecking no >> ~/.ssh/config
 RUN echo UserKnownHostsFile=/dev/null >> ~/.ssh/config
 ENV LC_ALL en_US.UTF-8
+COPY . /opt/patchew/
 CMD /opt/patchew/scripts/patchew-importer
