@@ -97,6 +97,54 @@ class ANSI2HTMLConverter(object):
         yield suffix
         self._reset()
 
+    def _do_csi_C(self, it):
+        arg = next(it)
+        if arg == 0:
+            arg = 1
+        self._set_pos(self.pos + arg)
+
+    def _do_csi_D(self, it):
+        arg = next(it)
+        if arg == 0:
+            arg = 1
+        self._set_pos(max(0, self.pos - arg))
+
+    def _do_csi_K(self, it):
+        arg = next(it)
+        if arg == 0 or arg == 2:
+            assert not self.lazy_accumulate or self.lazy_contents == ''
+            if self.pos < len(self.line):
+                assert not self.lazy_accumulate
+                del self.line[self.pos:]
+        if arg == 1 or arg == 2:
+            save_pos = self.pos
+            if save_pos > 0:
+                self.pos = 0
+                self._write(' ' * save_pos)
+
+    def _parse_csi_with_args(self, csi, func):
+        if (len(csi) <= 3):
+            func(iter([0]))
+        else:
+            # thanks to the regular expression, we know arg is a number
+            # and there cannot be a ValueError
+            func((int(arg) for arg in csi[2:-1].split(";")))
+
+    def _parse_csi(self, csi):
+        if csi[1] != '[':
+            return
+
+        if csi[-1] == 'J':
+            save_pos = self.pos
+            yield from self._write_line('<hr>')
+            self._set_pos(save_pos)
+        elif csi[-1] == 'K':
+            self._parse_csi_with_args(csi, self._do_csi_K)
+        elif csi[-1] == 'C':
+            self._parse_csi_with_args(csi, self._do_csi_C)
+        elif csi[-1] == 'D':
+            self._parse_csi_with_args(csi, self._do_csi_D)
+
     def convert(self, input):
         yield from self._write_prefix()
         for m in self.RE.finditer(input):
@@ -128,6 +176,8 @@ class ANSI2HTMLConverter(object):
                     self._set_pos(self.pos + (8 - self.pos % 8))
                 elif seq == '\r':
                     self.pos = 0
+                elif len(seq) > 1:
+                    yield from self._parse_csi(seq)
 
     def finish(self):
         yield from self._write_prefix()

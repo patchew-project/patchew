@@ -56,6 +56,36 @@ class ANSI2HTMLTest(unittest.TestCase):
         self.assertBlackBg('{\x1b]test\x1b[0m\x07}', '{}')
         self.assertBlackBg('{\x1b]test\x1b[7m\x07}', '{}')
 
+    # ESC [2J
+    def test_clear_screen(self):
+        self.assertBlackBg('a\n\x1b[2Jb', 'a\n<hr>b')
+        self.assertBlackBg('a\x1b[2J', 'a<hr> ')
+        self.assertBlackBg('a\x1b[2Jb', 'a<hr> b')
+
+    # ESC [C and ESC [D
+    def test_horiz_movement(self):
+        self.assertBlackBg('abc\x1b[2DB', 'aBc')
+        self.assertBlackBg('abc\x1b[3CD', 'abc   D')
+        self.assertBlackBg('abcd\x1b[3DB\x1b[1CD', 'aBcD')
+        self.assertBlackBg('abc\x1b[0CD', 'abc D')
+        self.assertBlackBg('abc\x1b[CD', 'abc D')
+
+    # ESC [K
+    def test_clear_line(self):
+        self.assertBlackBg('\x1b[Kabcd', 'abcd')
+        self.assertBlackBg('abcd\r\x1b[K', '')
+        self.assertBlackBg('abcd\b\x1b[K', 'abc')
+        self.assertBlackBg('abcd\r\x1b[KDef', 'Def')
+        self.assertBlackBg('abcd\b\x1b[KDef', 'abcDef')
+        self.assertBlackBg('abcd\r\x1b[0K', '')
+        self.assertBlackBg('abcd\b\x1b[0K', 'abc')
+        self.assertBlackBg('abcd\r\x1b[1K', 'abcd')
+        self.assertBlackBg('abcd\b\x1b[1K', '   d')
+        self.assertBlackBg('abcd\r\x1b[2K', '')
+        self.assertBlackBg('abcd\b\x1b[2K', '   ')
+        self.assertBlackBg('abcd\r\x1b[2KDef', 'Def')
+        self.assertBlackBg('abcd\b\x1b[2KDef', '   Def')
+
 
 if __name__ == '__main__':
     unittest.main()
