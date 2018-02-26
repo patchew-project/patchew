@@ -22,6 +22,8 @@ class ANSI2HTMLConverter(object):
     RE_OSC = r'].*?(?:\x1B\\|\x07)'
     RE_CONTROL = '\x1B(?:%s|%s|[^][])|\r\n|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
     RE = re.compile('(%s)|(%s)' % (RE_STRING, RE_CONTROL))
+    COLORS = [ "BLK", "RED", "GRN", "YEL", "BLU", "MAG", "CYN", "WHI",
+               "HIK", "HIR", "HIG", "HIY", "HIB", "HIM", "HIC", "HIW" ]
 
     ENTITIES = {
         '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
@@ -41,12 +43,16 @@ class ANSI2HTMLConverter(object):
     def __init__(self, white_bg=False):
         self.class_to_id = {}
         self.id_to_class = []
+        self.default_fg = 0 if white_bg else 7
+        self.default_bg = 7 if white_bg else 0
         self.cur_class = self._class_to_id("")
         self.prefix = '<pre class="ansi">'
         self._reset()
         self._reset_attrs()
 
     def _reset_attrs(self):
+        self.fg = None
+        self.bg = None
         self.dim = 0
         self.bold = 0
         self.italic = 0
@@ -162,6 +168,22 @@ class ANSI2HTMLConverter(object):
                 self.inverse = 0
             elif arg == 29:
                 self.strike = 0
+        elif (arg >= 30 and arg <= 37) or (arg >= 91 and arg <= 96):
+            # we use light colors by default, so 31..36 and 91..96 are the same
+            self.fg = arg % 10
+        elif arg == 39:
+            self.fg = None
+        elif (arg >= 40 and arg <= 47) or (arg >= 101 and arg <= 106):
+            # we use light colors by default, so 31..36 and 91..96 are the same
+            self.bg = arg % 10
+        elif arg == 49:
+            self.bg = None
+        elif arg == 90 or arg == 97:
+            # the remaining light colors: dark grey and white
+            self.fg = arg - 82
+        elif arg == 100 or arg == 107:
+            # the remaining light colors: dark grey and white
+            self.bg = arg - 92
 
     def _class_to_id(self, html_class):
         class_id = self.class_to_id.get(html_class, None)
@@ -171,8 +193,39 @@ class ANSI2HTMLConverter(object):
             self.id_to_class.append(html_class)
         return class_id
 
+    def _map_color(self, color, default, dim):
+        # map a color assigned by _do_one_csi_m to an index in the COLORS array
+
+        color = color if color is not None else default
+        if dim:
+            # must be foreground color
+            # unlike vte which has a "very dark" grey, for simplicity
+            # dark grey remains dark grey
+            return 8 if color == default or color == 8 else color&~8
+        else:
+            # use light colors by default, except for black and light grey
+            # (but see bold case in _compute_class)
+            return color if color == 0 or color == 7 else color|8
+
     def _compute_class(self):
+        fg = self._map_color(self.fg, self.default_fg, self.dim)
+        bg = self._map_color(self.bg, self.default_bg, False)
+
+        # apply inverse now: "inverse dim" affects the *background* color!
+        if self.inverse:
+            fg, bg = bg, fg
+
+        # bold turns foreground light grey into white
+        if fg == 7 and not self.dim and self.bold:
+            fg = 15
+
+        # now compute CSS classes
         classes = []
+        if fg != self.default_fg:
+            classes.append(self.COLORS[fg])
+        if bg != self.default_bg:
+            classes.append('B' + self.COLORS[bg])
+
         if self.bold:
             classes.append('BOLD')
         if self.italic:

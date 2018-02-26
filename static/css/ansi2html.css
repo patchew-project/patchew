@@ -1,5 +1,5 @@
 /* For black and white background respectively: */
-.ansi {color:#e8e2d2}
+.ansi {color:#eee8d5}
 /* .ansi {color:#000} */
 
 .ansi>.BOLD {font-weight: bold}
@@ -7,3 +7,23 @@
 .ansi>.UND {text-decoration: underline}
 .ansi>.STR {text-decoration: line-through}
 .ansi>.UNDSTR {text-decoration: underline line-through}
+
+/* 16-color palette.  Default-intensity colors are based on Solarized,
+ * dimmed colors are just 2/3 of the default intensity.
+ */
+.ansi>.BLK  {color:#000000} .ansi>.BBLK {background-color:#000000}
+.ansi>.RED  {color:#93211f} .ansi>.BRED {background-color:#93211f}
+.ansi>.GRN  {color:#596600} .ansi>.BGRN {background-color:#596600}
+.ansi>.YEL  {color:#795b00} .ansi>.BYEL {background-color:#795b00}
+.ansi>.BLU  {color:#484b83} .ansi>.BBLU {background-color:#484b83}
+.ansi>.MAG  {color:#8d2457} .ansi>.BMAG {background-color:#8d2457}
+.ansi>.CYN  {color:#1c6b65} .ansi>.BCYN {background-color:#1c6b65}
+.ansi>.WHI  {color:#eee8d5} .ansi>.BWHI {background-color:#eee8d5}
+.ansi>.HIK  {color:#586e75} .ansi>.BHIK {background-color:#586e75}
+.ansi>.HIR  {color:#dc322f} .ansi>.BHIR {background-color:#dc322f}
+.ansi>.HIG  {color:#859900} .ansi>.BHIG {background-color:#859900}
+.ansi>.HIY  {color:#b58900} .ansi>.BHIY {background-color:#b58900}
+.ansi>.HIB  {color:#6c71c4} .ansi>.BHIB {background-color:#6c71c4}
+.ansi>.HIM  {color:#d33682} .ansi>.BHIM {background-color:#d33682}
+.ansi>.HIC  {color:#2aa198} .ansi>.BHIC {background-color:#2aa198}
+.ansi>.HIW  {color:#fdf6e3} .ansi>.BHIW {background-color:#fdf6e3}
