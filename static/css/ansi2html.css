@@ -1,0 +1,9 @@
+/* For black and white background respectively: */
+.ansi {color:#e8e2d2}
+/* .ansi {color:#000} */
+
+.ansi>.BOLD {font-weight: bold}
+.ansi>.ITA {font-style: italic}
+.ansi>.UND {text-decoration: underline}
+.ansi>.STR {text-decoration: line-through}
+.ansi>.UNDSTR {text-decoration: underline line-through}

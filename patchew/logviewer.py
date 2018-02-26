@@ -4,7 +4,8 @@
 #
 # Author: Paolo Bonzini <pbonzini@redhat.com>
 
-# Entity table based on ansi2html.c from colorized-logs.
+# Entity table and basic ESC[m parsing based on ansi2html.c from
+# colorized-logs.
 
 import re
 import abc
@@ -43,6 +44,16 @@ class ANSI2HTMLConverter(object):
         self.cur_class = self._class_to_id("")
         self.prefix = '<pre class="ansi">'
         self._reset()
+        self._reset_attrs()
+
+    def _reset_attrs(self):
+        self.dim = 0
+        self.bold = 0
+        self.italic = 0
+        self.underline = 0
+        self.blink = 0
+        self.inverse = 0
+        self.strike = 0
 
     def _reset(self):
         self.line = []
@@ -119,6 +130,39 @@ class ANSI2HTMLConverter(object):
         yield suffix
         self._reset()
 
+    def _do_one_csi_m(self, it):
+        arg = next(it)
+        if arg < 10:
+            if arg == 0:
+                self._reset_attrs()
+            elif arg == 1:
+                self.bold = 1
+            elif arg == 2:
+                self.dim = 1
+            elif arg == 3:
+                self.italic = 1
+            elif arg == 4:
+                self.underline = 1
+            elif arg == 5:
+                self.blink = 1
+            elif arg == 7:
+                self.inverse = 1
+            elif arg == 9:
+                self.strike = 1
+        elif arg < 30:
+            if arg == 21 or arg == 22:
+                self.bold = self.dim = 0
+            elif arg == 23:
+                self.italic = 0
+            elif arg == 24:
+                self.underline = 0
+            elif arg == 25:
+                self.blink = 0
+            elif arg == 27:
+                self.inverse = 0
+            elif arg == 29:
+                self.strike = 0
+
     def _class_to_id(self, html_class):
         class_id = self.class_to_id.get(html_class, None)
         if class_id is None:
@@ -126,6 +170,31 @@ class ANSI2HTMLConverter(object):
             self.class_to_id[html_class] = class_id
             self.id_to_class.append(html_class)
         return class_id
+
+    def _compute_class(self):
+        classes = []
+        if self.bold:
+            classes.append('BOLD')
+        if self.italic:
+            classes.append('ITA')
+
+        if self.underline or self.strike:
+            undstr = ''
+            if self.underline:
+                undstr += 'UND'
+            if self.strike:
+                undstr += 'STR'
+            classes.append(undstr)
+
+        self.cur_class = self._class_to_id(" ".join(classes))
+
+    def _do_csi_m(self, it):
+        try:
+            while True:
+                self._do_one_csi_m(it)
+        except StopIteration:
+            pass
+        self._compute_class()
 
     def _do_csi_C(self, it):
         arg = next(it)
@@ -179,6 +248,8 @@ class ANSI2HTMLConverter(object):
             self._parse_csi_with_args(csi, self._do_csi_C)
         elif csi[-1] == 'D':
             self._parse_csi_with_args(csi, self._do_csi_D)
+        elif csi[-1] == 'm':
+            self._parse_csi_with_args(csi, self._do_csi_m)
 
     def convert(self, input):
         yield from self._write_prefix()
@@ -218,6 +289,7 @@ class ANSI2HTMLConverter(object):
         yield from self._write_prefix()
         yield from self._write_line('</pre>')
         self.prefix = '<pre class="ansi">'
+        self._reset_attrs()
 
 def ansi2html(input, white_bg=False):
     c = ANSI2HTMLConverter(white_bg=white_bg)
@@ -240,8 +312,9 @@ class LogView(View, metaclass=abc.ABCMeta):
     # consume more memory because we would not be able to just
     # "yield from" into the StreamingHttpResponse.
     HTML_PROLOG = mark_safe("""<!DOCTYPE html><html><head>
+<link rel="stylesheet" href="/static/css/ansi2html.css">
 <style type="text/css">*{margin:0px;padding:0px;background:#333}
-pre { font-size: 13px; line-height: 1.42857143; white-space: pre-wrap; word-wrap: break-word; max-width: 100%; color: #eee}
+pre { font-size: 13px; line-height: 1.42857143; white-space: pre-wrap; word-wrap: break-word; max-width: 100%;}
 </style>
 <script type="text/javascript">
 if (parent.jQuery && parent.jQuery.colorbox) {

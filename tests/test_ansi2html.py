@@ -86,6 +86,45 @@ class ANSI2HTMLTest(unittest.TestCase):
         self.assertBlackBg('abcd\r\x1b[2KDef', 'Def')
         self.assertBlackBg('abcd\b\x1b[2KDef', '   Def')
 
+    # basic style formatting and bold
+    def test_basic_styles(self):
+        self.assertBlackBg('\x1b[0m', '')
+        self.assertWhiteBg('\x1b[0m', '')
+        self.assertBlackBg('A\x1b[0mBC', 'ABC')
+        self.assertWhiteBg('A\x1b[0mBC', 'ABC')
+        self.assertBlackBg('\x1b[30;41m', '')
+        self.assertWhiteBg('\x1b[30;41m', '')
+        self.assertBlackBg('\x1b[1mABC', '<span class="BOLD">ABC</span>')
+        self.assertWhiteBg('\x1b[1mABC', '<span class="BOLD">ABC</span>')
+        self.assertBlackBg('A\x1b[1mBC', 'A<span class="BOLD">BC</span>')
+        self.assertWhiteBg('A\x1b[1mBC', 'A<span class="BOLD">BC</span>')
+        self.assertBlackBg('\x1b[1mAB\x1b[0mC', '<span class="BOLD">AB</span>C')
+        self.assertWhiteBg('\x1b[1mAB\x1b[0mC', '<span class="BOLD">AB</span>C')
+        self.assertBlackBg('A\x1b[1mB\x1b[0mC', 'A<span class="BOLD">B</span>C')
+        self.assertWhiteBg('A\x1b[1mB\x1b[0mC', 'A<span class="BOLD">B</span>C')
+        self.assertBlackBg('A\x1b[1mB\x1b[0m\x1b[1mC', 'A<span class="BOLD">BC</span>')
+        self.assertWhiteBg('A\x1b[1mB\x1b[0m\x1b[1mC', 'A<span class="BOLD">BC</span>')
+
+    # italic, underline, strikethrough
+    def test_text_variants(self):
+        self.assertBlackBg('\x1b[3mABC', '<span class="ITA">ABC</span>')
+        self.assertWhiteBg('\x1b[3mABC', '<span class="ITA">ABC</span>')
+        self.assertBlackBg('\x1b[3mAB\x1b[23mC', '<span class="ITA">AB</span>C')
+        self.assertWhiteBg('\x1b[3mAB\x1b[23mC', '<span class="ITA">AB</span>C')
+        self.assertBlackBg('\x1b[4mABC', '<span class="UND">ABC</span>')
+        self.assertWhiteBg('\x1b[4mABC', '<span class="UND">ABC</span>')
+        self.assertBlackBg('\x1b[4mAB\x1b[24mC', '<span class="UND">AB</span>C')
+        self.assertWhiteBg('\x1b[4mAB\x1b[24mC', '<span class="UND">AB</span>C')
+        self.assertBlackBg('\x1b[9mABC', '<span class="STR">ABC</span>')
+        self.assertWhiteBg('\x1b[9mABC', '<span class="STR">ABC</span>')
+        self.assertBlackBg('\x1b[9mAB\x1b[29mC', '<span class="STR">AB</span>C')
+        self.assertWhiteBg('\x1b[9mAB\x1b[29mC', '<span class="STR">AB</span>C')
+        self.assertBlackBg('\x1b[4;9mABC', '<span class="UNDSTR">ABC</span>')
+        self.assertWhiteBg('\x1b[4;9mABC', '<span class="UNDSTR">ABC</span>')
+        self.assertBlackBg('\x1b[4;9mAB\x1b[24mC', '<span class="UNDSTR">AB</span><span class="STR">C</span>')
+        self.assertWhiteBg('\x1b[4;9mAB\x1b[24mC', '<span class="UNDSTR">AB</span><span class="STR">C</span>')
+        self.assertBlackBg('\x1b[4;9mAB\x1b[29mC', '<span class="UNDSTR">AB</span><span class="UND">C</span>')
+        self.assertWhiteBg('\x1b[4;9mAB\x1b[29mC', '<span class="UNDSTR">AB</span><span class="UND">C</span>')
 
 if __name__ == '__main__':
     unittest.main()
