@@ -19,7 +19,7 @@ class ANSI2HTMLConverter(object):
     RE_NUMS = '[0-9]+(?:;[0-9]+)*'
     RE_CSI = r'\[\??(?:' + RE_NUMS + ')?[^;0-9]'
     RE_OSC = r'].*?(?:\x1B\\|\x07)'
-    RE_CONTROL = '\x1B(?:%s|%s|[^][])|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
+    RE_CONTROL = '\x1B(?:%s|%s|[^][])|\r\n|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
     RE = re.compile('(%s)|(%s)' % (RE_STRING, RE_CONTROL))
 
     ENTITIES = {
@@ -109,7 +109,7 @@ class ANSI2HTMLConverter(object):
                 seq = m.group(2)
                 # _write_line can deal with lazy storage.  Everything else
                 # must be flushed to self.line with _write.
-                if seq == '\n':
+                if seq == '\n' or seq == '\r\n':
                     yield from self._write_line('\n')
                     continue
                 elif seq == '\f':
