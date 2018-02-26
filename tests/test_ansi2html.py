@@ -187,6 +187,14 @@ class ANSI2HTMLTest(unittest.TestCase):
         self.assertWhiteBg('\x1b[97;2;1mABC', '<span class="WHI BOLD">ABC</span>')
         self.assertBlackBg('\x1b[100mABC', '<span class="BHIK">ABC</span>')
         self.assertWhiteBg('\x1b[100mABC', '<span class="BHIK">ABC</span>')
+        self.assertBlackBg('\x1b[38;5;120mABC', '<span class="f120">ABC</span>')
+        self.assertWhiteBg('\x1b[38;5;120mABC', '<span class="f120">ABC</span>')
+        self.assertBlackBg('\x1b[38;5;120;2mABC', '<span class="df120">ABC</span>')
+        self.assertWhiteBg('\x1b[38;5;120;2mABC', '<span class="df120">ABC</span>')
+        self.assertBlackBg('\x1b[48;5;120mABC', '<span class="b120">ABC</span>')
+        self.assertWhiteBg('\x1b[48;5;120mABC', '<span class="b120">ABC</span>')
+        self.assertBlackBg('\x1b[48;5;120;2mABC', '<span class="HIK b120">ABC</span>')
+        self.assertWhiteBg('\x1b[48;5;120;2mABC', '<span class="HIK b120">ABC</span>')
 
     # italic, underline, strikethrough
     def test_text_variants(self):
@@ -259,6 +267,14 @@ class ANSI2HTMLTest(unittest.TestCase):
         self.assertWhiteBg('\x1b[100;7mABC', '<span class="HIK BBLK">ABC</span>')
         self.assertBlackBg('\x1b[100;1;7mABC', '<span class="HIK BWHI BOLD">ABC</span>')
         self.assertWhiteBg('\x1b[100;1;7mABC', '<span class="HIK BBLK BOLD">ABC</span>')
+        self.assertBlackBg('\x1b[38;5;120;7mABC', '<span class="BLK b120">ABC</span>')
+        self.assertWhiteBg('\x1b[38;5;120;7mABC', '<span class="WHI b120">ABC</span>')
+        self.assertBlackBg('\x1b[38;5;120;2;7mABC', '<span class="BLK db120">ABC</span>')
+        self.assertWhiteBg('\x1b[38;5;120;2;7mABC', '<span class="WHI db120">ABC</span>')
+        self.assertBlackBg('\x1b[48;5;120;7mABC', '<span class="f120 BWHI">ABC</span>')
+        self.assertWhiteBg('\x1b[48;5;120;7mABC', '<span class="f120 BBLK">ABC</span>')
+        self.assertBlackBg('\x1b[48;5;120;2;7mABC', '<span class="f120 BHIK">ABC</span>')
+        self.assertWhiteBg('\x1b[48;5;120;2;7mABC', '<span class="f120 BHIK">ABC</span>')
         # vte uses BHIK here??
         self.assertBlackBg('\x1b[47;30;1;7mABC', '<span class="HIW BOLD">ABC</span>')
         self.assertWhiteBg('\x1b[47;30;1;7mABC', '<span class="HIW BBLK BOLD">ABC</span>')

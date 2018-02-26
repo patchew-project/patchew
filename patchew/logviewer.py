@@ -171,11 +171,23 @@ class ANSI2HTMLConverter(object):
         elif (arg >= 30 and arg <= 37) or (arg >= 91 and arg <= 96):
             # we use light colors by default, so 31..36 and 91..96 are the same
             self.fg = arg % 10
+        elif arg == 38:
+            # 256 colors
+            if next(it) == 5:
+                n = next(it)
+                if n < 256:
+                    self.fg = ('f%d' % n, 'b%d' % n)
         elif arg == 39:
             self.fg = None
         elif (arg >= 40 and arg <= 47) or (arg >= 101 and arg <= 106):
             # we use light colors by default, so 31..36 and 91..96 are the same
             self.bg = arg % 10
+        elif arg == 48:
+            # 256 colors
+            if next(it) == 5:
+                n = next(it)
+                if n < 256:
+                    self.bg = ('f%d' % n, 'b%d' % n)
         elif arg == 49:
             self.bg = None
         elif arg == 90 or arg == 97:
@@ -199,13 +211,19 @@ class ANSI2HTMLConverter(object):
         color = color if color is not None else default
         if dim:
             # must be foreground color
-            # unlike vte which has a "very dark" grey, for simplicity
-            # dark grey remains dark grey
-            return 8 if color == default or color == 8 else color&~8
+            if isinstance(color, int):
+                # unlike vte which has a "very dark" grey, for simplicity
+                # dark grey remains dark grey
+                return 8 if color == default or color == 8 else color&~8
+            else:
+                return ('d' + color[0], 'd' + color[1])
         else:
-            # use light colors by default, except for black and light grey
-            # (but see bold case in _compute_class)
-            return color if color == 0 or color == 7 else color|8
+            if isinstance(color, int):
+                # use light colors by default, except for black and light grey
+                # (but see bold case in _compute_class)
+                return color if color == 0 or color == 7 else color|8
+            else:
+                return color
 
     def _compute_class(self):
         fg = self._map_color(self.fg, self.default_fg, self.dim)
@@ -221,10 +239,18 @@ class ANSI2HTMLConverter(object):
 
         # now compute CSS classes
         classes = []
-        if fg != self.default_fg:
-            classes.append(self.COLORS[fg])
-        if bg != self.default_bg:
-            classes.append('B' + self.COLORS[bg])
+        if isinstance(fg, int):
+            if fg != self.default_fg:
+                classes.append(self.COLORS[fg])
+        else:
+            # 256-color palette
+            classes.append(fg[0])
+
+        if isinstance(bg, int):
+            if bg != self.default_bg:
+                classes.append('B' + self.COLORS[bg])
+        else:
+            classes.append(bg[1])
 
         if self.bold:
             classes.append('BOLD')
