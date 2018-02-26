@@ -4,30 +4,106 @@
 #
 # Author: Paolo Bonzini <pbonzini@redhat.com>
 
+# Entity table based on ansi2html.c from colorized-logs.
+
+import re
 import abc
 import sys
 
 from django.views import View
 from django.http import HttpResponse, StreamingHttpResponse
-from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 class ANSI2HTMLConverter(object):
+    RE_STRING = '[^\b\t\n\f\r\x1B]+'
+    RE_NUMS = '[0-9]+(?:;[0-9]+)*'
+    RE_CSI = r'\[\??(?:' + RE_NUMS + ')?[^;0-9]'
+    RE_OSC = r'].*?(?:\x1B\\|\x07)'
+    RE_CONTROL = '\x1B(?:%s|%s|[^][])|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
+    RE = re.compile('(%s)|(%s)' % (RE_STRING, RE_CONTROL))
+
+    ENTITIES = {
+        '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
+        '\x03' : '&#x2403;', '\x04' : '&#x2404;',  '\x05' : '&#x2405;',
+        '\x06' : '&#x2406;', '\x07' : '&#x1F514;', '\x0B' : '&#x240B;',
+        '\x0E' : '&#x240E;', '\x0F' : '&#x240F;',  '\x10' : '&#x2410;',
+        '\x11' : '&#x2411;', '\x12' : '&#x2412;',  '\x13' : '&#x2413;',
+        '\x14' : '&#x2414;', '\x15' : '&#x2415;',  '\x16' : '&#x2416;',
+        '\x17' : '&#x2417;', '\x18' : '&#x2418;',  '\x19' : '&#x2419;',
+        '\x1A' : '&#x241A;', '\x1B' : '&#x241B;',  '\x1C' : '&#x241C;',
+        '\x1D' : '&#x241D;', '\x1E' : '&#x241E;',  '\x1F' : '&#x241F;',
+        '<'    : '&lt;',     '>'    : '&gt;',      '&'    : '&amp;',
+        '\x7F' : '&#x2326;'
+    }
+    RE_ENTITIES = re.compile('[\x00-\x1F<>&\x7F]')
+
     def __init__(self, white_bg=False):
         self.prefix = '<pre class="ansi">'
+        self._reset()
+
+    def _reset(self):
+        self.line = []
+        self.pos = 0
+
+    # self.line holds the characters for the current line.
+    # Writing can overwrite some characters if self.pos is
+    # not pointing to the end of the line, and then appends.
+    # Moving the cursor right can add spaces to the end.
+
+    def _write(self, chars):
+        cur_len = len(self.line)
+        if self.pos < cur_len:
+            last = min(cur_len - self.pos, len(chars))
+            self.line[self.pos:self.pos+last] = list(chars[0:last])
+        else:
+            last = 0
+
+        if len(chars) > last:
+            self.line += list(chars[last:])
+        self.pos += len(chars)
+
+    def _set_pos(self, pos):
+        self.pos = pos
+        if self.pos > len(self.line):
+            num = self.pos - len(self.line)
+            self.line += [' '] * num
 
     def _write_prefix(self):
         if self.prefix != '':
             yield self.prefix
             self.prefix = ''
 
+    def _write_span(self, text):
+        yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
+
+    def _write_line(self, suffix):
+        text = "".join(self.line)
+        yield from self._write_span(text)
+        yield suffix
+        self._reset()
+
     def convert(self, input):
         yield from self._write_prefix()
-        yield format_html('{}', input)
+        for m in self.RE.finditer(input):
+            if m.group(1):
+                self._write(m.group(1))
+            else:
+                seq = m.group(2)
+                if seq == '\n':
+                    yield from self._write_line('\n')
+                elif seq == '\f':
+                    yield from self._write_line('\n<hr>')
+                elif seq == '\b':
+                    if self.pos > 0:
+                        self.pos -= 1
+                elif seq == '\t':
+                    self._set_pos(self.pos + (8 - self.pos % 8))
+                elif seq == '\r':
+                    self.pos = 0
 
     def finish(self):
         yield from self._write_prefix()
-        yield '</pre>'
+        yield from self._write_line('</pre>')
         self.prefix = '<pre class="ansi">'
 
 def ansi2html(input, white_bg=False):
