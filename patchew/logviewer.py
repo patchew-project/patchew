@@ -44,6 +44,8 @@ class ANSI2HTMLConverter(object):
     def _reset(self):
         self.line = []
         self.pos = 0
+        self.lazy_contents = ''
+        self.lazy_accumulate = True
 
     # self.line holds the characters for the current line.
     # Writing can overwrite some characters if self.pos is
@@ -51,6 +53,8 @@ class ANSI2HTMLConverter(object):
     # Moving the cursor right can add spaces to the end.
 
     def _write(self, chars):
+        assert not self.lazy_accumulate or self.lazy_contents == ''
+        self.lazy_accumulate = False
         cur_len = len(self.line)
         if self.pos < cur_len:
             last = min(cur_len - self.pos, len(chars))
@@ -65,6 +69,8 @@ class ANSI2HTMLConverter(object):
     def _set_pos(self, pos):
         self.pos = pos
         if self.pos > len(self.line):
+            assert not self.lazy_accumulate or self.lazy_contents == ''
+            self.lazy_accumulate = False
             num = self.pos - len(self.line)
             self.line += [' '] * num
 
@@ -77,6 +83,15 @@ class ANSI2HTMLConverter(object):
         yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
 
     def _write_line(self, suffix):
+        # If the line consists of a single string of text with no escapes or
+        # control characters, convert() special cases it and does not call
+        # _write.  That simple case is handled with a single _write_span.
+        if self.lazy_contents != '':
+            yield from self._write_span(self.lazy_contents)
+            yield suffix
+            self._reset()
+            return
+
         text = "".join(self.line)
         yield from self._write_span(text)
         yield suffix
@@ -86,14 +101,27 @@ class ANSI2HTMLConverter(object):
         yield from self._write_prefix()
         for m in self.RE.finditer(input):
             if m.group(1):
-                self._write(m.group(1))
+                if self.lazy_accumulate:
+                    self.lazy_contents += m.group(1)
+                else:
+                    self._write(m.group(1))
             else:
                 seq = m.group(2)
+                # _write_line can deal with lazy storage.  Everything else
+                # must be flushed to self.line with _write.
                 if seq == '\n':
                     yield from self._write_line('\n')
+                    continue
                 elif seq == '\f':
                     yield from self._write_line('\n<hr>')
-                elif seq == '\b':
+                    continue
+
+                if self.lazy_contents != '':
+                    content = self.lazy_contents
+                    self.lazy_contents = ''
+                    self._write(content)
+
+                if seq == '\b':
                     if self.pos > 0:
                         self.pos -= 1
                 elif seq == '\t':
