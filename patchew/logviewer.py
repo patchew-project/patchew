@@ -38,32 +38,39 @@ class ANSI2HTMLConverter(object):
     RE_ENTITIES = re.compile('[\x00-\x1F<>&\x7F]')
 
     def __init__(self, white_bg=False):
+        self.class_to_id = {}
+        self.id_to_class = []
+        self.cur_class = self._class_to_id("")
         self.prefix = '<pre class="ansi">'
         self._reset()
 
     def _reset(self):
         self.line = []
+        self.class_ids = []
         self.pos = 0
         self.lazy_contents = ''
         self.lazy_accumulate = True
 
-    # self.line holds the characters for the current line.
-    # Writing can overwrite some characters if self.pos is
-    # not pointing to the end of the line, and then appends.
-    # Moving the cursor right can add spaces to the end.
+    # self.line and self.class_ids hold the characters and style respectively
+    # for the current line.  Writing can overwrite some characters if self.pos
+    # is not pointing to the end of the line, and then appends.  Moving the
+    # cursor right can add spaces to the end, but those are never styled.
 
-    def _write(self, chars):
+    def _write(self, chars, class_id):
         assert not self.lazy_accumulate or self.lazy_contents == ''
         self.lazy_accumulate = False
+        classes = [class_id] * len(chars)
         cur_len = len(self.line)
         if self.pos < cur_len:
             last = min(cur_len - self.pos, len(chars))
             self.line[self.pos:self.pos+last] = list(chars[0:last])
+            self.class_ids[self.pos:self.pos+last] = classes[0:last]
         else:
             last = 0
 
         if len(chars) > last:
             self.line += list(chars[last:])
+            self.class_ids += classes[last:]
         self.pos += len(chars)
 
     def _set_pos(self, pos):
@@ -73,29 +80,52 @@ class ANSI2HTMLConverter(object):
             self.lazy_accumulate = False
             num = self.pos - len(self.line)
             self.line += [' '] * num
+            self.class_ids += [0] * num
 
     def _write_prefix(self):
         if self.prefix != '':
             yield self.prefix
             self.prefix = ''
 
-    def _write_span(self, text):
+    def _write_span(self, text, class_id):
+        if class_id > 0:
+            yield ('<span class="%s">' % self.id_to_class[class_id])
         yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
+        if class_id > 0:
+            yield '</span>'
+
+    # Flushing a line locates spans that have the same style, and prints those
+    # with a <span> tag if they are styled.
 
     def _write_line(self, suffix):
         # If the line consists of a single string of text with no escapes or
         # control characters, convert() special cases it and does not call
         # _write.  That simple case is handled with a single _write_span.
         if self.lazy_contents != '':
-            yield from self._write_span(self.lazy_contents)
+            yield from self._write_span(self.lazy_contents, self.cur_class)
             yield suffix
             self._reset()
             return
 
-        text = "".join(self.line)
-        yield from self._write_span(text)
+        self.class_ids.append(-1)
+        start = 0
+        class_id = self.class_ids[0]
+        for i in range(1, len(self.class_ids)):
+            if self.class_ids[i] != class_id:
+                text = "".join(self.line[start:i])
+                yield from self._write_span(text, class_id)
+                start = i
+                class_id = self.class_ids[i]
         yield suffix
         self._reset()
+
+    def _class_to_id(self, html_class):
+        class_id = self.class_to_id.get(html_class, None)
+        if class_id is None:
+            class_id = len(self.class_to_id)
+            self.class_to_id[html_class] = class_id
+            self.id_to_class.append(html_class)
+        return class_id
 
     def _do_csi_C(self, it):
         arg = next(it)
@@ -116,6 +146,7 @@ class ANSI2HTMLConverter(object):
             if self.pos < len(self.line):
                 assert not self.lazy_accumulate
                 del self.line[self.pos:]
+                del self.class_ids[self.pos:]
                 if self.pos == 0:
                     self.lazy_accumulate = True
                     return
@@ -123,7 +154,8 @@ class ANSI2HTMLConverter(object):
             save_pos = self.pos
             if save_pos > 0:
                 self.pos = 0
-                self._write(' ' * save_pos)
+                # clearing to the beginning of the line uses unstyled spaces
+                self._write(' ' * save_pos, 0)
 
     def _parse_csi_with_args(self, csi, func):
         if (len(csi) <= 3):
@@ -155,7 +187,7 @@ class ANSI2HTMLConverter(object):
                 if self.lazy_accumulate:
                     self.lazy_contents += m.group(1)
                 else:
-                    self._write(m.group(1))
+                    self._write(m.group(1), self.cur_class)
             else:
                 seq = m.group(2)
                 # _write_line can deal with lazy storage.  Everything else
@@ -170,7 +202,7 @@ class ANSI2HTMLConverter(object):
                 if self.lazy_contents != '':
                     content = self.lazy_contents
                     self.lazy_contents = ''
-                    self._write(content)
+                    self._write(content, self.cur_class)
 
                 if seq == '\b':
                     if self.pos > 0:
