@@ -116,6 +116,9 @@ class ANSI2HTMLConverter(object):
             if self.pos < len(self.line):
                 assert not self.lazy_accumulate
                 del self.line[self.pos:]
+                if self.pos == 0:
+                    self.lazy_accumulate = True
+                    return
         if arg == 1 or arg == 2:
             save_pos = self.pos
             if save_pos > 0:
