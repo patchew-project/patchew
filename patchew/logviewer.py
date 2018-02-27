@@ -15,38 +15,18 @@ from django.views import View
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.safestring import mark_safe
 
-class ANSI2HTMLConverter(object):
+class ANSIProcessor(object):
     RE_STRING = '[^\b\t\n\f\r\x1B]+'
     RE_NUMS = '[0-9]+(?:;[0-9]+)*'
     RE_CSI = r'\[\??(?:' + RE_NUMS + ')?[^;0-9]'
     RE_OSC = r'].*?(?:\x1B\\|\x07)'
     RE_CONTROL = '\x1B(?:%s|%s|[^][])|\r\n|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
     RE = re.compile('(%s)|(%s)' % (RE_STRING, RE_CONTROL))
-    COLORS = [ "BLK", "RED", "GRN", "YEL", "BLU", "MAG", "CYN", "WHI",
-               "HIK", "HIR", "HIG", "HIY", "HIB", "HIM", "HIC", "HIW" ]
 
-    ENTITIES = {
-        '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
-        '\x03' : '&#x2403;', '\x04' : '&#x2404;',  '\x05' : '&#x2405;',
-        '\x06' : '&#x2406;', '\x07' : '&#x1F514;', '\x0B' : '&#x240B;',
-        '\x0E' : '&#x240E;', '\x0F' : '&#x240F;',  '\x10' : '&#x2410;',
-        '\x11' : '&#x2411;', '\x12' : '&#x2412;',  '\x13' : '&#x2413;',
-        '\x14' : '&#x2414;', '\x15' : '&#x2415;',  '\x16' : '&#x2416;',
-        '\x17' : '&#x2417;', '\x18' : '&#x2418;',  '\x19' : '&#x2419;',
-        '\x1A' : '&#x241A;', '\x1B' : '&#x241B;',  '\x1C' : '&#x241C;',
-        '\x1D' : '&#x241D;', '\x1E' : '&#x241E;',  '\x1F' : '&#x241F;',
-        '<'    : '&lt;',     '>'    : '&gt;',      '&'    : '&amp;',
-        '\x7F' : '&#x2326;'
-    }
-    RE_ENTITIES = re.compile('[\x00-\x1F<>&\x7F]')
-
-    def __init__(self, white_bg=False):
+    def __init__(self):
         self.class_to_id = {}
         self.id_to_class = []
-        self.default_fg = 0 if white_bg else 7
-        self.default_bg = 7 if white_bg else 0
         self.cur_class = self._class_to_id("")
-        self.prefix = '<pre class="ansi">'
         self._reset()
         self._reset_attrs()
 
@@ -99,17 +79,9 @@ class ANSI2HTMLConverter(object):
             self.line += [' '] * num
             self.class_ids += [0] * num
 
-    def _write_prefix(self):
-        if self.prefix != '':
-            yield self.prefix
-            self.prefix = ''
-
+    @abc.abstractmethod
     def _write_span(self, text, class_id):
-        if class_id > 0:
-            yield ('<span class="%s">' % self.id_to_class[class_id])
-        yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
-        if class_id > 0:
-            yield '</span>'
+        pass
 
     # Flushing a line locates spans that have the same style, and prints those
     # with a <span> tag if they are styled.
@@ -198,7 +170,7 @@ class ANSI2HTMLConverter(object):
             self.bg = arg - 92
 
     def _write_form_feed(self):
-        yield '<hr>'
+        pass
 
     def _class_to_id(self, html_class):
         class_id = self.class_to_id.get(html_class, None)
@@ -208,67 +180,8 @@ class ANSI2HTMLConverter(object):
             self.id_to_class.append(html_class)
         return class_id
 
-    def _map_color(self, color, default, dim):
-        # map a color assigned by _do_one_csi_m to an index in the COLORS array
-
-        color = color if color is not None else default
-        if dim:
-            # must be foreground color
-            if isinstance(color, int):
-                # unlike vte which has a "very dark" grey, for simplicity
-                # dark grey remains dark grey
-                return 8 if color == default or color == 8 else color&~8
-            else:
-                return ('d' + color[0], 'd' + color[1])
-        else:
-            if isinstance(color, int):
-                # use light colors by default, except for black and light grey
-                # (but see bold case in _compute_class)
-                return color if color == 0 or color == 7 else color|8
-            else:
-                return color
-
     def _compute_class(self):
-        fg = self._map_color(self.fg, self.default_fg, self.dim)
-        bg = self._map_color(self.bg, self.default_bg, False)
-
-        # apply inverse now: "inverse dim" affects the *background* color!
-        if self.inverse:
-            fg, bg = bg, fg
-
-        # bold turns foreground light grey into white
-        if fg == 7 and not self.dim and self.bold:
-            fg = 15
-
-        # now compute CSS classes
-        classes = []
-        if isinstance(fg, int):
-            if fg != self.default_fg:
-                classes.append(self.COLORS[fg])
-        else:
-            # 256-color palette
-            classes.append(fg[0])
-
-        if isinstance(bg, int):
-            if bg != self.default_bg:
-                classes.append('B' + self.COLORS[bg])
-        else:
-            classes.append(bg[1])
-
-        if self.bold:
-            classes.append('BOLD')
-        if self.italic:
-            classes.append('ITA')
-
-        if self.underline or self.strike:
-            undstr = ''
-            if self.underline:
-                undstr += 'UND'
-            if self.strike:
-                undstr += 'STR'
-            classes.append(undstr)
-
-        self.cur_class = self._class_to_id(" ".join(classes))
+        pass
 
     def _do_csi_m(self, it):
         try:
@@ -335,7 +248,6 @@ class ANSI2HTMLConverter(object):
             self._parse_csi_with_args(csi, self._do_csi_m)
 
     def convert(self, input):
-        yield from self._write_prefix()
         for m in self.RE.finditer(input):
             if m.group(1):
                 if self.lazy_accumulate:
@@ -370,10 +282,122 @@ class ANSI2HTMLConverter(object):
                     yield from self._parse_csi(seq)
 
     def finish(self):
-        yield from self._write_prefix()
-        yield from self._write_line('</pre>')
-        self.prefix = '<pre class="ansi">'
+        yield from self._write_line('')
         self._reset_attrs()
+
+
+class ANSI2HTMLConverter(ANSIProcessor):
+    ENTITIES = {
+        '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
+        '\x03' : '&#x2403;', '\x04' : '&#x2404;',  '\x05' : '&#x2405;',
+        '\x06' : '&#x2406;', '\x07' : '&#x1F514;', '\x0B' : '&#x240B;',
+        '\x0E' : '&#x240E;', '\x0F' : '&#x240F;',  '\x10' : '&#x2410;',
+        '\x11' : '&#x2411;', '\x12' : '&#x2412;',  '\x13' : '&#x2413;',
+        '\x14' : '&#x2414;', '\x15' : '&#x2415;',  '\x16' : '&#x2416;',
+        '\x17' : '&#x2417;', '\x18' : '&#x2418;',  '\x19' : '&#x2419;',
+        '\x1A' : '&#x241A;', '\x1B' : '&#x241B;',  '\x1C' : '&#x241C;',
+        '\x1D' : '&#x241D;', '\x1E' : '&#x241E;',  '\x1F' : '&#x241F;',
+        '<'    : '&lt;',     '>'    : '&gt;',      '&'    : '&amp;',
+        '\x7F' : '&#x2326;'
+    }
+    RE_ENTITIES = re.compile('[\x00-\x1F<>&\x7F]')
+
+    COLORS = [ "BLK", "RED", "GRN", "YEL", "BLU", "MAG", "CYN", "WHI",
+               "HIK", "HIR", "HIG", "HIY", "HIB", "HIM", "HIC", "HIW" ]
+
+    def __init__(self, white_bg=False):
+        super(ANSI2HTMLConverter, self).__init__()
+        self.default_fg = 0 if white_bg else 7
+        self.default_bg = 7 if white_bg else 0
+        self.prefix = '<pre class="ansi">'
+
+    def _write_prefix(self):
+        if self.prefix != '':
+            yield self.prefix
+            self.prefix = ''
+
+    def _map_color(self, color, default, dim):
+        # map a color assigned by _do_one_csi_m to an index in the COLORS array
+
+        color = color if color is not None else default
+        if dim:
+            # must be foreground color
+            if isinstance(color, int):
+                # unlike vte which has a "very dark" grey, for simplicity
+                # dark grey remains dark grey
+                return 8 if color == default or color == 8 else color&~8
+            else:
+                return ('d' + color[0], 'd' + color[1])
+        else:
+            if isinstance(color, int):
+                # use light colors by default, except for black and light grey
+                # (but see bold case in _compute_class)
+                return color if color == 0 or color == 7 else color|8
+            else:
+                return color
+
+    def _compute_class(self):
+        fg = self._map_color(self.fg, self.default_fg, self.dim)
+        bg = self._map_color(self.bg, self.default_bg, False)
+
+        # apply inverse now: "inverse dim" affects the *background* color!
+        if self.inverse:
+            fg, bg = bg, fg
+
+        # bold turns foreground light grey into white
+        if fg == 7 and not self.dim and self.bold:
+            fg = 15
+
+        # now compute CSS classes
+        classes = []
+        if isinstance(fg, int):
+            if fg != self.default_fg:
+                classes.append(self.COLORS[fg])
+        else:
+            # 256-color palette
+            classes.append(fg[0])
+
+        if isinstance(bg, int):
+            if bg != self.default_bg:
+                classes.append('B' + self.COLORS[bg])
+        else:
+            classes.append(bg[1])
+
+        if self.bold:
+            classes.append('BOLD')
+        if self.italic:
+            classes.append('ITA')
+
+        if self.underline or self.strike:
+            undstr = ''
+            if self.underline:
+                undstr += 'UND'
+            if self.strike:
+                undstr += 'STR'
+            classes.append(undstr)
+
+        self.cur_class = self._class_to_id(" ".join(classes))
+
+    def _write_span(self, text, class_id):
+        if class_id > 0:
+            yield ('<span class="%s">' % self.id_to_class[class_id])
+        yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
+        if class_id > 0:
+            yield '</span>'
+
+    def _write_form_feed(self):
+        yield '<hr>'
+
+    def convert(self, input):
+        yield from self._write_prefix()
+        yield from super(ANSI2HTMLConverter, self).convert(input)
+
+    def finish(self):
+        yield from self._write_prefix()
+        yield from super(ANSI2HTMLConverter, self).finish()
+        yield '</pre>'
+        self.prefix = '<pre class="ansi">'
+
 
 def ansi2html(input, white_bg=False):
     c = ANSI2HTMLConverter(white_bg=white_bg)
