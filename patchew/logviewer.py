@@ -197,6 +197,9 @@ class ANSI2HTMLConverter(object):
             # the remaining light colors: dark grey and white
             self.bg = arg - 92
 
+    def _write_form_feed(self):
+        yield '<hr>'
+
     def _class_to_id(self, html_class):
         class_id = self.class_to_id.get(html_class, None)
         if class_id is None:
@@ -319,7 +322,8 @@ class ANSI2HTMLConverter(object):
 
         if csi[-1] == 'J':
             save_pos = self.pos
-            yield from self._write_line('<hr>')
+            yield from self._write_line('')
+            yield from self._write_form_feed()
             self._set_pos(save_pos)
         elif csi[-1] == 'K':
             self._parse_csi_with_args(csi, self._do_csi_K)
@@ -346,7 +350,8 @@ class ANSI2HTMLConverter(object):
                     yield from self._write_line('\n')
                     continue
                 elif seq == '\f':
-                    yield from self._write_line('\n<hr>')
+                    yield from self._write_line('\n')
+                    yield from self._write_form_feed()
                     continue
 
                 if self.lazy_contents != '':
