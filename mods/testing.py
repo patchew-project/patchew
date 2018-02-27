@@ -160,6 +160,24 @@ class TestingModule(PatchewModule):
                                TestingLogViewer.as_view(),
                                name="testing-log"))
 
+    def reverse_testing_log(self, obj, test, request=None, html=False):
+        if isinstance(obj, Message):
+            log_url = reverse("testing-log",
+                              kwargs={"project_or_series": obj.message_id,
+                                      "testing_name": test}) + "?type=message"
+        else:
+            assert(isinstance(obj, Project))
+            log_url = reverse.reverse("testing-log",
+                              kwargs={"project_or_series": obj.name,
+                                      "testing_name": test}) + "?type=project"
+        if html:
+            log_url += "&html=1"
+        # Generate a full URL, including the host and port, for use in email
+        # notifications and REST API responses.
+        if request:
+            log_url = request.build_absolute_uri(log_url)
+        return log_url
+
     def add_test_report(self, user, project, tester, test, head,
                         base, identity, passed, log, is_timeout):
         # Find a project or series depending on the test type and assign it to obj
@@ -218,20 +236,8 @@ class TestingModule(PatchewModule):
                 continue
             tn = pn[len("testing.report."):]
             failed = not p["passed"]
-            log_prop = "testing.log." + tn
-            if isinstance(obj, Message):
-                typearg = "type=message"
-                log_url = reverse("testing-log",
-                                  kwargs={"project_or_series": obj.message_id,
-                                          "testing_name": tn})
-            else:
-                assert(isinstance(obj, Project))
-                typearg = "type=project"
-                log_url = reverse("testing-log",
-                                  kwargs={"project_or_series": obj.name,
-                                          "testing_name": tn})
-            log_url += "?" + typearg
-            html_log_url = log_url + "&html=1"
+            log_url = self.reverse_testing_log(obj, tn, html=False)
+            html_log_url = self.reverse_testing_log(obj, tn, html=True)
             passed_str = "failed" if failed else "passed"
             html = format_html('Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
                                tn, html_log_url, log_url, passed_str)
@@ -278,12 +284,7 @@ class TestingModule(PatchewModule):
                 continue
             tn = pn[len("testing.report."):]
             failed = not p["passed"]
-            log_prop = "testing.log." + tn
-            typearg = "type=message"
-            log_url = reverse("testing-log",
-                              kwargs={"project_or_series": message.message_id,
-                                      "testing_name": tn})
-            log_url += "?" + typearg
+            log_url = self.reverse_testing_log(message, tn, request=request, html=False)
             passed_str = "failure" if failed else "success"
             result = {
                 'status': passed_str,
