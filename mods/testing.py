@@ -178,20 +178,21 @@ class TestingModule(PatchewModule):
             log_url = request.build_absolute_uri(log_url)
         return log_url
 
-    def add_test_report(self, user, project, tester, test, head,
+    def add_test_report(self, request, project, tester, test, head,
                         base, identity, passed, log, is_timeout):
         # Find a project or series depending on the test type and assign it to obj
         if identity["type"] == "project":
             obj = Project.objects.get(name=project)
-            is_proj_report = True
             project = obj.name
         elif identity["type"] == "series":
             message_id = identity["message-id"]
             obj = Message.objects.find_series(message_id, project)
             if not obj:
                 raise Exception("Series doesn't exist")
-            is_proj_report = False
             project = obj.project.name
+        user = request.user
+        log_url = self.reverse_testing_log(obj, test, request=request)
+        html_log_url = self.reverse_testing_log(obj, test, request=request, html=True)
         obj.set_property("testing.report." + test,
                          {"passed": passed,
                           "is_timeout": is_timeout,
@@ -210,8 +211,8 @@ class TestingModule(PatchewModule):
         if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
         emit_event("TestingReport", tester=tester, user=user.username,
-                    obj=obj, passed=passed, test=test, log=log,
-                    is_timeout=is_timeout)
+                    obj=obj, passed=passed, test=test, log=log, log_url=log_url,
+                    html_log_url=html_log_url, is_timeout=is_timeout)
 
     def get_tests(self, obj):
         ret = {}
@@ -493,7 +494,7 @@ class TestingReportView(APILoginRequiredView):
                head, base, passed, log, identity,
                is_timeout=False):
         _instance.tester_check_in(project, tester or request.user.username)
-        _instance.add_test_report(request.user, project, tester,
+        _instance.add_test_report(request, project, tester,
                                   test, head, base, identity, passed, log,
                                   is_timeout)
 
