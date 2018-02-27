@@ -286,6 +286,29 @@ class ANSIProcessor(object):
         self._reset_attrs()
 
 
+class ANSI2TextConverter(ANSIProcessor):
+    FF = '\u2500' * 72 + '\n'
+    SYMBOLS = {
+        '\x00' : '\u2400', '\x01' : '\u2401',      '\x02' : '\u2402',
+        '\x03' : '\u2403', '\x04' : '\u2404',      '\x05' : '\u2405',
+        '\x06' : '\u2406', '\x07' : '\U00001F514', '\x0B' : '\u240B',
+        '\x0E' : '\u240E', '\x0F' : '\u240F',      '\x10' : '\u2410',
+        '\x11' : '\u2411', '\x12' : '\u2412',      '\x13' : '\u2413',
+        '\x14' : '\u2414', '\x15' : '\u2415',      '\x16' : '\u2416',
+        '\x17' : '\u2417', '\x18' : '\u2418',      '\x19' : '\u2419',
+        '\x1A' : '\u241A', '\x1B' : '\u241B',      '\x1C' : '\u241C',
+        '\x1D' : '\u241D', '\x1E' : '\u241E',      '\x1F' : '\u241F',
+        '\x7F' : '\u2326'
+    }
+    RE_SYMBOLS = re.compile('[\x00-\x1F\x7F]')
+
+    def _write_span(self, text, class_id):
+        yield self.RE_SYMBOLS.sub(lambda x: self.SYMBOLS[x.group(0)], text)
+
+    def _write_form_feed(self):
+        yield self.FF
+
+
 class ANSI2HTMLConverter(ANSIProcessor):
     ENTITIES = {
         '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
@@ -397,6 +420,12 @@ class ANSI2HTMLConverter(ANSIProcessor):
         yield from super(ANSI2HTMLConverter, self).finish()
         yield '</pre>'
         self.prefix = '<pre class="ansi">'
+
+
+def ansi2text(input):
+    c = ANSI2TextConverter()
+    yield from c.convert(input)
+    yield from c.finish()
 
 
 def ansi2html(input, white_bg=False):

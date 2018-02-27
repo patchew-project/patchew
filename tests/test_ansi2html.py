@@ -6,7 +6,7 @@
 
 import unittest
 
-from patchew.logviewer import ansi2html
+from patchew.logviewer import ansi2html, ansi2text, ANSI2TextConverter
 
 class ANSI2HTMLTest(unittest.TestCase):
     def assertAnsi(self, test, expected, **kwargs):
@@ -289,6 +289,79 @@ class ANSI2HTMLTest(unittest.TestCase):
         self.assertWhiteBg('\x1b[7m\tabc', '        <span class="WHI BBLK">abc</span>')
         self.assertBlackBg('abc\x1b[7m\x1b[1Kabc', '   <span class="BLK BWHI">abc</span>')
         self.assertWhiteBg('abc\x1b[7m\x1b[1Kabc', '   <span class="WHI BBLK">abc</span>')
+
+
+class ANSI2TextTest(unittest.TestCase):
+    def assertAnsi(self, test, expected, **kwargs):
+        self.assertEqual(''.join(ansi2text(test, **kwargs)), expected,
+                         repr(test))
+
+    # basic formatting tests
+    def test_basic(self):
+        self.assertAnsi('\tb', '        b')
+        self.assertAnsi('\t\ta', '                a')
+        self.assertAnsi('a\tb', 'a       b')
+        self.assertAnsi('ab\tc', 'ab      c')
+        self.assertAnsi('a\nbc', 'a\nbc')
+        self.assertAnsi('a\f', 'a\n' + ANSI2TextConverter.FF)
+        self.assertAnsi('a\n\f', 'a\n\n' + ANSI2TextConverter.FF)
+        self.assertAnsi('<', '<')
+        self.assertAnsi('\x07', '\U00001F514')
+
+    # backspace and carriage return
+    def test_set_pos(self):
+        self.assertAnsi('abc\b\bBC', 'aBC')
+        self.assertAnsi('a\b<', '<')
+        self.assertAnsi('<\ba', 'a')
+        self.assertAnsi('a\b\bbc', 'bc')
+        self.assertAnsi('a\rbc', 'bc')
+        self.assertAnsi('a\nb\bc', 'a\nc')
+        self.assertAnsi('a\t\bb', 'a      b')
+        self.assertAnsi('a\tb\b\bc', 'a      cb')
+        self.assertAnsi('01234567\r\tb', '01234567b')
+
+    # Escape sequences
+    def test_esc_parsing(self):
+        self.assertAnsi('{\x1b%}', '{}')
+        self.assertAnsi('{\x1b[0m}', '{}')
+        self.assertAnsi('{\x1b[m}', '{}')
+        self.assertAnsi('{\x1b[0;1;7;0m}', '{}')
+        self.assertAnsi('{\x1b[1;7m\x1b[m}', '{}')
+        self.assertAnsi('{\x1b]test\x1b\\}', '{}')
+        self.assertAnsi('{\x1b]test\x07}', '{}')
+        self.assertAnsi('{\x1b]test\x1b[0m\x07}', '{}')
+        self.assertAnsi('{\x1b]test\x1b[7m\x07}', '{}')
+
+    # ESC [C and ESC [D
+    def test_horiz_movement(self):
+        self.assertAnsi('abc\x1b[2DB', 'aBc')
+        self.assertAnsi('abc\x1b[3CD', 'abc   D')
+        self.assertAnsi('abcd\x1b[3DB\x1b[1CD', 'aBcD')
+        self.assertAnsi('abc\x1b[0CD', 'abc D')
+        self.assertAnsi('abc\x1b[CD', 'abc D')
+
+    # ESC [K
+    def test_clear_line(self):
+        self.assertAnsi('\x1b[Kabcd', 'abcd')
+        self.assertAnsi('abcd\r\x1b[K', '')
+        self.assertAnsi('abcd\b\x1b[K', 'abc')
+        self.assertAnsi('abcd\r\x1b[KDef', 'Def')
+        self.assertAnsi('abcd\b\x1b[KDef', 'abcDef')
+        self.assertAnsi('abcd\r\x1b[0K', '')
+        self.assertAnsi('abcd\b\x1b[0K', 'abc')
+        self.assertAnsi('abcd\r\x1b[1K', 'abcd')
+        self.assertAnsi('abcd\b\x1b[1K', '   d')
+        self.assertAnsi('abcd\r\x1b[2K', '')
+        self.assertAnsi('abcd\b\x1b[2K', '   ')
+        self.assertAnsi('abcd\r\x1b[2KDef', 'Def')
+        self.assertAnsi('abcd\b\x1b[2KDef', '   Def')
+
+    # combining cursor movement and formatting
+    def test_movement_and_formatting(self):
+        self.assertAnsi('\x1b[42m\tabc', '        abc')
+        self.assertAnsi('abc\x1b[42m\x1b[1Kabc', '   abc')
+        self.assertAnsi('\x1b[7m\tabc', '        abc')
+        self.assertAnsi('abc\x1b[7m\x1b[1Kabc', '   abc')
 
 
 if __name__ == '__main__':
