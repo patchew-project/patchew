@@ -17,6 +17,7 @@ from django.http import Http404
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.db.models import Exists, OuterRef
 from mod import PatchewModule
 from api.models import Project, Message
 from api.rest import PluginMethodField
@@ -76,7 +77,7 @@ class DiffModule(PatchewModule):
             html = html + format_html(' <a href="{}">v{}</a>', url, v)
         message.extra_links.append({"html": mark_safe(html), "icon": "exchange" })
 
-    def _get_series_for_diff(self, s):
+    def _get_series_for_diff(self, q):
         def _get_message_data(m):
             filtered = ""
             sep = ""
@@ -92,21 +93,28 @@ class DiffModule(PatchewModule):
             return PatchInfo(
                 subject=m.subject,
                 link=m.get_message_view_url(),
-                has_replies=m.last_comment_date is not None,
+                has_replies=m.has_replies,
                 body=filtered)
 
+        def _add_has_replies(q, **kwargs):
+            replies = Message.objects.filter(in_reply_to=OuterRef('message_id'), **kwargs)
+            return q.annotate(has_replies=Exists(replies))
+
+        q = _add_has_replies(q, is_patch=False)
+        s = q.first()
+
         ret = list()
+        data = _get_message_data(s)
+        ret.append(data)
         if not s.is_patch:
-            data = _get_message_data(s)
-            ret.append(data)
-        for p in s.get_patches():
-            data = _get_message_data(p)
-            ret.append(data)
+            for p in _add_has_replies(s.get_patches()):
+                data = _get_message_data(p)
+                ret.append(data)
         return ret
 
     def www_view_series_diff(self, request, project, series_left, series_right):
-        sl = Message.objects.filter(project__name=project, message_id=series_left).first()
-        sr = Message.objects.filter(project__name=project, message_id=series_right).first()
+        sl = Message.objects.filter(project__name=project, message_id=series_left)
+        sr = Message.objects.filter(project__name=project, message_id=series_right)
         return render_page(request, "series-diff.html",
                            series_left=self._get_series_for_diff(sl),
                            series_right=self._get_series_for_diff(sr))
