@@ -113,12 +113,10 @@ def env_detect():
         raise Exception("Unknown running environment")
 
 DEBUG, DATA_DIR = env_detect()
-if DEBUG:
-    ALLOWED_HOSTS = ["*"]
-else:
-    # On deployment environments, we are behind apache/nginx so allow local
-    # address only
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+# In production environments, we run in a container, behind nginx, which should
+# filter the allowed host names. So be a little flexible here
+ALLOWED_HOSTS = ["*"]
 
 if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR)

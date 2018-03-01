@@ -36,6 +36,16 @@ class RestTest(PatchewTestCase):
         self.admin = User.objects.get(username='admin')
         self.USER_BASE = '%susers/%d/' % (self.REST_BASE, self.admin.id)
 
+    def test_root(self):
+        resp = self.api_client.get(self.REST_BASE)
+        self.assertEquals(resp.data['users'], self.REST_BASE + 'users/')
+        self.assertEquals(resp.data['projects'], self.REST_BASE + 'projects/')
+        self.assertEquals(resp.data['series'], self.REST_BASE + 'series/')
+        resp = self.api_client.get(self.REST_BASE, HTTP_HOST='patchew.org')
+        self.assertEquals(resp.data['users'], 'http://patchew.org/api/v1/users/')
+        self.assertEquals(resp.data['projects'], 'http://patchew.org/api/v1/projects/')
+        self.assertEquals(resp.data['series'], 'http://patchew.org/api/v1/series/')
+
     def test_users(self):
         resp = self.api_client.get(self.REST_BASE + 'users/')
         self.assertEquals(resp.data['count'], 1)
