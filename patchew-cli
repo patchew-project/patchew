@@ -29,7 +29,7 @@ COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 class APIError(Exception):
     pass
 
-def git_clone_repo(clone, remote, head, logf, checkout=True):
+def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
     cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
                               "".join([x for x in remote if x.isalnum()]) + "-" + \
                                       hashlib.sha1(remote.encode("utf-8")).hexdigest())
@@ -46,8 +46,11 @@ def git_clone_repo(clone, remote, head, logf, checkout=True):
     subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
                           remote_name, remote], cwd=cache_repo,
                           stdout=logf, stderr=logf)
-    subprocess.check_call(["git", "clone", "-q", "--recursive", cache_repo, clone],
-                          stderr=logf, stdout=logf)
+    clone_cmd = ["git", "clone", "-q"]
+    if recursive:
+        clone_cmd += ["--recursive"]
+    clone_cmd += [cache_repo, clone]
+    subprocess.check_call(clone_cmd, stderr=logf, stdout=logf)
     if checkout:
         subprocess.check_call(["git", "checkout", head, "-b", "test"],
                               stderr=logf, stdout=logf,
@@ -510,7 +513,7 @@ class TesterCommand(SubCommand):
         is_timeout = False
         try:
             clone = os.path.join(wd, "src")
-            git_clone_repo(clone, r["repo"], r["head"], logf)
+            git_clone_repo(clone, r["repo"], r["head"], logf, True)
             base = r["base"]
             if base:
                 subprocess.check_call(["git", "branch", "base", base],
