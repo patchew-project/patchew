@@ -5,3 +5,4 @@ django-debug-toolbar==1.8
 gunicorn>=19
 djangorestframework>=3.0.0
 drf-nested-routers
+coreapi
