@@ -249,7 +249,12 @@ class MboxMessage(object):
                                "index ",
                                "---",
                                "+++",
-                               "@@")
+                               "@@") or \
+               self._has_lines(body,
+                               "---",
+                               "diff ",
+                               "old mode ",
+                               "new mode ")
 
     def is_series_head(self):
         """Create and return a Series from Message if it is one, otherwise

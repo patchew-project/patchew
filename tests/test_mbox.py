@@ -46,5 +46,11 @@ Virtualization:  qemu.org | libvirt.org
         self.assertEqual(utf8_recipient[0], "Philippe Mathieu-Daudé")
         self.assertEqual(utf8_recipient[1], "f4bug@amsat.org")
 
+    def test_mode_only_patch(self):
+        dp = self.get_data_path("0021-mode-only-patch.mbox.gz")
+        with open(dp, "r") as f:
+            msg = mbox.MboxMessage(f.read())
+        self.assertTrue(msg.is_patch())
+
 if __name__ == '__main__':
     main()
