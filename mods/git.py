@@ -113,7 +113,7 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
-    def rest_results_hook(self, message, results):
+    def rest_results_hook(self, request, message, results):
         l = message.get_property("git.apply-log")
         if l:
             if message.get_property("git.apply-failed"):

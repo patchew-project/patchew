@@ -123,7 +123,7 @@ series cover letter, patch mail body and their replies.
     def get_tags(self, m, request, format):
         return m.get_property("tags", [])
 
-    def rest_message_fields_hook(self, fields):
+    def rest_message_fields_hook(self, request, fields):
         fields['tags'] = PluginMethodField(obj=self)
 
     def prepare_message_hook(self, request, message, detailed):

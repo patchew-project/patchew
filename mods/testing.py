@@ -272,7 +272,7 @@ class TestingModule(PatchewModule):
         return reverse("testing-get-prop",
                        kwargs={"project_or_series": obj.message_id})
 
-    def rest_results_hook(self, message, results):
+    def rest_results_hook(self, request, message, results):
         for pn, p in message.get_properties().items():
             if not pn.startswith("testing.report."):
                 continue

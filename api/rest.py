@@ -171,12 +171,16 @@ class SeriesSerializer(BaseMessageSerializer):
 
     def get_fields(self):
         fields = super(SeriesSerializer, self).get_fields()
-        dispatch_module_hook("rest_series_fields_hook", fields=fields, detailed=self.detailed)
+        request = self.context['request']
+        dispatch_module_hook("rest_series_fields_hook", request=request,
+                             fields=fields, detailed=self.detailed)
         return fields
 
     def get_results(self, message):
         results = {}
-        dispatch_module_hook("rest_results_hook", message=message, results=results)
+        request = self.context['request']
+        dispatch_module_hook("rest_results_hook", request=request,
+                             message=message, results=results)
         return results
 
     def get_total_patches(self, obj):
@@ -276,7 +280,9 @@ class MessageSerializer(BaseMessageSerializer):
 
     def get_fields(self):
         fields = super(MessageSerializer, self).get_fields()
-        dispatch_module_hook("rest_message_fields_hook", fields=fields)
+        request = self.context['request']
+        dispatch_module_hook("rest_message_fields_hook", request=request,
+                             fields=fields)
         return fields
 
 class StaticTextRenderer(renderers.BaseRenderer):

@@ -60,7 +60,7 @@ class DiffModule(PatchewModule):
                  for o in sorted(other_versions, key=lambda y: y.version)
                  if o.message_id != message.message_id]
 
-    def rest_series_fields_hook(self, fields, detailed):
+    def rest_series_fields_hook(self, request, fields, detailed):
         fields['version'] = rest_framework.fields.IntegerField()
         if detailed:
             fields['other_versions'] = PluginMethodField(obj=self)
