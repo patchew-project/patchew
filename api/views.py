@@ -137,7 +137,9 @@ class UpdateProjectHeadView(APILoginRequiredView):
             ret += 1
             mo.is_merged = True
             mo.save()
-            updated_series.append(mo.get_series_head())
+            s = mo.get_series_head()
+            if s:
+                updated_series.append(s)
         for s in updated_series:
             merged = True
             for p in s.get_patches():
