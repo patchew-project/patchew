@@ -103,7 +103,7 @@ class Project(models.Model):
                 r[m.name] = json.loads(m.value)
         return r
 
-    def set_property(self, prop, value):
+    def _do_set_property(self, prop, value):
         if value == None:
             ProjectProperty.objects.filter(project=self, name=prop).delete()
             return
@@ -119,6 +119,12 @@ class Project(models.Model):
         pp.value = value
         pp.blob = blob
         pp.save()
+
+    def set_property(self, prop, value):
+        old_val = self.get_property(prop)
+        self._do_set_property(prop, value)
+        emit_event("SetProperty", obj=self, name=prop, value=value,
+                   old_value=old_val)
 
     def total_series_count(self):
         return Message.objects.series_heads(project=self.name).count()
@@ -176,6 +182,11 @@ declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
 
 declare_event("MessageAdded", message="message object that is added")
+
+declare_event("SetProperty", obj="object to set the property",
+              name="name of the property",
+              value="value of the property",
+              old_value="old value if any")
 
 class MessageManager(models.Manager):
 
@@ -409,7 +420,7 @@ class Message(models.Model):
         self._properties = r
         return r
 
-    def set_property(self, prop, value):
+    def _do_set_property(self, prop, value):
         if value == None:
             MessageProperty.objects.filter(message=self, name=prop).delete()
             return
@@ -427,6 +438,12 @@ class Message(models.Model):
         mp.save()
         if hasattr(self, '_properties'):
             del(self._properties)
+
+    def set_property(self, prop, value):
+        old_val = self.get_property(prop)
+        self._do_set_property(prop, value)
+        emit_event("SetProperty", obj=self, name=prop, value=value,
+                   old_value=old_val)
 
     def get_sender(self):
         return json.loads(self.sender)
