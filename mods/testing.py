@@ -122,6 +122,10 @@ class TestingModule(PatchewModule):
             and obj.get_property("git.tag") and obj.get_property("git.repo"):
                 self.remove_testing_properties(obj)
                 obj.set_property("testing.ready", 1)
+        elif isinstance(obj, Project) and name == "git.head" \
+            and old_value != value:
+            self.remove_testing_properties(obj)
+            obj.set_property("testing.ready", 1)
 
     def remove_testing_properties(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
@@ -428,6 +432,8 @@ class TestingGetView(APILoginRequiredView):
             obj.set_property("testing.done", True)
 
     def _find_project_test(self, request, po, tester, capabilities):
+        if not po.get_property("testing.ready"):
+            return
         head = po.get_property("git.head")
         repo = po.git
         tested = po.get_property("testing.tested-head")
