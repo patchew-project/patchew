@@ -11,9 +11,19 @@
 import sys
 import os
 import datetime
+import subprocess
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 from api.models import Message, Project
+
+def create_test(project, name):
+    prefix = "testing.tests." + name + "."
+    project.set_property(prefix + "timeout", 3600)
+    project.set_property(prefix + "enabled", True)
+    project.set_property(prefix + "script", "#!/bin/bash\ntrue")
+    project.set_property(prefix + "requirements", "")
+    project.set_property(prefix + "users", "")
+    project.set_property(prefix + "tester", "")
 
 class TestingTest(PatchewTestCase):
 
@@ -22,12 +32,7 @@ class TestingTest(PatchewTestCase):
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
         self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
-        self.p.set_property("testing.tests.a.timeout", 3600)
-        self.p.set_property("testing.tests.a.enabled", True)
-        self.p.set_property("testing.tests.a.script", "#!/bin/bash\ntrue")
-        self.p.set_property("testing.tests.a.requirements", "")
-        self.p.set_property("testing.tests.a.users", "")
-        self.p.set_property("testing.tests.a.tester", "")
+        create_test(self.p, "a")
 
         self.cli_login()
         self.cli_import('0001-simple-patch.mbox.gz')
@@ -84,6 +89,58 @@ class TestingTest(PatchewTestCase):
         log = self.client.get(resp.data['results']['testing.tests']['log_url'])
         self.assertEquals(log.status_code, 200)
         self.assertEquals(log.content, b'sorry no good')
+
+class TesterTest(PatchewTestCase):
+
+    def setUp(self):
+        self.create_superuser()
+
+        p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        create_test(p1, "a")
+        p2 = self.add_project("UMEQ", "qemu-devel@nongnu.org")
+        create_test(p2, "b")
+
+        self.cli_login()
+        self.cli_import('0001-simple-patch.mbox.gz')
+        self.cli_logout()
+
+        self.repo = os.path.join(self.get_tmpdir(), "repo")
+        os.mkdir(self.repo)
+        subprocess.check_output(["git", "init"], cwd=self.repo)
+        for f in ["foo", "bar"]:
+            subprocess.check_output(["touch", f], cwd=self.repo)
+            subprocess.check_output(["git", "add", f], cwd=self.repo)
+            subprocess.check_output(["git", "commit", "-m", "add " + f],
+                                    cwd=self.repo)
+        base = subprocess.check_output(["git", "rev-parse", "HEAD~1"],
+                                       cwd=self.repo).decode()
+        subprocess.check_output(["git", "tag", "test"], cwd=self.repo)
+
+        for msg in Message.objects.all():
+            msg.set_property("git.repo", self.repo)
+            msg.set_property("git.tag", "test")
+            msg.set_property("git.base", base)
+
+    def test_tester(self):
+        self.cli_login()
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait"])
+        self.assertIn("Project: QEMU\n", out)
+        self.assertIn("Project: UMEQ\n", out)
+        self.cli_logout()
+
+    def test_tester_single(self):
+        self.cli_login()
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Project: QEMU\n", out)
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Project: UMEQ\n", out)
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Nothing to test", out)
+        self.cli_logout()
 
 if __name__ == '__main__':
     main()

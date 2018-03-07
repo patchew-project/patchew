@@ -449,13 +449,15 @@ class TesterCommand(SubCommand):
         parser.add_argument("--singleton", "-S", action="store_true",
                             help="quit if another singleton mode tester is running")
         parser.add_argument("--project", "-p", required=True,
-                            help="which project to run test")
+                            help="comma separated project names to run test")
         parser.add_argument("--name", "-n",
                             help="name of this tester (default is the logged in username)")
         parser.add_argument("--num", "-N", type=int, default=0,
                             help="max number of tests to run")
         parser.add_argument("--no-clean-up", action="store_true",
                             help="skip cleaning up after finish")
+        parser.add_argument("--no-wait", action="store_true",
+                            help="don't wait if nothing to test")
 
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
@@ -484,17 +486,18 @@ class TesterCommand(SubCommand):
                 pass
         return ret
 
-    def test_one(self, args, capabilities):
-        r = self.api_do("testing-get", project=args.project, tester=args.name,
-                                    capabilities=capabilities)
+    def test_one(self, name, project, no_clean_up, capabilities):
+        r = self.api_do("testing-get", project=project, tester=name,
+                        capabilities=capabilities)
         if not r:
             return False
         print("Running test '%s'" % r["test"]["name"])
-        if r["project"] != args.project:
+        if r["project"] != project:
             return
 
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print("  Workdir:", wd)
+        print("  Project:", r["project"])
         print("  Identity:", str(r["identity"]))
         logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8",
                     errors="ignore")
@@ -565,7 +568,7 @@ class TesterCommand(SubCommand):
                 self.api_do("testing-report", project=r["project"],
                                               identity=r["identity"],
                                               test=r["test"]["name"],
-                                              tester=args.name,
+                                              tester=name,
                                               head=r["head"],
                                               base=r["base"],
                                               passed=passed,
@@ -573,7 +576,7 @@ class TesterCommand(SubCommand):
                                               is_timeout=is_timeout)
                 logf.close()
             finally:
-                if not args.no_clean_up:
+                if not no_clean_up:
                     shutil.rmtree(wd)
             return True
 
@@ -591,25 +594,30 @@ class TesterCommand(SubCommand):
         if args.singleton:
             self._check_singleton()
         subprocess.check_output(["git", "version"])
-        rest = False
         count = 0
         cap_refresh = 10
+        projects = [x.strip() for x in args.project.split(",") if len(x.strip())]
+        if not projects:
+            raise Exception("No project specified")
+        capabilities = {}
         while True:
-            if count % cap_refresh == 0:
-                capabilities = self._refresh_capabilities(args.project,
-                                                          args.name)
-            count += 1
-            if self.test_one(args, capabilities=capabilities):
+            progress = False
+            for p in projects:
+                if count % cap_refresh == 0:
+                    for sp in projects:
+                        capabilities[sp] = self._refresh_capabilities(sp, args.name)
+                if self.test_one(args.name, p, args.no_clean_up,
+                                 capabilities=capabilities[p]):
+                    progress = True
+                    count += 1
                 if count == args.num:
-                    break
-                rest = False
-                continue
-            if count == args.num:
-                break
-            if not rest:
+                    return 0
+            if not progress:
+                if args.no_wait:
+                    print("Nothing to test")
+                    return 0
                 print("No more work, having a rest...")
-                rest = True
-            time.sleep(60)
+                time.sleep(60)
         return 0
 
 class ApplyFailedException(Exception):
