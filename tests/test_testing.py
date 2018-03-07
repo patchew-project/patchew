@@ -46,6 +46,7 @@ class TestingTest(PatchewTestCase):
         if log is not None:
             self.msg.set_property("testing.log.tests", log)
         self.msg.set_property("testing.done", True)
+        self.msg.set_property("testing.ready", None)
 
     def test_basic(self):
         self.api_login()

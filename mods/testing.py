@@ -23,7 +23,7 @@ import math
 from api.views import APILoginRequiredView
 from api.models import Message, Project, MessageProperty
 from api.search import SearchEngine
-from event import emit_event, declare_event
+from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
 from schema import *
 
@@ -112,6 +112,16 @@ class TestingModule(PatchewModule):
                       test="test name",
                       log="test log",
                       is_timeout="whether the test has timeout")
+        register_handler("SetProperty", self.on_set_property)
+
+    def on_set_property(self, evt, obj, name, value, old_value):
+        if ((isinstance(obj, Message) and obj.is_series_head) \
+            or isinstance(obj, Project)) \
+            and name in ("git.tag", "git.repo") \
+            and old_value is None \
+            and obj.get_property("git.tag") and obj.get_property("git.repo"):
+                self.remove_testing_properties(obj)
+                obj.set_property("testing.ready", 1)
 
     def remove_testing_properties(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
@@ -174,6 +184,7 @@ class TestingModule(PatchewModule):
         all_tests = set([k for k, v in self.get_tests(obj).items() if v["enabled"]])
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
+            obj.set_property("testing.ready", None)
         if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
         emit_event("TestingReport", tester=tester, user=user.username,
@@ -430,11 +441,12 @@ class TestingGetView(APILoginRequiredView):
         return po, td
 
     def _find_series_test(self, request, po, tester, capabilities):
-        se = SearchEngine()
-        q = se.search_series("is:applied", "not:old", "not:tested",
-                             "project:" + po.name)
+        q = MessageProperty.objects.filter(name="testing.ready",
+                                           value=1,
+                                           message__project=po)
         candidate = None
-        for s in q:
+        for prop in q:
+            s = prop.message
             test = self._find_applicable_test(request.user, po,
                                               tester, capabilities, s)
             if not test:
