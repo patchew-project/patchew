@@ -126,8 +126,7 @@ class Project(models.Model):
     def maintained_by(self, user):
         if user.is_superuser:
             return True
-        if self.maintainers.filter(id=user.id).exists() or \
-                user.username in self.get_property("maintainers", []):
+        if self.maintainers.filter(id=user.id).exists():
             return True
         return False
 
