@@ -74,7 +74,7 @@ crossorigin="anonymous"/>
                     Hi {{ user.username }} <span class="caret"></span>
                 </button>
                 <ul class="dropdown-menu">
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_staff %}
                     <li><a href="/admin" target="blank">Admin</a></li>
                     {% endif %}
                     <li role="separator" class="divider"></li>
