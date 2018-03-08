@@ -55,6 +55,7 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         user = User.objects.create_superuser(username or self.user,
                                              self.email,
                                              password or self.password)
+        return user
 
     def create_user(self, username=None, password=None, groups=[]):
         user = User.objects.create_user(username or self.user,
@@ -63,6 +64,7 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         if groups:
             user.groups = [Group.objects.get_or_create(name=g)[0] for g in groups]
             user.save()
+        return user
 
     def cli(self, argv):
         """Run patchew-cli command and return (retcode, stdout, stderr)"""

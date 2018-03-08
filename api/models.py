@@ -75,6 +75,7 @@ class Project(models.Model):
                                        project belongs to. The parent must be a
                                        top project which has
                                        parent_project=NULL""")
+    maintainers = models.ManyToManyField(User, blank=True)
 
     def __str__(self):
         return self.name
@@ -125,7 +126,8 @@ class Project(models.Model):
     def maintained_by(self, user):
         if user.is_superuser:
             return True
-        if user.username in self.get_property("maintainers", []):
+        if self.maintainers.filter(id=user.id).exists() or \
+                user.username in self.get_property("maintainers", []):
             return True
         return False
 

@@ -18,6 +18,7 @@ class ProjectPropertyInline(admin.TabularInline):
     extra = 0
 
 class ProjectAdmin(admin.ModelAdmin):
+    filter_horizontal = ('maintainers',)
     inlines = [
             ProjectPropertyInline
         ]
