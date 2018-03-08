@@ -24,6 +24,14 @@ It can:
 
 [https://github.com/patchew-project/patchew/issues/new](https://github.com/patchew-project/patchew/issues/new)
 
+Alternatively, send an email to patchew-devel@redhat.com if you prefer so.
+
+## Submit a patch
+
+We accept PR on github for one-off/small contributions but it is encouraged to
+submit your patches with git-send-email to the Patchew development and
+discussion mailing list, patchew-devel@redhat.com.
+
 ## Known issues
 
  - Binary patches are not recognized correctly.
