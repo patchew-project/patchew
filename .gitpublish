@@ -1,0 +1,10 @@
+##
+# Config file for the git-publish utility
+#
+# For more information on using git-publish, see
+# https://github.com/stefanha/git-publish
+#
+
+[gitpublishprofile "default"]
+base = master
+to = patchew-devel@redhat.com
