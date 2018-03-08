@@ -193,6 +193,8 @@ class GitModule(PatchewModule):
                                          })
 
     def prepare_project_hook(self, request, project):
+        if not project.maintained_by(request.user):
+            return
         project.extra_info.append({"title": "Git configuration",
                                    "class": "info",
                                    "content_html": self.build_config_html(request,
