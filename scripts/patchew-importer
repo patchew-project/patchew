@@ -48,11 +48,16 @@ remotehost = $IMAP_SERVER
 remoteuser = $IMAP_USER
 remotepass = $IMAP_PASS
 ssl= yes
-cert_fingerprint = $IMAP_CERT_FINGERPRINT
 folderfilter = lambda foldername: foldername in [
     $(for x in $IMAP_FOLDERS; do printf "'$x',"; done)
     ]
 EOF
+
+if test -n "$IMAP_CERT_FINGERPRINT"; then
+  echo "cert_fingerprint = $IMAP_CERT_FINGERPRINT" >>$offlineimap_rc
+elif test -n "$SSL_CACERT_PATH"; then
+  echo "sslcacertfile = $SSL_CACERT_PATH" >> $offlineimap_rc
+fi
 
 IMPORTED_DIR=$BASEDIR/imported
 mkdir -p $IMPORTED_DIR

@@ -28,6 +28,10 @@
       prompt: "IMAP cert fingerprint"
       default: ""
       private: no
+    - name: "ssl_cacert_path"
+      prompt: "Path to SSL certificate authorities bundle"
+      default: "/etc/pki/tls/certs/ca-bundle.crt"
+      private: no
     - name: "imap_folders"
       prompt: "IMAP folders to look for patches"
       default: "INBOX"
