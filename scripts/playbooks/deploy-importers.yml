@@ -15,6 +15,9 @@
     - name: "importer_pass"
       prompt: "Password for the importer to login to the server"
       private: yes
+    - name: "importer_identity"
+      prompt: "Path to file containing private key"
+      private: no
     - name: "imap_server"
       prompt: "IMAP server address to download patches"
       private: no
@@ -45,11 +48,18 @@
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
     config_file: "{{ data_dir }}/config"
+    identity_file: "{{ data_dir }}/identity"
   tasks:
     - name: Create data dir
       file:
         path: "{{ data_dir }}"
         state: directory
+    - name: Store SSH key
+      copy:
+        src: "{{ importer_identity }}"
+        dest: "{{ identity_file }}"
+        validate: test -f %s
+        mode: 0400
     - name: Create config
       template:
         src: "templates/importer-config.j2"
