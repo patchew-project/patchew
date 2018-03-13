@@ -1,10 +1,10 @@
 ---
-- name: Install pip
-  package:
-    name: python2-pip
 - name: Install Python 3
   package:
     name: python34
+- name: Install pip
+  package:
+    name: python3-pip
 - name: Install docker
   package:
     name: docker
