@@ -18,6 +18,10 @@
     - name: "tester_project"
       prompt: "Project name to test"
       private: no
+    - name: "cron_user"
+      prompt: "User that will run the tests on the host"
+      default: patchew
+      private: no
   vars:
     base_dir: "/data/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
@@ -25,9 +29,9 @@
   tasks:
     - debug:
         msg: Patchew tester deploy starting
-    - name: "Ensure user patchew exists"
+    - name: "Ensure user {{ cron_user }} exists"
       user:
-        name: patchew
+        name: "{{ cron_user }}"
         shell: /bin/bash
         state: present
     - name: Create patchew data folder
@@ -49,23 +53,23 @@
     - name: Generate password file
       shell: "echo {{ tester_pass }} > $HOME/.patchew-tester-pass"
       become: true
-      become_user: patchew
+      become_user: "{{ cron_user }}"
     - name: Login with patchew-cli
       shell: "{{ patchew_cmd }} login {{ tester_user }} $(cat $HOME/.patchew-tester-pass)"
       become: true
-      become_user: patchew
+      become_user: "{{ cron_user }}"
     - name: Logout with patchew-cli
       shell: "{{ patchew_cmd }} logout"
       become: true
-      become_user: patchew
+      become_user: "{{ cron_user }}"
     - name: Define PATCHEW env in cron
       cron:
         name: PATCHEW
-        user: patchew
+        user: "{{ cron_user }}"
         env: yes
         value: "{{ patchew_cmd }}"
     - cron:
         name: "Patchew tester {{ instance_name }}"
-        user: patchew
+        user: "{{ cron_user }}"
         minute: "*/10"
         job: "{ $PATCHEW login {{ tester_user }} $(cat $HOME/.patchew-tester-pass); $PATCHEW tester --name {{ instance_name }} --singleton -p {{ tester_project }}; } >>$HOME/patchew-tester.log 2>&1"
