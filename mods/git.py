@@ -231,15 +231,6 @@ class GitModule(PatchewModule):
             emit_event("ProjectGitUpdate", project=po.name)
         return cache_repo
 
-    def www_view_git_apply(self, request, series):
-        if not request.user.is_authenticated:
-            raise PermissionDenied
-        obj = Message.objects.find_series(series)
-        if not obj:
-            raise Http404("Not found: " + series)
-        self.on_series_update("GitApply", obj)
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
     def www_view_git_reset(self, request, series):
         if not request.user.is_authenticated:
             raise PermissionDenied
@@ -253,9 +244,6 @@ class GitModule(PatchewModule):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^git-apply/(?P<series>.*)/",
-                               self.www_view_git_apply,
-                               name="git_apply"))
         urlpatterns.append(url(r"^git-reset/(?P<series>.*)/",
                                self.www_view_git_reset,
                                name="git_reset"))
