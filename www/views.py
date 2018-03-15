@@ -17,11 +17,19 @@ from django.urls import reverse
 from django.conf import settings
 import api
 from mod import dispatch_module_hook
+import subprocess
 
 PAGE_SIZE = 50
 
+def try_get_git_head():
+    try:
+        return "-" + subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
+                                             encoding='utf-8')
+    except:
+        return ""
+
 def render_page(request, template_name, **data):
-    data["patchew_version"] = settings.VERSION
+    data["patchew_version"] = settings.VERSION + try_get_git_head()
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
 
