@@ -111,6 +111,8 @@ class TestingModule(PatchewModule):
                       passed="True if the test is passed",
                       test="test name",
                       log="test log",
+                      log_url="URL to test log (text)",
+                      html_log_url="URL to test log (HTML)",
                       is_timeout="whether the test has timeout")
         register_handler("SetProperty", self.on_set_property)
 

@@ -53,6 +53,30 @@ class TestingTest(PatchewTestCase):
         self.msg.set_property("testing.done", True)
         self.msg.set_property("testing.ready", None)
 
+    def msg_testing_report(self, **report):
+        self.api_login()
+        r = self.api_call("testing-get",
+                           project="QEMU",
+                           tester="dummy tester",
+                           capabilities=[])
+        self.assertEquals(r['identity']['type'], 'series')
+
+        report['project'] = r["project"]
+        report['identity'] = r["identity"]
+        report['test'] = r["test"]["name"]
+        report['tester'] = 'dummy_tester'
+        report['head'] = r["head"]
+        report['base'] = r["base"]
+        if not 'passed' in report:
+            report['passed'] = True
+        if not 'log' in report:
+            report['log'] = None
+        if not 'is_timeout' in report:
+            report['is_timeout'] = False
+
+        self.api_call("testing-report", **report)
+        return r['identity']['message-id']
+
     def test_basic(self):
         self.api_login()
         td = self.api_call("testing-get",
@@ -87,6 +111,24 @@ class TestingTest(PatchewTestCase):
         resp = self.api_client.get(self.PROJECT_BASE + 'series/' + self.msg.message_id + '/')
         self.assertEquals(resp.data['results']['testing.tests']['status'], 'failure')
         log = self.client.get(resp.data['results']['testing.tests']['log_url'])
+        self.assertEquals(log.status_code, 200)
+        self.assertEquals(log.content, b'sorry no good')
+
+    def test_api_report_success(self):
+        self.api_login()
+        msgid = self.msg_testing_report(log='everything good!', passed=True)
+        resp = self.api_client.get(self.PROJECT_BASE + 'series/' + self.msg.message_id + '/')
+        self.assertEquals(resp.data['results']['testing.a']['status'], 'success')
+        log = self.client.get(resp.data['results']['testing.a']['log_url'])
+        self.assertEquals(log.status_code, 200)
+        self.assertEquals(log.content, b'everything good!')
+
+    def test_api_report_failure(self):
+        self.api_login()
+        msgid = self.msg_testing_report(log='sorry no good', passed=False)
+        resp = self.api_client.get(self.PROJECT_BASE + 'series/' + self.msg.message_id + '/')
+        self.assertEquals(resp.data['results']['testing.a']['status'], 'failure')
+        log = self.client.get(resp.data['results']['testing.a']['log_url'])
         self.assertEquals(log.status_code, 200)
         self.assertEquals(log.content, b'sorry no good')
 
