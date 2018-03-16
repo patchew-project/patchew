@@ -12,7 +12,7 @@ RUN /bin/bash -c "mkdir -p /opt/patchew && \
 COPY . /tmp/patchew/
 # Be careful not to overwrite the venv we've just initialized
 RUN rm -rf /tmp/patchew/venv
-RUN mv /tmp/patchew/* /opt/patchew/
+RUN cp -r /tmp/patchew /opt
 RUN /bin/bash -c "cd /opt/patchew && \
     . venv/bin/activate && \
     ./manage.py migrate --no-input && \
