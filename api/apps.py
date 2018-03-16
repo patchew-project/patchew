@@ -16,7 +16,7 @@ import mod
 _default_groups = ['maintainers', 'testers', 'importers']
 
 def create_default_groups():
-    from .models import Group
+    from django.contrib.auth.models import Group
     for grp in _default_groups:
         Group.objects.get_or_create(name=grp)
 
