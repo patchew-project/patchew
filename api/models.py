@@ -505,11 +505,12 @@ class Message(models.Model):
             return None
         state = ""
         cur = []
-        patterns = [r"\S*\s*\|\s*[0-9]* \+*-*$",
+        patterns = [r"\S*\s*\|\s*[0-9]*( \+*-*)?$",
                     r"\S* => \S*\s*|\s*[0-9]* \+*-*$",
                     r"[0-9]* files changed",
                     r"1 file changed",
-                    r"(create|delete) mode [0-7]*",
+                    r"(create|delete) mode [0-7]+",
+                    r"mode change [0-7]+",
                     r"rename ",
                    ]
         ret = []

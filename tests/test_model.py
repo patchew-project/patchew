@@ -18,7 +18,7 @@ class ImportTest(PatchewTestCase):
         self.cli_login()
         self.add_project("QEMU", "qemu-devel@nongnu.org")
 
-    def test_get_diff_state(self):
+    def test_get_diff_stat(self):
         expected = """
 MAINTAINERS                                        |   7 +
 Makefile                                           |   9 +-
@@ -105,6 +105,33 @@ create mode 100644 util/authz-simple.c
 create mode 100644 util/authz.c
 """
         self.cli_import("0008-complex-diffstat.mbox.gz")
+        msg = Message.objects.first()
+        self.maxDiff = 100000
+        self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
+
+    def test_mode_change_diff_stat(self):
+        expected = """
+tests/qemu-iotests/096 | 0
+tests/qemu-iotests/129 | 0
+tests/qemu-iotests/132 | 0
+tests/qemu-iotests/136 | 0
+tests/qemu-iotests/139 | 0
+tests/qemu-iotests/148 | 0
+tests/qemu-iotests/152 | 0
+tests/qemu-iotests/163 | 0
+tests/qemu-iotests/205 | 0
+9 files changed, 0 insertions(+), 0 deletions(-)
+mode change 100644 => 100755 tests/qemu-iotests/096
+mode change 100644 => 100755 tests/qemu-iotests/129
+mode change 100644 => 100755 tests/qemu-iotests/132
+mode change 100644 => 100755 tests/qemu-iotests/136
+mode change 100644 => 100755 tests/qemu-iotests/139
+mode change 100644 => 100755 tests/qemu-iotests/148
+mode change 100644 => 100755 tests/qemu-iotests/152
+mode change 100644 => 100755 tests/qemu-iotests/163
+mode change 100644 => 100755 tests/qemu-iotests/205
+"""
+        self.cli_import("0021-mode-only-patch.mbox.gz")
         msg = Message.objects.first()
         self.maxDiff = 100000
         self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
