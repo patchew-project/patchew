@@ -23,8 +23,8 @@ PAGE_SIZE = 50
 
 def try_get_git_head():
     try:
-        return "-" + subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
-                                             encoding='utf-8')
+        return "-" + subprocess.check_output(["git", "rev-parse",
+                                              "--short", "HEAD"]).decode()
     except:
         return ""
 
