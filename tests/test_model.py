@@ -8,11 +8,8 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
 from patchewtest import PatchewTestCase, main
 from api.models import Message
-import json
 
 class ImportTest(PatchewTestCase):
 

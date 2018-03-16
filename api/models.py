@@ -17,12 +17,10 @@ import uuid
 import logging
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.urls import reverse
 from mbox import MboxMessage
 from event import emit_event, declare_event
-from django.contrib import admin
 import lzma
 
 def save_blob(data, name=None):

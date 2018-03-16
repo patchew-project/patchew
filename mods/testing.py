@@ -13,12 +13,8 @@ from django.http import HttpResponseForbidden, Http404, HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.utils.html import format_html
-from django.template import Template, Context
 from mod import PatchewModule
 import time
-import smtplib
-import email
-import traceback
 import math
 from api.views import APILoginRequiredView
 from api.models import Message, Project, MessageProperty

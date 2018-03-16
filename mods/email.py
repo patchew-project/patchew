@@ -19,7 +19,6 @@ import smtplib
 import email
 import email.utils
 import uuid
-import traceback
 from api.models import Message, Project
 from event import register_handler, get_events_info
 from schema import *

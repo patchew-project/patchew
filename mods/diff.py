@@ -8,22 +8,17 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import os
-import shutil
-import hashlib
 from collections import namedtuple
 from django.conf.urls import url
-from django.http import Http404
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models import Exists, OuterRef
 from mod import PatchewModule
-from api.models import Project, Message
+from api.models import Message
 from api.rest import PluginMethodField
 import rest_framework
 from www.views import render_page
-from schema import *
 import re
 
 _instance = None

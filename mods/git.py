@@ -10,8 +10,6 @@
 
 import os
 import subprocess
-import tempfile
-import shutil
 import hashlib
 from django.conf.urls import url
 from django.http import Http404, HttpResponseRedirect
@@ -20,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Project, Message, MessageProperty
+from api.models import Message, MessageProperty
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *

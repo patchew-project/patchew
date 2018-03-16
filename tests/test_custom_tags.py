@@ -10,7 +10,6 @@
 
 from django.template import Context, Template
 from patchew.tags import tail_lines, grep_A, grep_B, grep_C, grep
-import patchewtest
 import unittest
 
 class CustomTagsTest(unittest.TestCase):

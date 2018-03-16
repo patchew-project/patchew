@@ -10,11 +10,10 @@
 
 import sys
 import os
-import datetime
 import subprocess
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
-from api.models import Message, Project
+from api.models import Message
 
 def create_test(project, name):
     prefix = "testing.tests." + name + "."

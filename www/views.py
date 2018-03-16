@@ -10,7 +10,6 @@
 
 import urllib.request, urllib.parse, urllib.error
 from django.shortcuts import render
-from django.template import Context
 from django.http import HttpResponse, Http404
 from django.db.models import Exists, OuterRef
 from django.urls import reverse

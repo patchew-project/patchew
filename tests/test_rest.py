@@ -10,12 +10,8 @@
 
 import sys
 import os
-import json
-import tempfile
-import shutil
-import subprocess
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main

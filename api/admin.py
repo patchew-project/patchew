@@ -11,7 +11,6 @@
 from django.contrib import admin
 from .models import *
 from mod import get_module
-from django.contrib.auth.models import User, Group
 
 class ProjectPropertyInline(admin.TabularInline):
     model = ProjectProperty

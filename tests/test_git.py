@@ -10,11 +10,8 @@
 
 import sys
 import os
-import re
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
-import json
-import tempfile
 import shutil
 import subprocess
 from api.models import Message
