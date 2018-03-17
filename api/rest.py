@@ -99,8 +99,9 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 # Common classes for series and messages
 
 class HyperlinkedMessageField(HyperlinkedIdentityField):
+    lookup_field = 'message_id'
     def get_url(self, obj, view_name, request, format):
-        kwargs = {'projects_pk': obj.project_id, 'message_id': obj.message_id}
+        kwargs = {'projects_pk': obj.project_id, self.lookup_field: obj.message_id}
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
 class BaseMessageSerializer(serializers.ModelSerializer):
