@@ -17,7 +17,7 @@ from mod import PatchewModule
 import time
 import math
 from api.views import APILoginRequiredView
-from api.models import Message, Project, MessageProperty
+from api.models import Message, MessageProperty, Project, Result
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -284,11 +284,8 @@ class TestingModule(PatchewModule):
             failed = not p["passed"]
             log_url = self.reverse_testing_log(message, tn, request=request, html=False)
             passed_str = "failure" if failed else "success"
-            result = {
-                'status': passed_str,
-                'log_url': log_url
-            }
-            results['testing.' + tn] = result
+            results.append(Result(name='testing.' + tn, status=passed_str, log_url=log_url,
+                                  request=request))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

@@ -18,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Message, MessageProperty
+from api.models import Message, MessageProperty, Result
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
@@ -113,19 +113,21 @@ class GitModule(PatchewModule):
 
     def rest_results_hook(self, request, message, results):
         l = message.get_property("git.apply-log")
+        data = None
         if l:
             if message.get_property("git.apply-failed"):
-                result = {'status' : 'failure'}
+                status = 'failure'
             else:
                 git_repo = message.get_property("git.repo")
                 git_tag = message.get_property("git.tag")
                 data = {'repo': git_repo, 'tag': 'refs/tags/' + git_tag}
-                result = {'status': 'success', 'data': data}
+                status = 'success'
             log_url = reverse("git-log", kwargs={'series': message.message_id})
-            result['log_url'] = request.build_absolute_uri(log_url)
         else:
-            result = {'status': 'pending'}
-        results['git'] = result
+            status = 'pending'
+            log_url = None
+        results.append(Result(name='git', status=status, log_url=log_url, data=data,
+                              request=request))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

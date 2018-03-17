@@ -177,11 +177,11 @@ class SeriesSerializer(BaseMessageSerializer):
         return fields
 
     def get_results(self, message):
-        results = {}
+        results = []
         request = self.context['request']
         dispatch_module_hook("rest_results_hook", request=request,
                              message=message, results=results)
-        return results
+        return {x.name: x._asdict() for x in results}
 
     def get_total_patches(self, obj):
         return obj.get_total_patches()
