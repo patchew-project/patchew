@@ -121,8 +121,8 @@ class GitModule(PatchewModule):
                 git_tag = message.get_property("git.tag")
                 data = {'repo': git_repo, 'tag': 'refs/tags/' + git_tag}
                 result = {'status': 'success', 'data': data}
-            result['log_url'] = reverse("git-log",
-                                        kwargs={'series': message.message_id})
+            log_url = reverse("git-log", kwargs={'series': message.message_id})
+            result['log_url'] = request.build_absolute_uri(log_url)
         else:
             result = {'status': 'pending'}
         results['git'] = result
