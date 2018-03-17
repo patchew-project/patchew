@@ -330,8 +330,10 @@ class ResultSerializer(serializers.Serializer):
     log_url = CharField(required=False)
     data = JSONField(required=False)
 
+class ResultSerializerFull(ResultSerializer):
+    log = CharField(required=False)
+
 class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
-    serializer_class = ResultSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
 
@@ -339,7 +341,12 @@ class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
         return Message.objects.filter(project=self.kwargs['projects_pk'],
                                       message_id=self.kwargs['series_message_id'])
 
-    def get_results(self):
+    def get_serializer_class(self, *args, **kwargs):
+        if self.lookup_field in self.kwargs:
+            return ResultSerializerFull
+        return ResultSerializer
+
+    def get_results(self, detailed):
         queryset = self.get_queryset()
         try:
             obj = queryset[0]
@@ -347,11 +354,12 @@ class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
             raise Http404
         results = []
         dispatch_module_hook("rest_results_hook", request=self.request,
-                             obj=obj, results=results)
+                             obj=obj, results=results,
+                             detailed=detailed)
         return {x.name: x for x in results}
 
     def list(self, request, *args, **kwargs):
-        results = self.get_results().values()
+        results = self.get_results(detailed=False).values()
         serializer = self.get_serializer(results, many=True)
         # Fake paginator response for forwards-compatibility, in case
         # this ViewSet becomes model-based
@@ -361,7 +369,7 @@ class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
         ]))
 
     def retrieve(self, request, name, *args, **kwargs):
-        results = self.get_results()
+        results = self.get_results(detailed=True)
         try:
             result = results[name]
         except KeyError:
