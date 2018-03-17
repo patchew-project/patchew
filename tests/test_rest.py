@@ -189,6 +189,12 @@ class RestTest(PatchewTestCase):
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/')
         self.assertEqual(resp.data['count'], 0)
 
+    def test_series_results_list(self):
+        resp1 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                       self.p.id, '20160628014747.20971-1-famz@redhat.com')
+        resp = self.api_client.get(resp1.data['results'])
+        self.assertEqual(resp.data['count'], len(resp.data['results']))
+
     def test_series_search(self):
         resp1 = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
                                         self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')

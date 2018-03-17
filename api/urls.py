@@ -37,11 +37,16 @@ projects_router.include_format_suffixes = False
 projects_router.register('series', rest.ProjectSeriesViewSet, base_name='series')
 projects_router.register('messages', rest.MessagesViewSet, base_name='messages')
 
+results_router = NestedDefaultRouter(projects_router, 'series', lookup='series', trailing_slash=True)
+results_router.include_format_suffixes = False
+results_router.register('results', rest.SeriesResultsViewSet, base_name='results')
+
 schema_view = get_schema_view(title='API schema')
 
 urlpatterns = _build_urls() + [
         url(r"v1/", include(router.urls)),
         url(r"v1/", include(projects_router.urls)),
+        url(r"v1/", include(results_router.urls)),
         url(r'^v1/schema/$', schema_view),
         # Use the base class's handler by default
         url(r".*", views.APIView.as_view())
