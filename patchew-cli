@@ -223,7 +223,7 @@ class ProjectCommand(SubCommand):
         args = parser.parse_args(argv)
         r = self.api_do("get-projects")
         if args.raw:
-            print(r)
+            print(json.dumps(r, indent=2, separators=",:"))
             return 0
         for p in r:
             print(p["name"])
