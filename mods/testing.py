@@ -252,10 +252,15 @@ class TestingModule(PatchewModule):
         return ret
 
     def rest_results_hook(self, request, obj, results, detailed=False):
+        all_tests = set([k for k, v in _instance.get_tests(obj).items() if v["enabled"]])
         for pn, p in obj.get_properties().items():
             if not pn.startswith("testing.report."):
                 continue
             tn = pn[len("testing.report."):]
+            try:
+                all_tests.remove(tn)
+            except:
+                pass
             failed = not p["passed"]
             log_url = self.reverse_testing_log(obj, tn, request=request, html=False)
             passed_str = Result.FAILURE if failed else Result.SUCCESS
@@ -269,6 +274,10 @@ class TestingModule(PatchewModule):
             results.append(Result(name='testing.' + tn, obj=obj, status=passed_str,
                                   log=log, log_url=log_url, request=request, data=data,
                                   renderer=self))
+
+        if obj.get_property("testing.ready"):
+            for tn in all_tests:
+                results.append(Result(name='testing.' + tn, obj=obj, status='pending'))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

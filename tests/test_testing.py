@@ -91,6 +91,10 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
                            capabilities=[])
         self.assertFalse(td)
 
+    def test_rest_basic(self):
+        resp = self.get_test_result('a')
+        self.assertEquals(resp.data['status'], 'pending')
+
     def test_rest_done_success(self):
         self.do_testing_done(log='everything good!', passed=True)
         resp = self.get_test_result('tests')
