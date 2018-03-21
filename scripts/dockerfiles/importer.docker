@@ -2,7 +2,11 @@ FROM fedora:latest
 RUN dnf install -y python offlineimap findutils git wget
 RUN git config --global user.email "importer@patchew.org"
 RUN git config --global user.name "Patchew Importer"
-RUN echo IdentityFile=/data/patchew/identity > ~/.ssh/config
+RUN if test -f /data/patchew/identify; then \
+        echo IdentityFile=/data/patchew/identity > ~/.ssh/config; \
+    else \
+        ssh-keygen -t rsa -q -C patchew-importer -f ~/.ssh/id_rsa; \
+    fi
 RUN echo StrictHostKeyChecking no >> ~/.ssh/config
 RUN echo UserKnownHostsFile=/dev/null >> ~/.ssh/config
 ENV LC_ALL en_US.UTF-8

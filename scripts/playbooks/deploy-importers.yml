@@ -60,6 +60,7 @@
         dest: "{{ identity_file }}"
         validate: test -f %s
         mode: 0400
+      when: importer_identity != ""
     - name: Create config
       template:
         src: "templates/importer-config.j2"
