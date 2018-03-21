@@ -1,10 +1,16 @@
 ---
-- name: Install pip
-  package:
-    name: python2-pip
 - name: Install Python 3
   package:
     name: python34
+- name: Install pip3 (python3-pip)
+  package:
+    name: python3-pip
+  register: pip3_result
+  ignore_errors: yes
+- name: Install pip3 (python34-pip)
+  package:
+    name: python34-pip
+  when: pip3_result|failed
 - name: Install docker
   package:
     name: docker
