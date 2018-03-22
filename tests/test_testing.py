@@ -43,6 +43,19 @@ class TestingTest(PatchewTestCase):
         self.msg.set_property("git.tag", "dummy tag")
         self.msg.set_property("git.base", "dummy base")
 
+    def test_testing_ready(self):
+        self.assertTrue(self.msg.get_property("testing.ready"))
+        # Set property through series_heads elements must be handled the same
+        self.msg.set_property("git.repo", None)
+        self.msg.set_property("git.tag", None)
+        self.msg.set_property("testing.ready", None)
+        msg = Message.objects.series_heads()[0]
+        self.assertEqual(self.msg.message_id, msg.message_id)
+        msg.set_property("git.repo", "dummy repo")
+        msg.set_property("git.tag", "dummy tag")
+        msg.set_property("git.base", "dummy base")
+        self.assertTrue(msg.get_property("testing.ready"))
+
     def msg_testing_done(self, log=None, **report):
         if not 'passed' in report:
             report['passed'] = True

@@ -408,9 +408,15 @@ class Message(models.Model):
 
     def get_properties(self):
         if hasattr(self, '_properties'):
-            return self._properties
+            if self._properties is not None:
+                return self._properties
+            else:
+                # The prefetch cache is invalidated, query again
+                all_props = MessageProperty.objects.filter(message=self)
+        else:
+            all_props = self.properties.all()
         r = {}
-        for m in self.properties.all():
+        for m in all_props:
             if m.blob:
                 r[m.name] = load_blob_json(m.value)
             else:
@@ -434,8 +440,8 @@ class Message(models.Model):
         mp.value = value
         mp.blob = blob
         mp.save()
-        if hasattr(self, '_properties'):
-            del(self._properties)
+        # Invalidate cache
+        self._properties = None
 
     def set_property(self, prop, value):
         old_val = self.get_property(prop)
