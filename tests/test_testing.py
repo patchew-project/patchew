@@ -30,6 +30,9 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
     def setUp(self):
         self.create_superuser()
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        self.p.git = "dummy repo"
+        self.p.save()
+
         self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
         create_test(self.p, "a")
@@ -171,16 +174,35 @@ class MessageTestingTest(TestingTestCase):
         msg.set_property("git.base", "dummy base")
         self.assertTrue(msg.get_property("testing.ready"))
 
+class ProjectTestingTest(TestingTestCase):
+
+    def setUp(self):
+        super(ProjectTestingTest, self).setUp()
+        self.p.set_property("git.head", "5678")
+        self.p.set_property("testing.tested-head", "1234")
+        self.p.set_property("testing.ready", 1)
+
+    def do_testing_done(self, log=None, **report):
+        self._do_testing_done(self.p, log, report)
+
+    def do_testing_report(self, **report):
+        r = super(ProjectTestingTest, self).do_testing_report(**report)
+        self.assertEquals(r['type'], 'project')
+        return r
+
+    def get_test_result(self, test_name):
+        return self.api_client.get('%sresults/testing.%s/' % (
+                                       self.PROJECT_BASE, test_name))
 
 class TesterTest(PatchewTestCase):
 
     def setUp(self):
         self.create_superuser()
 
-        p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
-        create_test(p1, "a")
-        p2 = self.add_project("UMEQ", "qemu-devel@nongnu.org")
-        create_test(p2, "b")
+        self.p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        create_test(self.p1, "a")
+        self.p2 = self.add_project("UMEQ", "qemu-devel@nongnu.org")
+        create_test(self.p2, "b")
 
         self.cli_login()
         self.cli_import('0001-simple-patch.mbox.gz')
@@ -190,10 +212,9 @@ class TesterTest(PatchewTestCase):
         os.mkdir(self.repo)
         subprocess.check_output(["git", "init"], cwd=self.repo)
         for f in ["foo", "bar"]:
-            subprocess.check_output(["touch", f], cwd=self.repo)
-            subprocess.check_output(["git", "add", f], cwd=self.repo)
-            subprocess.check_output(["git", "commit", "-m", "add " + f],
-                                    cwd=self.repo)
+            self.add_file_and_commit(f)
+        self.update_head(self.p1)
+        self.update_head(self.p2)
         base = subprocess.check_output(["git", "rev-parse", "HEAD~1"],
                                        cwd=self.repo).decode()
         subprocess.check_output(["git", "tag", "test"], cwd=self.repo)
@@ -202,6 +223,17 @@ class TesterTest(PatchewTestCase):
             msg.set_property("git.repo", self.repo)
             msg.set_property("git.tag", "test")
             msg.set_property("git.base", base)
+
+    def add_file_and_commit(self, f):
+        subprocess.check_output(["touch", f], cwd=self.repo)
+        subprocess.check_output(["git", "add", f], cwd=self.repo)
+        subprocess.check_output(["git", "commit", "-m", "add " + f],
+                                cwd=self.repo)
+
+    def update_head(self, p):
+        head = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                       cwd=self.repo).decode()
+        p.set_property("git.head", head)
 
     def test_tester(self):
         self.cli_login()
@@ -219,6 +251,26 @@ class TesterTest(PatchewTestCase):
         out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Project: UMEQ\n", out)
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Nothing to test", out)
+        self.cli_logout()
+
+    def test_tester_project(self):
+        self.cli_login()
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait"])
+        self.assertIn("Project: QEMU\n", out)
+        self.assertIn("Project: UMEQ\n", out)
+
+        self.p1.git = self.repo
+        self.p1.save()
+        self.add_file_and_commit("baz")
+        self.update_head(self.p1)
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Project: QEMU\n", out)
+        self.assertIn("'type': 'project'", out)
         out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
