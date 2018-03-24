@@ -165,7 +165,7 @@ class TestingModule(PatchewModule):
                                       "testing_name": test}) + "?type=message"
         else:
             assert(isinstance(obj, Project))
-            log_url = reverse.reverse("testing-log",
+            log_url = reverse("testing-log",
                               kwargs={"project_or_series": obj.name,
                                       "testing_name": test}) + "?type=project"
         if html:
