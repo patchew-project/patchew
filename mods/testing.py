@@ -118,14 +118,12 @@ class TestingModule(PatchewModule):
             and name in ("git.tag", "git.repo") \
             and old_value is None \
             and obj.get_property("git.tag") and obj.get_property("git.repo"):
-                self.remove_testing_properties(obj)
-                obj.set_property("testing.ready", 1)
+                self.clear_and_start_testing(obj)
         elif isinstance(obj, Project) and name == "git.head" \
             and old_value != value:
-            self.remove_testing_properties(obj)
-            obj.set_property("testing.ready", 1)
+            self.clear_and_start_testing(obj)
 
-    def remove_testing_properties(self, obj, test=""):
+    def clear_and_start_testing(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
             if (not test and k == "testing.started") or \
                (not test and k == "testing.start-time") or \
@@ -135,6 +133,7 @@ class TestingModule(PatchewModule):
                k.startswith("testing.report." + test) or \
                k.startswith("testing.log." + test):
                 obj.set_property(k, None)
+        obj.set_property("testing.ready", 1)
 
     def www_view_testing_reset(self, request, project_or_series):
         if not request.user.is_authenticated:
@@ -147,7 +146,7 @@ class TestingModule(PatchewModule):
             obj = Message.objects.find_series(project_or_series)
         if not obj:
             raise Http404("Not found: " + project_or_series)
-        self.remove_testing_properties(obj, request.GET.get("test", ""))
+        self.clear_and_start_testing(obj, request.GET.get("test", ""))
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
@@ -516,4 +515,4 @@ class UntestView(APILoginRequiredView):
         se = SearchEngine()
         q = se.search_series(*terms)
         for s in q:
-            _instance.remove_testing_properties(s)
+            _instance.clear_and_start_testing(s)
