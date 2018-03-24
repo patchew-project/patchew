@@ -8,6 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+import abc
 import sys
 import os
 import subprocess
@@ -24,7 +25,7 @@ def create_test(project, name):
     project.set_property(prefix + "users", "")
     project.set_property(prefix + "tester", "")
 
-class TestingTest(PatchewTestCase):
+class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
     def setUp(self):
         self.create_superuser()
@@ -33,46 +34,21 @@ class TestingTest(PatchewTestCase):
 
         create_test(self.p, "a")
 
-        self.cli_login()
-        self.cli_import('0001-simple-patch.mbox.gz')
-        self.cli_logout()
-
-        self.msg = Message.objects.all()[0]
-        self.msg.save()
-        self.msg.set_property("git.repo", "dummy repo")
-        self.msg.set_property("git.tag", "dummy tag")
-        self.msg.set_property("git.base", "dummy base")
-
-    def test_testing_ready(self):
-        self.assertTrue(self.msg.get_property("testing.ready"))
-        # Set property through series_heads elements must be handled the same
-        self.msg.set_property("git.repo", None)
-        self.msg.set_property("git.tag", None)
-        self.msg.set_property("testing.ready", None)
-        msg = Message.objects.series_heads()[0]
-        self.assertEqual(self.msg.message_id, msg.message_id)
-        msg.set_property("git.repo", "dummy repo")
-        msg.set_property("git.tag", "dummy tag")
-        msg.set_property("git.base", "dummy base")
-        self.assertTrue(msg.get_property("testing.ready"))
-
-    def msg_testing_done(self, log=None, **report):
+    def _do_testing_done(self, obj, log, report):
         if not 'passed' in report:
             report['passed'] = True
-        self.msg.set_property("testing.report.tests", report)
+        obj.set_property("testing.report.tests", report)
         if log is not None:
-            self.msg.set_property("testing.log.tests", log)
-        self.msg.set_property("testing.done", True)
-        self.msg.set_property("testing.ready", None)
+            obj.set_property("testing.log.tests", log)
+        obj.set_property("testing.done", True)
+        obj.set_property("testing.ready", None)
 
-    def msg_testing_report(self, **report):
+    def do_testing_report(self, **report):
         self.api_login()
         r = self.api_call("testing-get",
                            project="QEMU",
                            tester="dummy tester",
                            capabilities=[])
-        self.assertEquals(r['identity']['type'], 'series')
-
         report['project'] = r["project"]
         report['identity'] = r["identity"]
         report['test'] = r["test"]["name"]
@@ -87,7 +63,15 @@ class TestingTest(PatchewTestCase):
             report['is_timeout'] = False
 
         self.api_call("testing-report", **report)
-        return r['identity']['message-id']
+        return r['identity']
+
+    @abc.abstractmethod
+    def do_testing_done(self, log=None, **report):
+        pass
+
+    @abc.abstractmethod
+    def get_test_result(self, test_name):
+        pass
 
     def test_basic(self):
         self.api_login()
@@ -98,7 +82,7 @@ class TestingTest(PatchewTestCase):
         self.assertIn("head", td)
 
     def test_done(self):
-        self.msg_testing_done()
+        self.do_testing_done()
         self.api_login()
         td = self.api_call("testing-get",
                            project="QEMU",
@@ -107,8 +91,8 @@ class TestingTest(PatchewTestCase):
         self.assertFalse(td)
 
     def test_rest_done_success(self):
-        self.msg_testing_done(log='everything good!', passed=True)
-        resp = self.api_client.get('%sseries/%s/results/testing.tests/' % (self.PROJECT_BASE, self.msg.message_id))
+        self.do_testing_done(log='everything good!', passed=True)
+        resp = self.get_test_result('tests')
         self.assertEquals(resp.data['status'], 'success')
         self.assertEquals(resp.data['log'], 'everything good!')
         log = self.client.get(resp.data['log_url'])
@@ -116,8 +100,8 @@ class TestingTest(PatchewTestCase):
         self.assertEquals(log.content, b'everything good!')
 
     def test_rest_done_failure(self):
-        self.msg_testing_done(log='sorry no good', passed=False, random_stuff='xyz')
-        resp = self.api_client.get('%sseries/%s/results/testing.tests/' % (self.PROJECT_BASE, self.msg.message_id))
+        self.do_testing_done(log='sorry no good', passed=False, random_stuff='xyz')
+        resp = self.get_test_result('tests')
         self.assertEquals(resp.data['status'], 'failure')
         self.assertEquals(resp.data['data']['random_stuff'], 'xyz')
         self.assertEquals(resp.data['log'], 'sorry no good')
@@ -127,8 +111,8 @@ class TestingTest(PatchewTestCase):
 
     def test_api_report_success(self):
         self.api_login()
-        msgid = self.msg_testing_report(log='everything good!', passed=True)
-        resp = self.api_client.get('%sseries/%s/results/testing.a/' % (self.PROJECT_BASE, self.msg.message_id))
+        self.do_testing_report(log='everything good!', passed=True)
+        resp = self.get_test_result('a')
         self.assertEquals(resp.data['data']['is_timeout'], False)
         self.assertEquals(resp.data['status'], 'success')
         log = self.client.get(resp.data['log_url'])
@@ -138,14 +122,55 @@ class TestingTest(PatchewTestCase):
 
     def test_api_report_failure(self):
         self.api_login()
-        msgid = self.msg_testing_report(log='sorry no good', passed=False)
-        resp = self.api_client.get('%sseries/%s/results/testing.a/' % (self.PROJECT_BASE, self.msg.message_id))
+        self.do_testing_report(log='sorry no good', passed=False)
+        resp = self.get_test_result('a')
         self.assertEquals(resp.data['data']['is_timeout'], False)
         self.assertEquals(resp.data['status'], 'failure')
         self.assertEquals(resp.data['log'], 'sorry no good')
         log = self.client.get(resp.data['log_url'])
         self.assertEquals(log.status_code, 200)
         self.assertEquals(log.content, b'sorry no good')
+
+class MessageTestingTest(TestingTestCase):
+
+    def setUp(self):
+        super(MessageTestingTest, self).setUp()
+
+        self.cli_login()
+        self.cli_import('0001-simple-patch.mbox.gz')
+        self.cli_logout()
+
+        self.msg = Message.objects.all()[0]
+        self.msg.save()
+        self.msg.set_property("git.repo", "dummy repo")
+        self.msg.set_property("git.tag", "dummy tag")
+        self.msg.set_property("git.base", "dummy base")
+
+    def do_testing_done(self, log=None, **report):
+        self._do_testing_done(self.msg, log, report)
+
+    def do_testing_report(self, **report):
+        r = super(MessageTestingTest, self).do_testing_report(**report)
+        self.assertEquals(r['type'], 'series')
+        return r
+
+    def get_test_result(self, test_name):
+        return self.api_client.get('%sseries/%s/results/testing.%s/' % (
+                                       self.PROJECT_BASE, self.msg.message_id, test_name))
+
+    def test_testing_ready(self):
+        self.assertTrue(self.msg.get_property("testing.ready"))
+        # Set property through series_heads elements must be handled the same
+        self.msg.set_property("git.repo", None)
+        self.msg.set_property("git.tag", None)
+        self.msg.set_property("testing.ready", None)
+        msg = Message.objects.series_heads()[0]
+        self.assertEqual(self.msg.message_id, msg.message_id)
+        msg.set_property("git.repo", "dummy repo")
+        msg.set_property("git.tag", "dummy tag")
+        msg.set_property("git.base", "dummy base")
+        self.assertTrue(msg.get_property("testing.ready"))
+
 
 class TesterTest(PatchewTestCase):
 
@@ -198,6 +223,9 @@ class TesterTest(PatchewTestCase):
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
         self.cli_logout()
+
+# do not run tests on the abstract class
+del TestingTestCase
 
 if __name__ == '__main__':
     main()
