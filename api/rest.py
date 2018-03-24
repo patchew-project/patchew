@@ -93,7 +93,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
         fields = ('resource_uri', 'name', 'mailing_list', 'prefix_tags', 'url', 'git', \
-                  'description', 'display_order', 'logo', 'parent_project')
+                  'description', 'display_order', 'logo', 'parent_project', 'results')
+
+    results = HyperlinkedIdentityField(view_name='results-list', lookup_field='pk',
+                                       lookup_url_kwarg='projects_pk')
 
 class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
@@ -319,8 +322,12 @@ class MessagesViewSet(ProjectMessagesViewSetMixin,
 class HyperlinkedResultField(HyperlinkedIdentityField):
     def get_url(self, result, view_name, request, format):
         obj = result.obj
-        kwargs = {'projects_pk': obj.project_id, 'series_message_id': obj.message_id,
-                  'name': result.name}
+        kwargs = {'name': result.name}
+        if isinstance(obj, Message):
+            kwargs['projects_pk'] = obj.project_id
+            kwargs['series_message_id'] = obj.message_id
+        else:
+            kwargs['projects_pk'] = obj.id
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
 class ResultSerializer(serializers.Serializer):
@@ -333,13 +340,9 @@ class ResultSerializer(serializers.Serializer):
 class ResultSerializerFull(ResultSerializer):
     log = CharField(required=False)
 
-class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
+class ResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
-
-    def get_queryset(self):
-        return Message.objects.filter(project=self.kwargs['projects_pk'],
-                                      message_id=self.kwargs['series_message_id'])
 
     def get_serializer_class(self, *args, **kwargs):
         if self.lookup_field in self.kwargs:
@@ -376,3 +379,12 @@ class SeriesResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
             raise Http404
         serializer = self.get_serializer(result)
         return Response(serializer.data)
+
+class ProjectResultsViewSet(ResultsViewSet):
+    def get_queryset(self):
+        return Project.objects.filter(id=self.kwargs['projects_pk'])
+
+class SeriesResultsViewSet(ResultsViewSet):
+    def get_queryset(self):
+        return Message.objects.filter(project=self.kwargs['projects_pk'],
+                                      message_id=self.kwargs['series_message_id'])

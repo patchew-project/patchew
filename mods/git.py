@@ -112,6 +112,8 @@ class GitModule(PatchewModule):
         return upstream, branch
 
     def rest_results_hook(self, request, obj, results, detailed=False):
+        if not isinstance(obj, Message):
+            return
         log = obj.get_property("git.apply-log")
         data = None
         if log:

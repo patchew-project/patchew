@@ -34,6 +34,7 @@ router.register('series', rest.SeriesViewSet, base_name='series')
 
 projects_router = NestedDefaultRouter(router, 'projects', lookup='projects', trailing_slash=True)
 projects_router.include_format_suffixes = False
+projects_router.register('results', rest.ProjectResultsViewSet, base_name='results')
 projects_router.register('series', rest.ProjectSeriesViewSet, base_name='series')
 projects_router.register('messages', rest.MessagesViewSet, base_name='messages')
 

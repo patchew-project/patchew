@@ -122,6 +122,11 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['logo'], None)
         self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
+    def test_project_results_list(self):
+        resp1 = self.api_client.get(self.PROJECT_BASE)
+        resp = self.api_client.get(resp1.data['results'])
+        self.assertEqual(resp.data['count'], len(resp.data['results']))
+
     def test_series_single(self):
         resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
