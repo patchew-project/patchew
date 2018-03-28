@@ -13,7 +13,7 @@ import os
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 import json
-from api.models import Message
+from api.models import Message, Project
 
 class ImportTest(PatchewTestCase):
 
@@ -122,6 +122,14 @@ class UnprivilegedImportTest(ImportTest):
         self.create_user("someuser", "somepass")
         self.cli_login("someuser", "somepass")
         self.check_import_should_fail()
+
+    def test_project_update(self):
+        p = Project.objects.all()[0]
+
+        repo = self.create_git_repo()
+        p.git = repo
+        p.save()
+        self.check_cli(["project", "update"])
 
 if __name__ == '__main__':
     main()

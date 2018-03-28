@@ -21,13 +21,7 @@ class GitTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
         self.cli_login()
-        self.repo = os.path.join(self.get_tmpdir(), "repo")
-        os.mkdir(self.repo)
-        subprocess.check_output(["git", "init"], cwd=self.repo)
-        subprocess.check_output(["touch", "foo"], cwd=self.repo)
-        subprocess.check_output(["git", "add", "foo"], cwd=self.repo)
-        subprocess.check_output(["git", "commit", "-m", "initial commit"],
-                                cwd=self.repo)
+        self.repo = self.create_git_repo()
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org", git_repo=self.repo)
         self.p.set_property("git.push_to", self.repo)
         self.p.set_property("git.public_repo", self.repo)

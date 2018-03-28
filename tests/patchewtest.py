@@ -134,6 +134,16 @@ class PatchewTestCase(django.test.LiveServerTestCase):
             self.assertEqual(uri, '%sprojects/%d/series/%s/' % (self.REST_BASE, project_id, msgid))
         return response
 
+    def create_git_repo(self, name="test-repo"):
+        repo = os.path.join(self.get_tmpdir(), name)
+        os.mkdir(repo)
+        subprocess.check_output(["git", "init"], cwd=repo)
+        subprocess.check_output(["touch", "foo"], cwd=repo)
+        subprocess.check_output(["git", "add", "foo"], cwd=repo)
+        subprocess.check_output(["git", "commit", "-m", "initial commit"],
+                                cwd=repo)
+        return repo
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", "-d", action="store_true",
