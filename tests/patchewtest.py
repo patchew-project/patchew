@@ -16,6 +16,7 @@ import shutil
 import argparse
 import json
 import atexit
+import gzip
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 
@@ -102,7 +103,9 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     def get_data_path(self, fname):
         r = tempfile.NamedTemporaryFile(dir=RUN_DIR, prefix="test-data-", delete=False)
         d = os.path.join(BASE_DIR, "tests", "data", fname)
-        r.write(subprocess.check_output(["zcat", d]))
+        with gzip.open(d, 'rb') as f:
+            file_content = f.read()
+        r.write(file_content)
         r.close()
         return r.name
 
