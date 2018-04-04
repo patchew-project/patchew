@@ -41,6 +41,8 @@ class IsMaintainerOrReadOnly(permissions.BasePermission):
     Allows access only to admin users or maintainers.
     """
     def has_object_permission(self, request, view, obj):
+        if isinstance(obj, Message):
+            obj = obj.project
         return request.method in permissions.SAFE_METHODS or \
                obj.maintained_by(request.user)
 
