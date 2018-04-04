@@ -62,6 +62,25 @@ def grep_iter(value, regex, n_before, n_after, sep):
     for i in range(max(lineno - n, 0), min(stop, lineno)):
         yield lines[i % n]
 
+# Similar to sed "/abc/,/def/p" except that the last line can
+# be excluded.
+def lines_between_iter(value, start, stop, include_last=True):
+    inside = False
+    for line in lines_iter(value):
+        if inside and re.search(stop, line):
+            inside = False
+            if include_last:
+                yield line
+                continue
+            # If include_last is false, immediately look
+            # for the next range.
+
+        if not inside and re.search(start, line):
+            inside = True
+
+        if inside:
+            yield line
+
 register = template.Library()
 
 @register.simple_tag
@@ -94,3 +113,7 @@ def grep_B(value, regex, n=3, sep='---'):
 @register.filter
 def grep_C(value, regex, n=3, sep='---'):
     return '\n'.join(grep_iter(value, regex, n, n, sep))
+
+@register.simple_tag
+def lines_between(value, start, stop, include_last=True):
+    return '\n'.join(lines_between_iter(value, start, stop, include_last))

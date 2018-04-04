@@ -9,7 +9,7 @@
 # http://opensource.org/licenses/MIT.
 
 from django.template import Context, Template
-from patchew.tags import tail_lines, grep_A, grep_B, grep_C, grep
+from patchew.tags import tail_lines, grep_A, grep_B, grep_C, grep, lines_between
 import unittest
 
 class CustomTagsTest(unittest.TestCase):
@@ -38,6 +38,7 @@ class CustomTagsTest(unittest.TestCase):
         self.assertTemplate('{% grep_B s regex="[bc]" n=1 %}', 'a\nb\nc', s='a\nb\nc\nd')
         self.assertTemplate('{% grep_C s "b" n=1 %}', 'a\nb\nc', s='a\nb\nc\nd')
         self.assertTemplate('{% tail_lines s n=3 %}', 'b\nc\nd', s='a\nb\nc\nd')
+        self.assertTemplate('{% lines_between s start="^b$" stop="c" %}', 'b\nc', s='a\nb\nc\nd')
 
     def test_grep(self):
         self.assertEqual(grep('0\na\n9', '[0-9]'), '0\n9')
@@ -123,6 +124,13 @@ class CustomTagsTest(unittest.TestCase):
         self.assertEqual(tail_lines('\n\n\nbc', 2), '\nbc')
         self.assertEqual(tail_lines('\n\nbc', 3), '\n\nbc')
         self.assertEqual(tail_lines('\n\n\n\nbc', 3), '\n\nbc')
+
+    def test_lines_between(self):
+        self.assertEqual(lines_between('a\nb\nc\nd', 'b', 'c'), 'b\nc')
+        self.assertEqual(lines_between('a\nb\nc\nd', 'b', 'c', False), 'b')
+        self.assertEqual(lines_between('a\nb\ncb\nd', 'b', 'c'), 'b\ncb')
+        self.assertEqual(lines_between('a\nb\ncb\nd', 'b', 'c', False), 'b\ncb\nd')
+        self.assertEqual(lines_between('a\nb\n\n\na\nb', '.', '^$'), 'a\nb\n\na\nb')
 
 if __name__ == '__main__':
     unittest.main()
