@@ -229,6 +229,31 @@ class RestTest(PatchewTestCase):
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=project:QEMU')
         self.assertEqual(resp.data['count'], 0)
 
+    def test_series_delete(self):
+        test_message_id = '1469192015-16487-1-git-send-email-berrange@redhat.com'
+        series = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',self.p.id,
+                                         test_message_id)
+        message = series.data['message']
+        resp_before = self.api_client.get(self.REST_BASE + 'projects/' + str(self.p.id)
+                                          + '/series/' + test_message_id + '/')
+        resp_reply_before = self.api_client.get(message + 'replies/')
+        resp_without_login = self.api_client.delete(self.REST_BASE + 'projects/' + str(self.p.id)
+                                      + '/series/' + test_message_id + '/')
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.delete(self.REST_BASE + 'projects/' + str(self.p.id)
+                                      + '/series/' + test_message_id + '/')
+        self.api_client.logout()
+        resp_after = self.api_client.get(self.REST_BASE + 'projects/' + str(self.p.id)
+                                         + '/series/' + test_message_id + '/')
+        resp_reply_after = self.api_client.get(message + 'replies/')
+
+        self.assertEqual(resp_before.status_code, 200)
+        self.assertEqual(resp_reply_before.status_code, 200)
+        self.assertEqual(resp_without_login.status_code, 403)
+        self.assertEqual(resp.status_code, 204)
+        self.assertEqual(resp_after.status_code, 404)
+        self.assertEqual(resp_reply_after.status_code, 404)
+
     def test_message(self):
         series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                          self.p.id, '20160628014747.20971-1-famz@redhat.com')

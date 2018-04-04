@@ -232,9 +232,11 @@ class SeriesViewSet(BaseMessageViewSet):
     queryset = Message.objects.filter(is_series_head=True).order_by('-last_reply_date')
     filter_backends = (PatchewSearchFilter,)
     search_fields = (SEARCH_PARAM,)
+    permission_classes = (IsMaintainerOrReadOnly,)
+
 
 class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
-                           SeriesViewSet):
+                           SeriesViewSet, mixins.DestroyModelMixin):
     def collect_patches(self, series):
         if series.is_patch:
             patches = [series]
@@ -267,6 +269,9 @@ class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
             for i in series.patches:
                 self.collect_replies(i, series.replies)
         return series
+
+    def perform_destroy(self, instance):
+        Message.objects.delete_subthread(instance)
 
 # Messages
 
