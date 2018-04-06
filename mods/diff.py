@@ -77,10 +77,10 @@ class DiffModule(PatchewModule):
             filtered = ""
             sep = ""
             for l in m.get_body().splitlines():
-                for pat, repl in [(r"index [0-9a-f]+\.\.[0-9a-f]+",
+                for pat, repl in [(r"^index [0-9a-f]+\.\.[0-9a-f]+",
                                    r"index XXXXXXX..XXXXXXX"),
-                                  (r"@@ -[0-9]+,[0-9]+ \+[0-9]+,[0-9]+ @@ ",
-                                   r"@@ -XXX,XX +XXX,XX @@ ")]:
+                                   (r"^@@ -[0-9]+,[0-9]+ \+[0-9]+,[0-9]+ @@( |$)",
+                                   r"@@ -XXX,XX +XXX,XX @@\1")]:
                     l = re.sub(pat, repl, l)
                 filtered += sep + l
                 sep = "\n"
