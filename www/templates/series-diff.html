@@ -136,10 +136,14 @@ function crossDiff(left, right) {
 
     // As an optimization, look for equal patches
     // Also, the cover letters always go against each other
-    quick_left[0] = quick_right[0] = 0
-    for (i = 1; i < orig_left_length; i++) {
-        for (j = 1; j < orig_right_length; j++) {
-            if (left[i].text() == right[j].text()) {
+    have_cover_letter = orig_left_length > 1 && orig_right_length > 1
+    for (i = 0; i < orig_left_length; i++) {
+        if (i == 0 && have_cover_letter) {
+            quick_left[0] = quick_right[0] = 0
+            continue;
+        }
+        for (j = 0; j < orig_right_length; j++) {
+            if (quick_right[j] == -1 && left[i].text() == right[j].text()) {
                 console.log(i + "," + j + " --> exact match");
                 quick_left[i] = j
                 quick_right[j] = i
@@ -206,7 +210,7 @@ function crossDiff(left, right) {
         i = matching[j][0];
         var ops = matching[j][2];
         // Never hide the cover letter
-        var hide = i > 0 && quick_left[i] != -1;
+        var hide = quick_left[i] != -1 && !(i == 0 && have_cover_letter);
         diffUsingJS(left[i], right[j], ops, hide);
         deleteFromArray(remaining_lhs_patches, i);
 
