@@ -140,6 +140,8 @@ class MboxMessage(object):
     def get_version(self):
         v = 1
         for tag in self.get_prefixes(True):
+            if tag.startswith("PATCH"):
+                tag = tag[5:]
             if tag.startswith("V"):
                 try:
                     v = int(tag[1:])
