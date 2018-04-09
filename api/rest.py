@@ -95,9 +95,14 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
         fields = ('resource_uri', 'name', 'mailing_list', 'prefix_tags', 'url', 'git', \
-                  'description', 'display_order', 'logo', 'parent_project', 'results')
+                  'description', 'display_order', 'logo', 'parent_project', 'messages',
+                  'results', 'series')
 
+    messages = HyperlinkedIdentityField(view_name='messages-list', lookup_field='pk',
+                                        lookup_url_kwarg='projects_pk')
     results = HyperlinkedIdentityField(view_name='results-list', lookup_field='pk',
+                                       lookup_url_kwarg='projects_pk')
+    series = HyperlinkedIdentityField(view_name='series-list', lookup_field='pk',
                                        lookup_url_kwarg='projects_pk')
 
 class ProjectsViewSet(viewsets.ModelViewSet):
