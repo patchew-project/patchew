@@ -92,6 +92,21 @@ def prepare_series(request, s, skip_patches=False):
     add_msg_recurse(s, skip_patches)
     return r
 
+def prepare_results(request, obj):
+    results = []
+    dispatch_module_hook("rest_results_hook", request=request,
+                         obj=obj, results=results, detailed=False)
+
+    results_dicts = []
+    for result in results:
+        html = result.render()
+        if html is None:
+            continue
+        d = result._asdict()
+        d['html'] = html
+        results_dicts.append(d)
+    return results_dicts
+
 def prepare_series_list(request, sl):
     return [prepare_message(request, s.project, s, False) for s in sl]
 
@@ -205,6 +220,7 @@ def view_project_detail(request, project):
     po.extra_ops = []
     dispatch_module_hook("prepare_project_hook", request=request, project=po)
     return render_page(request, "project-detail.html",
+                       results=prepare_results(request, po),
                        project=po,
                        navigate_links=nav_path,
                        search="")
@@ -256,6 +272,7 @@ def view_series_detail(request, project, message_id):
                        project=project,
                        navigate_links=nav_path,
                        search=search,
+                       results=prepare_results(request, s),
                        patches=prepare_patches(request, s),
                        messages=prepare_series(request, s, is_cover_letter))
 
@@ -281,5 +298,6 @@ def view_series_message(request, project, thread_id, message_id):
                        project=project,
                        navigate_links=nav_path,
                        search=search,
+                       results=[],
                        patches=prepare_patches(request, s),
                        messages=prepare_series(request, m))
