@@ -228,22 +228,6 @@ class TestingModule(PatchewModule):
             ret[tn]["name"] = tn
         return ret
 
-    def prepare_testing_report(self, obj):
-        for pn, p in obj.get_properties().items():
-            if not pn.startswith("testing.report."):
-                continue
-            tn = pn[len("testing.report."):]
-            failed = not p["passed"]
-            log_url = self.reverse_testing_log(obj, tn, html=False)
-            html_log_url = self.reverse_testing_log(obj, tn, html=True)
-            passed_str = "failed" if failed else "passed"
-            html = format_html('Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
-                               tn, html_log_url, log_url, passed_str)
-            obj.extra_status.append({
-                "kind": "alert" if failed else "good",
-                "html": html,
-            })
-
     def _build_reset_ops(self, obj):
         if isinstance(obj, Message):
             typearg = "type=message"
@@ -292,12 +276,12 @@ class TestingModule(PatchewModule):
             data = p.copy()
             del data['passed']
             results.append(Result(name='testing.' + tn, obj=obj, status=passed_str,
-                                  log=log, log_url=log_url, request=request, data=data))
+                                  log=log, log_url=log_url, request=request, data=data,
+                                  renderer=self))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
-        self.prepare_testing_report(message)
         if message.project.maintained_by(request.user) \
                 and message.get_property("testing.started"):
             message.extra_ops += self._build_reset_ops(message)
@@ -320,6 +304,16 @@ class TestingModule(PatchewModule):
                 "type": "success",
                 "char": "T",
                 })
+
+    def render_result(self, result):
+        if not result.is_completed():
+            return None
+        pn = result.name
+        tn = pn[len("testing."):]
+        html_log_url = result.log_url + '&html=1'
+        passed_str = "failed" if result.is_failure() else "passed"
+        return format_html('Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
+                           tn, html_log_url, result.log_url, passed_str)
 
     def check_active_testers(self, project):
         at = []
@@ -347,7 +341,6 @@ class TestingModule(PatchewModule):
                                    "content_html": self.build_config_html(request,
                                                                           project)})
         self.check_active_testers(project)
-        self.prepare_testing_report(project)
 
         if project.maintained_by(request.user) \
                 and project.get_property("testing.started"):
