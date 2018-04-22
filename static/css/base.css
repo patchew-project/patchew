@@ -137,11 +137,9 @@ h1, h2, h3, .h1, .h2, .h3 {
 .status-content > .fa {
     color: #337ab7;
 }
-.status-content.status-alert > .fa,
 .status-content.status-failure > .fa {
     color: #CC0000;
 }
-.status-content.status-good > .fa,
 .status-content.status-success > .fa {
     color: #009900;
 }

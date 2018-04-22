@@ -52,10 +52,7 @@
 {% endfor %}
 {% for status in project.extra_status %}
  <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
- {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
- {% elif status.kind == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
- {% elif status.kind == "alert" %} <span class="fa fa-lg fa-warning"></span>
- {% elif status.kind == "good" %} <span class="fa fa-lg fa-check"></span>{% endif %}
+ {% if status.icon %}<span class="fa fa-lg {{ status.icon }}"></span>{% endif %}
  <div>{{ status.html }}</div>
 </div>
 {% endfor %}

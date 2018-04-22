@@ -329,7 +329,7 @@ class TestingModule(PatchewModule):
         if not at:
             return
         project.extra_status.append({
-            "kind": "running",
+            "icon": "fa-refresh fa-spin",
             "html":  "Active testers: " + ", ".join(at)
         })
 

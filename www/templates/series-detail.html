@@ -65,15 +65,6 @@
  <div>{{ result.html }}</div>
 </div>
 {% endfor %}
-{% for status in series.extra_status %}
- <div class="status-content{% if status.kind %} status-{{ status.kind }}{% endif %}">
- {% if status.icon %}<span class="fa fa-lg fa-{{ status.icon }}"></span>
- {% elif status.kind == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
- {% elif status.kind == "alert" %} <span class="fa fa-lg fa-warning"></span>
- {% elif status.kind == "good" %} <span class="fa fa-lg fa-check"></span>{% endif %}
- <div>{{ status.html }}</div>
-</div>
-{% endfor %}
 
 {% if is_head %}
     {% if series.get_diff_stat %}
