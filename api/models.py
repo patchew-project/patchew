@@ -21,6 +21,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
+import jsonfield
 from mbox import MboxMessage
 from event import emit_event, declare_event
 import lzma
@@ -262,9 +263,9 @@ class MessageManager(models.Manager):
                           subject=m.get_subject(),
                           stripped_subject=m.get_subject(strip_tags=True),
                           version=m.get_version(),
-                          sender=json.dumps(m.get_from()),
-                          recipients=json.dumps(m.get_to() + m.get_cc()),
-                          prefixes=json.dumps(m.get_prefixes()),
+                          sender=m.get_from(),
+                          recipients=m.get_to() + m.get_cc(),
+                          prefixes=m.get_prefixes(),
                           is_series_head=m.is_series_head(),
                           is_patch=m.is_patch(),
                           patch_num=m.get_num()[0])
@@ -303,10 +304,9 @@ class Message(models.Model):
     subject = HeaderFieldModel()
     stripped_subject = HeaderFieldModel(db_index=True)
     version = models.PositiveSmallIntegerField(default=0)
-    sender = HeaderFieldModel(db_index=True)
-    recipients = models.TextField()
-    # JSON encoded list
-    prefixes = models.TextField(blank=True)
+    sender = jsonfield.JSONCharField(max_length=4096, db_index=True)
+    recipients = jsonfield.JSONField()
+    prefixes = jsonfield.JSONField(blank=True)
     is_series_head = models.BooleanField()
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
@@ -333,13 +333,10 @@ class Message(models.Model):
         self._mbox_obj = MboxMessage(self.mbox)
         return self.mbox
 
-    def get_prefixes(self):
-        return json.loads(self.prefixes)
-
     def get_num(self):
         assert self.is_patch or self.is_series_head
         cur, total = 1, 1
-        for tag in self.get_prefixes():
+        for tag in self.prefixes:
             if '/' in tag:
                 n, m = tag.split('/')
                 try:
@@ -451,17 +448,11 @@ class Message(models.Model):
         emit_event("SetProperty", obj=self, name=prop, value=value,
                    old_value=old_val)
 
-    def get_sender(self):
-        return json.loads(self.sender)
-
-    def get_recipients(self):
-        return json.loads(self.recipients)
-
     def get_sender_addr(self):
-        return self.get_sender()[1]
+        return self.sender[1]
 
     def get_sender_name(self):
-        return self.get_sender()[0]
+        return self.sender[0]
 
     def _get_age(self, date):
         def _seconds_to_human(sec):

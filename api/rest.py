@@ -136,11 +136,10 @@ class BaseMessageSerializer(serializers.ModelSerializer):
         return d
 
     def get_recipients(self, obj):
-        return [self.format_name_addr(*x) for x in obj.get_recipients()]
+        return [self.format_name_addr(*x) for x in obj.recipients]
 
     def get_sender(self, obj):
-        name, addr = obj.get_sender()
-        return self.format_name_addr(*obj.get_sender())
+        return self.format_name_addr(*obj.sender)
 
 # a message_id is *not* unique, so we can only list
 class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
