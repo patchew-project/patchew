@@ -16,6 +16,8 @@ from django.contrib.auth.models import User
 sys.path.append(os.path.dirname(__file__))
 from patchewtest import PatchewTestCase, main
 from api.models import Message
+from api.rest import AddressSerializer
+from collections import OrderedDict
 
 class RestTest(PatchewTestCase):
     def setUp(self):
@@ -269,6 +271,21 @@ class RestTest(PatchewTestCase):
         message = series.data['patches'][0]['resource_uri']
         resp = self.client.get(message + 'mbox/')
         self.assertEqual(resp.data, Message.objects.all()[0].get_mbox())
+
+    def test_address_serializer(self):
+        data1 = {"name":"Shubham", "address":"shubhamjain7495@gmail.com"}
+        serializer1 = AddressSerializer(data = data1)
+        valid1 = serializer1.is_valid()
+        valid_data1 = serializer1.validated_data
+        data2 = {"name":123, "address":"shubhamjain7495@gmail.com"}
+        serializer2 = AddressSerializer(data = data2)
+        valid2 = serializer2.is_valid()
+        valid_data2 = serializer2.validated_data
+
+        self.assertEqual(valid1,True)
+        self.assertEqual(valid_data1,OrderedDict([('name', 'Shubham'), ('address', 'shubhamjain7495@gmail.com')]))
+        self.assertEqual(valid2,True)
+        self.assertEqual(valid_data2,OrderedDict([('name', '123'), ('address', 'shubhamjain7495@gmail.com')]))
 
     def test_message_replies(self):
         series = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',

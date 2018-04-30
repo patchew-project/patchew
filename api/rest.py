@@ -19,7 +19,7 @@ from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
     mixins, generics, renderers)
 from rest_framework.decorators import detail_route
-from rest_framework.fields import SerializerMethodField, CharField, JSONField
+from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 import rest_framework
@@ -118,6 +118,22 @@ class HyperlinkedMessageField(HyperlinkedIdentityField):
         kwargs = {'projects_pk': obj.project_id, self.lookup_field: obj.message_id}
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
+class AddressSerializer(serializers.Serializer):
+    name = CharField(required=False)
+    address = EmailField()
+    def to_representation(self, obj):
+        if obj[0] != obj[1]:
+            return {"name": obj[0], "address": obj[1]}
+        else:
+            return {"address": obj[1]}
+
+    def create(self, validated_data):
+        try:
+            return [validated_data['name'], validated_data['address']]
+        except:
+            return [validated_data['address'], validated_data['address']]
+
+
 class BaseMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
@@ -125,21 +141,8 @@ class BaseMessageSerializer(serializers.ModelSerializer):
 
     resource_uri = HyperlinkedMessageField(view_name='messages-detail')
 
-    recipients = SerializerMethodField()
-    sender = SerializerMethodField()
-
-    def format_name_addr(self, name, addr):
-        d = {}
-        if name != addr:
-            d['name'] = name
-        d['address'] = addr
-        return d
-
-    def get_recipients(self, obj):
-        return [self.format_name_addr(*x) for x in obj.recipients]
-
-    def get_sender(self, obj):
-        return self.format_name_addr(*obj.sender)
+    recipients = AddressSerializer(many=True)
+    sender = AddressSerializer()
 
 # a message_id is *not* unique, so we can only list
 class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -280,7 +283,6 @@ class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
 # Messages
 
 # TODO: add POST endpoint connected to email plugin?
-
 class MessageSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
