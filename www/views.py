@@ -79,7 +79,7 @@ def prepare_series(request, s, skip_patches=False):
     def add_msg_recurse(m, skip_patches, depth=0):
         a = prepare_message(request, m, True)
         a.indent_level = min(depth, 4)
-        r.append(prepare_message(request, m, True))
+        r.append(a)
         replies = m.get_replies()
         non_patches = [x for x in replies if not x.is_patch]
         patches = []
