@@ -33,7 +33,7 @@ def render_page(request, template_name, **data):
     return render(request, template_name, context=data)
 
 def prepare_message(request, m, detailed):
-    name, addr = m.get_sender()
+    name, addr = m.sender
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
     m.age = m.get_age()

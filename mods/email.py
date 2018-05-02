@@ -239,7 +239,7 @@ Email information is configured in "INI" style:
                 continue
             if nt["reply_to_all"] and mo:
                 to += [mo.get_sender_addr()]
-                cc += [x[1] for x in mo.get_recipients()]
+                cc += [x[1] for x in mo.recipients]
             if mo and nt["in_reply_to"]:
                 headers["In-Reply-To"] = "<%s>" % mo.message_id
             if mo and nt["set_reply_to"]:
