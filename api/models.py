@@ -131,6 +131,8 @@ class Project(models.Model):
         return Message.objects.series_heads(project=self.name).count()
 
     def maintained_by(self, user):
+        if user.is_anonymous:
+            return False
         if user.is_superuser:
             return True
         if self.maintainers.filter(id=user.id).exists():
