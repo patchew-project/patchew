@@ -32,12 +32,12 @@ def render_page(request, template_name, **data):
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
 
-def prepare_message(request, m, detailed):
+def prepare_message(request, project, m, detailed):
     name, addr = m.sender
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
     m.age = m.get_age()
-    m.url = "/%s/%s" % (m.project.name, m.message_id)
+    m.url = reverse("series_detail", kwargs={"project": project.name, "message_id": m.message_id})
     m.status_tags = []
     if m.is_series_head:
         m.num_patches = m.get_num_patches()
@@ -71,13 +71,15 @@ def prepare_patches(request, m, max_depth=None):
     replies = m.get_replies().filter(is_patch=True)
     commit_replies = api.models.Message.objects.filter(in_reply_to=OuterRef('message_id'))
     replies = replies.annotate(has_replies=Exists(commit_replies))
-    return [prepare_message(request, x, True)
+    project = m.project
+    return [prepare_message(request, project, x, True)
             for x in replies]
 
 def prepare_series(request, s, skip_patches=False):
     r = []
+    project = s.project
     def add_msg_recurse(m, skip_patches, depth=0):
-        a = prepare_message(request, m, True)
+        a = prepare_message(request, project, m, True)
         a.indent_level = min(depth, 4)
         r.append(a)
         replies = m.get_replies()
@@ -87,12 +89,11 @@ def prepare_series(request, s, skip_patches=False):
             patches = [x for x in replies if x.is_patch]
         for x in non_patches + patches:
             add_msg_recurse(x, False, depth+1)
-        return r
     add_msg_recurse(s, skip_patches)
     return r
 
 def prepare_series_list(request, sl):
-    return [prepare_message(request, s, False) for s in sl]
+    return [prepare_message(request, s.project, s, False) for s in sl]
 
 def prepare_projects():
     return api.models.Project.objects.filter(parent_project=None).order_by('-display_order', 'name')
@@ -241,7 +242,7 @@ def view_series_detail(request, project, message_id):
     nav_path = prepare_navigate_list("View series",
                     ("series_list", {"project": project}, project))
     search = "id:" + message_id
-    series = prepare_message(request, s, True)
+    series = prepare_message(request, s.project, s, True)
     is_cover_letter=not series.is_patch
     return render_page(request, 'series-detail.html',
                        subject=s.subject,
@@ -267,7 +268,7 @@ def view_series_message(request, project, thread_id, message_id):
                     ("series_list", {"project": project}, project),
                     ("series_detail", {"project": project, "message_id": thread_id}, s.subject ))
     search = "id:" + thread_id
-    series = prepare_message(request, s, True)
+    series = prepare_message(request, s.project, s, True)
     return render_page(request, 'series-detail.html',
                        subject=m.subject,
                        stripped_subject=s.stripped_subject,
