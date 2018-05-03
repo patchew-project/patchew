@@ -616,11 +616,31 @@ class Module(models.Model):
 
 class Result(namedtuple("Result", "name status log log_url obj data")):
     __slots__ = ()
+    PENDING = 'pending'
+    SUCCESS = 'success'
+    FAILURE = 'failure'
+    RUNNING = 'running'
+    VALID_STATUSES = (PENDING, SUCCESS, FAILURE, RUNNING)
 
     def __new__(cls, name, status, obj, log=None, log_url=None, data=None, request=None):
         if log_url is not None and request is not None:
             log_url = request.build_absolute_uri(log_url)
-        if status not in ('pending', 'success', 'failure'):
+        if status not in cls.VALID_STATUSES:
             raise ValueError("invalid value '%s' for status field" % status)
         return super(cls, Result).__new__(cls, status=status, log=log, log_url=log_url,
                                           obj=obj, data=data, name=name)
+
+    def is_success(self):
+        return self.status == self.SUCCESS
+
+    def is_failure(self):
+        return self.status == self.FAILURE
+
+    def is_completed(self):
+        return self.is_success() or self.is_failure()
+
+    def is_pending(self):
+        return self.status == self.PENDING
+
+    def is_running(self):
+        return self.status == self.RUNNING

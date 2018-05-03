@@ -283,7 +283,7 @@ class TestingModule(PatchewModule):
             tn = pn[len("testing.report."):]
             failed = not p["passed"]
             log_url = self.reverse_testing_log(obj, tn, request=request, html=False)
-            passed_str = "failure" if failed else "success"
+            passed_str = Result.FAILURE if failed else Result.SUCCESS
             if detailed:
                 log = obj.get_property("testing.log." + tn)
             else:

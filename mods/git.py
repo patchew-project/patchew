@@ -118,15 +118,15 @@ class GitModule(PatchewModule):
         data = None
         if log:
             if obj.get_property("git.apply-failed"):
-                status = 'failure'
+                status = Result.FAILURE
             else:
                 git_repo = obj.get_property("git.repo")
                 git_tag = obj.get_property("git.tag")
                 data = {'repo': git_repo, 'tag': 'refs/tags/' + git_tag}
-                status = 'success'
+                status = Result.SUCCESS
             log_url = reverse("git-log", kwargs={'series': obj.message_id})
         else:
-            status = 'pending'
+            status = Result.PENDING
             log_url = None
         results.append(Result(name='git', obj=obj, status=status,
                               log=log, log_url=log_url, data=data,

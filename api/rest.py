@@ -428,7 +428,7 @@ class HyperlinkedResultField(HyperlinkedIdentityField):
 class ResultSerializer(serializers.Serializer):
     resource_uri = HyperlinkedResultField(view_name='results-detail')
     name = CharField()
-    status = CharField() # one of 'failure', 'success', 'pending'
+    status = CharField() # one of 'failure', 'success', 'pending', 'running'
     log_url = CharField(required=False)
     data = JSONField(required=False)
 
