@@ -321,19 +321,21 @@ class Message(models.Model):
 
     objects = MessageManager()
 
-    def save_mbox(self, mbox):
-        save_blob(mbox, self.message_id)
+    def save_mbox(self, mbox_blob):
+        save_blob(mbox_blob, self.message_id)
 
     def get_mbox_obj(self):
         self.get_mbox()
         return self._mbox_obj
 
     def get_mbox(self):
-        if hasattr(self, "mbox"):
-            return self.mbox
-        self.mbox = load_blob(self.message_id)
-        self._mbox_obj = MboxMessage(self.mbox)
-        return self.mbox
+        if hasattr(self, "mbox_blob"):
+            return self.mbox_blob
+        self.mbox_blob = load_blob(self.message_id)
+        self._mbox_obj = MboxMessage(self.mbox_blob)
+        return self.mbox_blob
+    
+    mbox = property(get_mbox)
 
     def get_num(self):
         assert self.is_patch or self.is_series_head
