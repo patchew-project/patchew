@@ -268,6 +268,15 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['subject'], "[Qemu-devel] [PATCH v2 10/27] imx_fec: Reserve full 4K "
                          "page for the register file")
 
+    def test_create_text_message(self):
+        dp = self.get_data_path("0004-multiple-patch-reviewed.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        resp = self.api_client.post(self.PROJECT_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/1469192015-16487-1-git-send-email-berrange@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp.data['subject'], "[Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver")
 
     def test_message(self):
         series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',

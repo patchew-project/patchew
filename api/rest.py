@@ -23,7 +23,8 @@ from rest_framework.fields import SerializerMethodField, CharField, JSONField, E
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 import rest_framework
-from mbox import addr_db_to_rest
+from mbox import addr_db_to_rest, MboxMessage
+from rest_framework.parsers import JSONParser, BaseParser
 
 SEARCH_PARAM = 'q'
 
@@ -316,9 +317,19 @@ class StaticTextRenderer(renderers.BaseRenderer):
         else:
             return data
 
+class MessagePlainTextParser(BaseParser):
+    media_type = 'message/rfc822'
+
+    def parse(self, stream, media_type=None, parser_context=None):
+       
+        data = stream.read().decode("utf-8")
+        return MboxMessage(data).get_json()
+
 class MessagesViewSet(ProjectMessagesViewSetMixin,
                       BaseMessageViewSet, mixins.CreateModelMixin):
     serializer_class = MessageSerializer
+    parser_classes = (JSONParser, MessagePlainTextParser, )
+
     @detail_route(renderer_classes=[StaticTextRenderer])
     def mbox(self, request, *args, **kwargs):
         message = self.get_object()
