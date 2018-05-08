@@ -23,6 +23,7 @@ from rest_framework.fields import SerializerMethodField, CharField, JSONField, E
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 import rest_framework
+from mbox import addr_db_to_rest
 
 SEARCH_PARAM = 'q'
 
@@ -123,10 +124,7 @@ class AddressSerializer(serializers.Serializer):
     address = EmailField()
     
     def to_representation(self, obj):
-        if obj[0] != obj[1]:
-            return {"name": obj[0], "address": obj[1]}
-        else:
-            return {"address": obj[1]}
+        return addr_db_to_rest(obj)
 
     def create(self, validated_data):
         try:

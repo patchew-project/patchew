@@ -13,6 +13,7 @@ import email.utils
 import email.header
 import datetime
 import re
+from rest_framework.fields import DateTimeField
 
 def _parse_header(header):
     r = ''
@@ -34,6 +35,11 @@ def _addr_fmt_text(name, addr):
     else:
         return addr
 
+def addr_db_to_rest(obj):
+        if obj[0] != obj[1]:
+            return {"name": obj[0], "address": obj[1]}
+        else:
+            return {"address": obj[1]}
 
 class MboxMessage(object):
     """ Helper class to process mbox """
@@ -269,3 +275,15 @@ class MboxMessage(object):
         if c == 0:
             return True
         return False
+
+    def get_json(self):
+        """Return the JSON format of the mbox """
+        msg = {}
+        msg['message_id'] = self.get_message_id()
+        msg['in_reply_to'] = self.get_in_reply_to() or ""
+        msg['date'] = DateTimeField().to_representation(self.get_date())
+        msg['subject'] = self.get_subject()
+        msg['sender'] = addr_db_to_rest(self.get_from())
+        msg['recipients'] = [addr_db_to_rest(x) for x in (self.get_to() + self.get_cc())]
+        msg['mbox'] = self.get_mbox()
+        return msg
