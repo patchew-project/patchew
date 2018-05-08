@@ -247,6 +247,24 @@ class MessageManager(models.Manager):
             self.delete_subthread(r)
         msg.delete()
 
+    def create(self, project, **validated_data):
+        mbox = validated_data.pop('mbox')
+        m = MboxMessage(mbox)
+        msg = Message(**validated_data)
+        if 'in_reply_to' not in validated_data:
+            msg.in_reply_to = m.get_in_reply_to() or ""
+        msg.stripped_subject = m.get_subject(strip_tags=True)
+        msg.version = m.get_version()
+        msg.prefixes = m.get_prefixes()
+        msg.is_series_head = m.is_series_head()
+        msg.is_patch = m.is_patch()
+        msg.patch_num = m.get_num()[0]
+        msg.project = project
+        msg.save_mbox(mbox)
+        msg.save()
+        emit_event("MessageAdded", message=msg)
+        return msg
+
     def add_message_from_mbox(self, mbox, user, project_name=None):
 
         def find_message_projects(m):

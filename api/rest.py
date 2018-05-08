@@ -121,6 +121,7 @@ class HyperlinkedMessageField(HyperlinkedIdentityField):
 class AddressSerializer(serializers.Serializer):
     name = CharField(required=False)
     address = EmailField()
+    
     def to_representation(self, obj):
         if obj[0] != obj[1]:
             return {"name": obj[0], "address": obj[1]}
@@ -140,9 +141,13 @@ class BaseMessageSerializer(serializers.ModelSerializer):
         fields = ('resource_uri', 'message_id', 'subject', 'date', 'sender', 'recipients')
 
     resource_uri = HyperlinkedMessageField(view_name='messages-detail')
-
     recipients = AddressSerializer(many=True)
     sender = AddressSerializer()
+   
+    def create(self, validated_data):
+        validated_data['recipients'] = self.fields['recipients'].create(validated_data['recipients'])
+        validated_data['sender'] = self.fields['sender'].create(validated_data['sender'])
+        return Message.objects.create(project=self.context['project'], **validated_data)
 
 # a message_id is *not* unique, so we can only list
 class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -157,6 +162,11 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
     def get_queryset(self):
         return self.queryset.filter(project=self.kwargs['projects_pk'])
 
+    def get_serializer_context(self):
+        try:
+            return {'project': Project.objects.get(id=self.kwargs['projects_pk']), 'request': self.request}
+        except: 
+            return Http404
 # Series
 
 class ReplySerializer(BaseMessageSerializer):
@@ -287,10 +297,7 @@ class MessageSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
         fields = BaseMessageSerializer.Meta.fields + ('mbox', )
-
-    def get_mbox(self, obj):
-        return obj.get_mbox()
-    mbox = SerializerMethodField()
+    mbox = CharField()
 
     def get_fields(self):
         fields = super(MessageSerializer, self).get_fields()
@@ -312,9 +319,8 @@ class StaticTextRenderer(renderers.BaseRenderer):
             return data
 
 class MessagesViewSet(ProjectMessagesViewSetMixin,
-                      BaseMessageViewSet):
+                      BaseMessageViewSet, mixins.CreateModelMixin):
     serializer_class = MessageSerializer
-
     @detail_route(renderer_classes=[StaticTextRenderer])
     def mbox(self, request, *args, **kwargs):
         message = self.get_object()
