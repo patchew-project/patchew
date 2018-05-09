@@ -300,7 +300,12 @@ class MessageSerializer(BaseMessageSerializer):
 
     def get_fields(self):
         fields = super(MessageSerializer, self).get_fields()
-        request = self.context['request']
+        try:
+            # When called from the CoreAPI schema generator, there is no context defined?
+            request = self.context['request']
+        except TypeError:
+            request = None
+
         dispatch_module_hook("rest_message_fields_hook", request=request,
                              fields=fields)
         return fields

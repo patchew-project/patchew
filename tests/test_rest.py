@@ -10,6 +10,8 @@
 
 import sys
 import os
+import json
+import unittest
 
 from django.contrib.auth.models import User
 
@@ -18,7 +20,11 @@ from patchewtest import PatchewTestCase, main
 from api.models import Message
 from api.rest import AddressSerializer
 from collections import OrderedDict
-import json
+
+try:
+    import coreapi
+except ImportError:
+    coreapi = None
 
 class RestTest(PatchewTestCase):
     def setUp(self):
@@ -324,6 +330,10 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['results'][2]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
         self.assertEqual(resp.data['results'][3]['resource_uri'], self.PROJECT_BASE + 'messages/e0858c00-ccb6-e533-ee3e-9ba84ca45a7b@redhat.com/')
         self.assertEqual(resp.data['results'][3]['subject'], 'Re: [Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver')
+
+    def test_schema(self):
+        resp = self.api_client.get(self.REST_BASE + 'schema/')
+        self.assertEqual(resp.status_code, 200)
 
 if __name__ == '__main__':
     main()
