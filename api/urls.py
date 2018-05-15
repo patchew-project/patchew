@@ -31,12 +31,13 @@ router.include_format_suffixes = False
 router.register('users', rest.UsersViewSet)
 router.register('projects', rest.ProjectsViewSet)
 router.register('series', rest.SeriesViewSet, base_name='series')
+router.register('messages', rest.MessagesViewSet)
 
 projects_router = NestedDefaultRouter(router, 'projects', lookup='projects', trailing_slash=True)
 projects_router.include_format_suffixes = False
 projects_router.register('results', rest.ProjectResultsViewSet, base_name='results')
 projects_router.register('series', rest.ProjectSeriesViewSet, base_name='series')
-projects_router.register('messages', rest.MessagesViewSet, base_name='messages')
+projects_router.register('messages', rest.ProjectMessagesViewSet, base_name='messages')
 
 results_router = NestedDefaultRouter(projects_router, 'series', lookup='series', trailing_slash=True)
 results_router.include_format_suffixes = False

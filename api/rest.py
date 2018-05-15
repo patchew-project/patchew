@@ -17,7 +17,7 @@ from mod import dispatch_module_hook
 from .models import Project, Message
 from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
-    mixins, generics, renderers)
+    mixins, generics, renderers, status)
 from rest_framework.decorators import detail_route
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField
 from rest_framework.relations import HyperlinkedIdentityField
@@ -162,7 +162,6 @@ class AddressSerializer(serializers.Serializer):
         except:
             return [validated_data['address'], validated_data['address']]
 
-
 class BaseMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
@@ -175,6 +174,9 @@ class BaseMessageSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['recipients'] = self.fields['recipients'].create(validated_data['recipients'])
         validated_data['sender'] = self.fields['sender'].create(validated_data['sender'])
+        if 'project' in validated_data:
+            project = validated_data.pop('project')
+            return Message.objects.create(project=project, **validated_data)
         return Message.objects.create(project=self.context['project'], **validated_data)
 
 # a message_id is *not* unique, so we can only list
@@ -288,7 +290,6 @@ class SeriesViewSet(BaseMessageViewSet):
     filter_backends = (PatchewSearchFilter,)
     search_fields = (SEARCH_PARAM,)
 
-
 class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
                            SeriesViewSet, mixins.DestroyModelMixin):
     def collect_patches(self, series):
@@ -368,7 +369,7 @@ class MessagePlainTextParser(BaseParser):
         data = stream.read().decode("utf-8")
         return MboxMessage(data).get_json()
 
-class MessagesViewSet(ProjectMessagesViewSetMixin,
+class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
                       BaseMessageViewSet, mixins.CreateModelMixin):
     serializer_class = MessageSerializer
     parser_classes = (JSONParser, MessagePlainTextParser, )
@@ -387,6 +388,25 @@ class MessagesViewSet(ProjectMessagesViewSetMixin,
         serializer = BaseMessageSerializer(page, many=True,
                                            context=self.get_serializer_context())
         return self.get_paginated_response(serializer.data)
+
+class MessagesViewSet(BaseMessageViewSet):
+    serializer_class = MessageSerializer
+    parser_classes = (JSONParser, MessagePlainTextParser, )
+    
+    def create(self, request, *args, **kwargs):
+        projects = [p for p in Project.objects.all() if p.recognizes(MboxMessage(self.request.data['mbox']))]
+        if 'importers' not in self.request.user.groups.all():
+            projects = (p for p in projects if p.maintained_by(self.request.user))
+        results = []
+        for project in projects:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(project=project)
+            results.append(serializer.data)
+        # Fake paginator response.  Note that there is no Location header.
+        return Response(OrderedDict([('count', len(results)),
+                                     ('results', results)]),
+                        status=status.HTTP_201_CREATED)
 
 # Results
 

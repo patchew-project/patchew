@@ -37,6 +37,8 @@ class RestTest(PatchewTestCase):
         self.sp.prefix_tags = "block"
         self.sp.save()
         self.SUBPROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.sp.id)
+        self.p2 = self.add_project("EDK 2", "edk2-devel@lists.01.org")
+        self.PROJECT_BASE_2 = '%sprojects/%d/' % (self.REST_BASE, self.p2.id)
 
         self.admin = User.objects.get(username='admin')
         self.USER_BASE = '%susers/%d/' % (self.REST_BASE, self.admin.id)
@@ -64,7 +66,7 @@ class RestTest(PatchewTestCase):
 
     def test_projects(self):
         resp = self.api_client.get(self.REST_BASE + 'projects/')
-        self.assertEquals(resp.data['count'], 2)
+        self.assertEquals(resp.data['count'], 3)
         self.assertEquals(resp.data['results'][0]['resource_uri'], self.PROJECT_BASE)
         self.assertEquals(resp.data['results'][0]['name'], "QEMU")
         self.assertEquals(resp.data['results'][0]['mailing_list'], "qemu-devel@nongnu.org")
@@ -294,6 +296,34 @@ class RestTest(PatchewTestCase):
         resp_get = self.api_client.get(self.PROJECT_BASE + "messages/1469192015-16487-1-git-send-email-berrange@redhat.com/")
         self.assertEqual(resp_get.status_code, 200)
         self.assertEqual(resp.data['subject'], "[Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver")
+
+    def test_create_message_without_project_pk(self):
+        dp = self.get_data_path("0024-multiple-project-patch.json.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='application/json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['count'], 2)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.data['subject'], "[Qemu-devel] [PATCH 1/7] SecurityPkg/Tcg2Pei: drop Tcg2PhysicalPresenceLib dependency")
+        resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get2.status_code, 200)
+
+    def test_create_text_message_without_project_pk(self):
+        dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['count'], 2)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.data['subject'], "[Qemu-devel] [PATCH 1/7] SecurityPkg/Tcg2Pei: drop Tcg2PhysicalPresenceLib dependency")
+        resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get2.status_code, 200)
 
     def test_message(self):
         series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
