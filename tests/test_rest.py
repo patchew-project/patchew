@@ -325,6 +325,57 @@ class RestTest(PatchewTestCase):
         resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
         self.assertEqual(resp_get2.status_code, 200)
 
+    def test_without_login_create_message(self):
+        dp = self.get_data_path("0022-another-simple-patch.json.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        resp = self.api_client.post(self.PROJECT_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_non_maintainer_create_message(self):
+        self.create_user(username="test", password="userpass")
+        self.api_client.login(username="test", password="userpass")
+        dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['count'], 0)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get.status_code, 404)
+        resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get2.status_code, 404)
+
+    def test_maintainer_create_message(self):
+        test = self.create_user(username="test", password="userpass")
+        self.api_client.login(username="test", password="userpass")
+        self.p.maintainers = (test, )
+        dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['count'], 1)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get2.status_code, 404)
+
+    def test_importer_create_message(self):
+        dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        test = self.create_user(username="test", password="userpass", groups=['importers'])
+        self.api_client.login(username="test", password="userpass")
+        resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['count'], 2)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.data['subject'], "[Qemu-devel] [PATCH 1/7] SecurityPkg/Tcg2Pei: drop Tcg2PhysicalPresenceLib dependency")
+        resp_get2 = self.api_client.get(self.PROJECT_BASE_2 + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/")
+        self.assertEqual(resp_get2.status_code, 200)
+
     def test_message(self):
         series = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                          self.p.id, '20160628014747.20971-1-famz@redhat.com')
