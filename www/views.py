@@ -93,8 +93,8 @@ def prepare_series(request, s, skip_patches=False):
 
 def prepare_results(request, obj):
     results = []
-    dispatch_module_hook("rest_results_hook", request=request,
-                         obj=obj, results=results, detailed=False)
+    dispatch_module_hook("rest_results_hook", obj=obj,
+                         results=results, detailed=False)
 
     results_dicts = []
     for result in results:

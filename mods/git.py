@@ -126,7 +126,7 @@ class GitModule(PatchewModule):
     def rest_series_fields_hook(self, request, fields, detailed):
         fields['based_on'] = PluginMethodField(obj=self, required=False)
 
-    def rest_results_hook(self, request, obj, results, detailed=False):
+    def rest_results_hook(self, obj, results, detailed=False):
         if not isinstance(obj, Message):
             return
         log = obj.get_property("git.apply-log")
@@ -148,13 +148,10 @@ class GitModule(PatchewModule):
                     if git_base:
                         data['base'] = git_base
                 status = Result.SUCCESS
-            log_url = reverse("git-log", kwargs={'series': obj.message_id})
         else:
             status = Result.PENDING
-            log_url = None
         results.append(Result(name='git', obj=obj, status=status,
-                              log=log, log_url=log_url, data=data,
-                              request=request, renderer=self))
+                              log=log, data=data, renderer=self))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
@@ -199,9 +196,10 @@ class GitModule(PatchewModule):
         if not result.is_completed():
             return None
 
-        html_log_url = result.log_url + "?html=1"
+        log_url = result.get_log_url()
+        html_log_url = log_url + "?html=1"
         colorbox_a = format_html('<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
-                                 html_log_url, result.log_url)
+                                 html_log_url, log_url)
         if result.is_failure():
             return format_html('Failed in applying to current master ({})', colorbox_a)
         else:
@@ -217,6 +215,9 @@ class GitModule(PatchewModule):
                     git_tag = git_tag[5:]
                 s += format_html('<br/><samp>git fetch {} {}</samp>', git_repo, git_tag)
             return s
+
+    def get_result_log_url(self, result):
+        return reverse("git-log", kwargs={'series': result.obj.message_id})
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):

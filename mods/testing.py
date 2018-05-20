@@ -165,8 +165,8 @@ class TestingModule(PatchewModule):
                                       "testing_name": test}) + "?type=project"
         if html:
             log_url += "&html=1"
-        # Generate a full URL, including the host and port, for use in email
-        # notifications and REST API responses.
+        # Generate a full URL, including the host and port, for use in
+        # email notifications
         if request:
             log_url = request.build_absolute_uri(log_url)
         return log_url
@@ -251,7 +251,7 @@ class TestingModule(PatchewModule):
                         })
         return ret
 
-    def rest_results_hook(self, request, obj, results, detailed=False):
+    def rest_results_hook(self, obj, results, detailed=False):
         all_tests = set([k for k, v in _instance.get_tests(obj).items() if v["enabled"]])
         for pn, p in obj.get_properties().items():
             if not pn.startswith("testing.report."):
@@ -262,7 +262,6 @@ class TestingModule(PatchewModule):
             except:
                 pass
             failed = not p["passed"]
-            log_url = self.reverse_testing_log(obj, tn, request=request, html=False)
             passed_str = Result.FAILURE if failed else Result.SUCCESS
             if detailed:
                 log = obj.get_property("testing.log." + tn)
@@ -272,8 +271,7 @@ class TestingModule(PatchewModule):
             data = p.copy()
             del data['passed']
             results.append(Result(name='testing.' + tn, obj=obj, status=passed_str,
-                                  log=log, log_url=log_url, request=request, data=data,
-                                  renderer=self))
+                                  log=log, data=data, renderer=self))
 
         if obj.get_property("testing.ready"):
             for tn in all_tests:
@@ -305,15 +303,20 @@ class TestingModule(PatchewModule):
                 "char": "T",
                 })
 
+    def get_result_log_url(self, result):
+        tn = result.name[len("testing."):]
+        return self.reverse_testing_log(result.obj, tn, html=False)
+
     def render_result(self, result):
         if not result.is_completed():
             return None
         pn = result.name
         tn = pn[len("testing."):]
-        html_log_url = result.log_url + '&html=1'
+        log_url = result.get_log_url()
+        html_log_url = log_url + '&html=1'
         passed_str = "failed" if result.is_failure() else "passed"
         return format_html('Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
-                           tn, html_log_url, result.log_url, passed_str)
+                           tn, html_log_url, log_url, passed_str)
 
     def check_active_testers(self, project):
         at = []

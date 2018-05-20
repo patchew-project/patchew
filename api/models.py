@@ -645,7 +645,7 @@ class Module(models.Model):
     def __str__(self):
         return self.name
 
-class Result(namedtuple("Result", "name status log log_url obj data renderer")):
+class Result(namedtuple("Result", "name status log obj data renderer")):
     __slots__ = ()
     PENDING = 'pending'
     SUCCESS = 'success'
@@ -653,12 +653,10 @@ class Result(namedtuple("Result", "name status log log_url obj data renderer")):
     RUNNING = 'running'
     VALID_STATUSES = (PENDING, SUCCESS, FAILURE, RUNNING)
 
-    def __new__(cls, name, status, obj, log=None, log_url=None, data=None, request=None, renderer=None):
-        if log_url is not None and request is not None:
-            log_url = request.build_absolute_uri(log_url)
+    def __new__(cls, name, status, obj, log=None, data=None, renderer=None):
         if status not in cls.VALID_STATUSES:
             raise ValueError("invalid value '%s' for status field" % status)
-        return super(cls, Result).__new__(cls, status=status, log=log, log_url=log_url,
+        return super(cls, Result).__new__(cls, status=status, log=log,
                                           obj=obj, data=data, name=name, renderer=renderer)
 
     def is_success(self):
@@ -680,3 +678,11 @@ class Result(namedtuple("Result", "name status log log_url obj data renderer")):
         if self.renderer is None:
             return None
         return self.renderer.render_result(self)
+
+    def get_log_url(self, request=None):
+        if not self.is_completed() or self.renderer is None:
+            return None
+        log_url = self.renderer.get_result_log_url(self)
+        if log_url is not None and request is not None:
+            log_url = request.build_absolute_uri(log_url)
+        return log_url
