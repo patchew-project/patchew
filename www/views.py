@@ -92,19 +92,14 @@ def prepare_series(request, s, skip_patches=False):
     return r
 
 def prepare_results(request, obj):
-    results = []
-    dispatch_module_hook("rest_results_hook", obj=obj,
-                         results=results, detailed=False)
-
-    results_dicts = []
-    for result in results:
+    rendered_results = []
+    for result in obj.results.all():
         html = result.render()
         if html is None:
             continue
-        d = result._asdict()
-        d['html'] = html
-        results_dicts.append(d)
-    return results_dicts
+        result.html = html
+        rendered_results.append(result)
+    return rendered_results
 
 def prepare_series_list(request, sl):
     return [prepare_message(request, s.project, s, False) for s in sl]

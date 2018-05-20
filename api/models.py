@@ -16,7 +16,6 @@ import re
 
 from django.core import validators
 from django.db import models
-from django.db.models import Q
 from django.contrib.auth.models import User
 from django.urls import reverse
 import jsonfield
@@ -124,14 +123,6 @@ class Result(models.Model):
         if log_url is not None and request is not None:
             log_url = request.build_absolute_uri(log_url)
         return log_url
-
-    @staticmethod
-    def get_result_tuples(obj, module, results):
-        name_filter = Q(name=module) | Q(name__startswith=module + '.')
-        renderer = mod.get_module(module)
-        for r in obj.results.filter(name_filter):
-            results.append(ResultTuple(name=r.name, obj=obj, status=r.status,
-                                       log=r.log, data=r.data, renderer=renderer))
 
     def __str__(self):
         return '%s (%s)' % (self.name, self.status)
@@ -756,40 +747,3 @@ class Module(models.Model):
 
     def __str__(self):
         return self.name
-
-class ResultTuple(namedtuple("ResultTuple", "name status log obj data renderer")):
-    __slots__ = ()
-
-    def __new__(cls, name, status, obj, log=None, data=None, renderer=None):
-        if status not in Result.VALID_STATUSES:
-            raise ValueError("invalid value '%s' for status field" % status)
-        return super(cls, ResultTuple).__new__(cls, status=status, log=log,
-                                          obj=obj, data=data, name=name, renderer=renderer)
-
-    def is_success(self):
-        return self.status == Result.SUCCESS
-
-    def is_failure(self):
-        return self.status == Result.FAILURE
-
-    def is_completed(self):
-        return self.is_success() or self.is_failure()
-
-    def is_pending(self):
-        return self.status == Result.PENDING
-
-    def is_running(self):
-        return self.status == Result.RUNNING
-
-    def render(self):
-        if self.renderer is None:
-            return None
-        return self.renderer.render_result(self)
-
-    def get_log_url(self, request=None):
-        if not self.is_completed() or self.renderer is None:
-            return None
-        log_url = self.renderer.get_result_log_url(self)
-        if log_url is not None and request is not None:
-            log_url = request.build_absolute_uri(log_url)
-        return log_url

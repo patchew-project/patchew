@@ -19,7 +19,7 @@ import time
 import math
 from api.views import APILoginRequiredView
 from api.models import (Message, MessageProperty, MessageResult,
-        Project, ProjectResult, Result, ResultTuple)
+        Project, ProjectResult, Result)
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -271,9 +271,6 @@ class TestingModule(PatchewModule):
                         "icon": "refresh",
                         })
         return ret
-
-    def rest_results_hook(self, obj, results, detailed=False):
-        Result.get_result_tuples(obj, "testing", results)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

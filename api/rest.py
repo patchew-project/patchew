@@ -14,7 +14,7 @@ from django.http import Http404
 from django.template import loader
 
 from mod import dispatch_module_hook
-from .models import Project, Message
+from .models import Project, ProjectResult, Message, MessageResult, Result
 from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
     mixins, generics, renderers, status)
@@ -446,10 +446,12 @@ class HyperlinkedResultField(HyperlinkedIdentityField):
             kwargs['projects_pk'] = obj.id
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
-class ResultSerializer(serializers.Serializer):
+class ResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Result
+        fields = ('resource_uri', 'name', 'status', 'last_update', 'data', 'log_url')
+
     resource_uri = HyperlinkedResultField(view_name='results-detail')
-    name = CharField()
-    status = CharField() # one of 'failure', 'success', 'pending', 'running'
     log_url = SerializerMethodField(required=False)
     data = JSONField(required=False)
 
@@ -458,53 +460,31 @@ class ResultSerializer(serializers.Serializer):
         return obj.get_log_url(request)
 
 class ResultSerializerFull(ResultSerializer):
+    class Meta:
+        model = Result
+        fields = ResultSerializer.Meta.fields + ('log',)
+
+    # The database field is log_xz, so this is needed here
     log = CharField(required=False)
 
-class ResultsViewSet(viewsets.ViewSet, generics.GenericAPIView):
+class ResultsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                         viewsets.GenericViewSet):
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
-    permission_classes = (PatchewPermission,)
+    filter_backends = (filters.OrderingFilter,)
+    ordering_fields = ('name',)
+    ordering = ('name',)
 
     def get_serializer_class(self, *args, **kwargs):
         if self.lookup_field in self.kwargs:
             return ResultSerializerFull
         return ResultSerializer
 
-    def get_results(self, detailed):
-        queryset = self.get_queryset()
-        try:
-            obj = queryset[0]
-        except IndexError:
-            raise Http404
-        results = []
-        dispatch_module_hook("rest_results_hook", obj=obj, results=results,
-                             detailed=detailed)
-        return {x.name: x for x in results}
-
-    def list(self, request, *args, **kwargs):
-        results = self.get_results(detailed=False).values()
-        serializer = self.get_serializer(results, many=True)
-        # Fake paginator response for forwards-compatibility, in case
-        # this ViewSet becomes model-based
-        return Response(OrderedDict([
-            ('count', len(results)),
-            ('results', serializer.data)
-        ]))
-
-    def retrieve(self, request, name, *args, **kwargs):
-        results = self.get_results(detailed=True)
-        try:
-            result = results[name]
-        except KeyError:
-            raise Http404
-        serializer = self.get_serializer(result)
-        return Response(serializer.data)
-
 class ProjectResultsViewSet(ResultsViewSet):
     def get_queryset(self):
-        return Project.objects.filter(id=self.kwargs['projects_pk'])
+        return ProjectResult.objects.filter(project=self.kwargs['projects_pk'])
 
 class SeriesResultsViewSet(ResultsViewSet):
     def get_queryset(self):
-        return Message.objects.filter(project=self.kwargs['projects_pk'],
-                                      message_id=self.kwargs['series_message_id'])
+        return MessageResult.objects.filter(message__project=self.kwargs['projects_pk'],
+                                            message__message_id=self.kwargs['series_message_id'])
