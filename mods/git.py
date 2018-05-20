@@ -18,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Message, MessageProperty, Result, ResultTuple
+from api.models import Message, MessageProperty, Project, Result, ResultTuple
 from api.rest import PluginMethodField
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
@@ -26,16 +26,24 @@ from schema import *
 
 _instance = None
 
+def _get_git_result(msg):
+    try:
+        return msg.results.get(name="git")
+    except:
+        return None
+Message.git_result = property(_get_git_result)
+
+
 class GitLogViewer(LogView):
     def content(self, request, **kwargs):
         series = kwargs['series']
         obj = Message.objects.find_series(series)
         if not obj:
             raise Http404("Object not found: " + series)
-        log = obj.get_property("git.apply-log")
-        if log is None:
+        r = obj.git_result
+        if r is None or not r.is_completed():
             raise Http404("Git apply log not found")
-        return log
+        return r.log
 
 
 class GitModule(PatchewModule):
@@ -66,9 +74,16 @@ class GitModule(PatchewModule):
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_series_update)
 
+    def mark_as_pending_apply(self, series):
+        r = series.git_result or series.create_result(name='git')
+        r.log = None
+        r.status = Result.PENDING
+        r.data = {}
+        r.save()
+
     def on_series_update(self, event, series, **params):
         if series.is_complete:
-            series.set_property("git.need-apply", True)
+            self.mark_as_pending_apply(series)
 
     def get_project_config(self, project, what):
         return project.get_property("git." + what)
@@ -114,50 +129,20 @@ class GitModule(PatchewModule):
 
     def get_based_on(self, message, request, format):
         git_base = self.get_base(message)
-        if not git_base:
-            return None
-
-        return {
-             "repo": git_base.get_property("git.repo"),
-             "tag": 'refs/tags/' + git_base.get_property("git.tag")
-        }
-
+        return git_base.data if git_base else None
 
     def rest_series_fields_hook(self, request, fields, detailed):
         fields['based_on'] = PluginMethodField(obj=self, required=False)
 
     def rest_results_hook(self, obj, results, detailed=False):
-        if not isinstance(obj, Message):
-            return
-        log = obj.get_property("git.apply-log")
-        data = None
-        if log:
-            if obj.get_property("git.apply-failed"):
-                status = Result.FAILURE
-            else:
-                git_repo = obj.get_property("git.repo")
-                git_tag = obj.get_property("git.tag")
-                git_url = obj.get_property("git.url")
-                git_base = obj.get_property("git.base")
-                data = {}
-                if git_repo and git_tag:
-                    data['repo'] = git_repo
-                    data['tag'] = 'refs/tags/' + git_tag
-                    if git_url:
-                        data['url'] = git_url
-                    if git_base:
-                        data['base'] = git_base
-                status = Result.SUCCESS
-        else:
-            status = Result.PENDING
-        results.append(ResultTuple(name='git', obj=obj, status=status,
-                              log=log, data=data, renderer=self))
+        Result.get_result_tuples(obj, "git", results)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
-        if message.get_property("git.apply-log"):
-            if message.get_property("git.apply-failed"):
+        r = message.git_result
+        if r and r.is_completed():
+            if r.is_failure():
                 title = "Failed in applying to current master"
                 message.status_tags.append({
                     "title": title,
@@ -165,10 +150,10 @@ class GitModule(PatchewModule):
                     "char": "G",
                     })
             else:
-                git_url = message.get_property("git.url")
-                git_repo = message.get_property("git.repo")
-                git_tag = message.get_property("git.tag")
+                git_url = r.data.get('url')
                 if git_url:
+                    git_repo = r.data['repo']
+                    git_tag = r.data['tag']
                     message.status_tags.append({
                         "url": git_url,
                         "title": format_html("Applied as tag {} in repo {}", git_tag, git_repo),
@@ -181,9 +166,7 @@ class GitModule(PatchewModule):
                         "type": "info",
                         "char": "G",
                         })
-        if request.user.is_authenticated:
-            if message.get_property("git.apply-failed") != None or \
-                 message.get_property("git.need-apply") == None:
+            if request.user.is_authenticated:
                 url = reverse("git_reset",
                               kwargs={"series": message.message_id})
                 message.extra_ops.append({"url": url,
@@ -238,7 +221,8 @@ class GitModule(PatchewModule):
                     filter(project=series.project, message_id=base_id).first()
             if not base:
                 return None
-            return base if base.get_property("git.repo") else None
+            r = base.git_result
+            return r if r and r.data.get("repo") else None
 
     def prepare_series_hook(self, request, series, response):
         po = series.project
@@ -247,8 +231,8 @@ class GitModule(PatchewModule):
                 response[prop] = po.get_property(prop)
         base = self.get_base(series)
         if base:
-            response["git.repo"] = base.get_property("git.repo")
-            response["git.base"] = base.get_property("git.tag")
+            response["git.repo"] = base.data["repo"]
+            response["git.base"] = base.data["tag"]
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
@@ -268,10 +252,7 @@ class GitModule(PatchewModule):
         obj = Message.objects.find_series(series)
         if not obj:
             raise Http404("Not found: " + series)
-        for p in obj.get_properties():
-            if p.startswith("git.") and p != "git.need-apply":
-                obj.set_property(p, None)
-        obj.set_property("git.need-apply", True)
+        self.mark_as_pending_apply(obj)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def www_url_hook(self, urlpatterns):
@@ -287,11 +268,9 @@ class ApplierGetView(APILoginRequiredView):
     allowed_groups = ["importers"]
 
     def handle(self, request):
-        mp = MessageProperty.objects.filter(name="git.need-apply",
-                                            value='true',
-                                            message__is_complete=True).first()
-        if mp:
-            return prepare_series(request, mp.message)
+        m = Message.objects.filter(results__name="git", results__status="pending").first()
+        if m:
+            return prepare_series(request, m)
 
 class ApplierReportView(APILoginRequiredView):
     name = "applier-report"
@@ -299,12 +278,23 @@ class ApplierReportView(APILoginRequiredView):
 
     def handle(self, request, project, message_id, tag, url, base, repo,
                failed, log):
-        s = Message.objects.series_heads().get(project__name=project,
-                                               message_id=message_id)
-        s.set_property("git.tag", tag)
-        s.set_property("git.url", url)
-        s.set_property("git.base", base)
-        s.set_property("git.repo", repo)
-        s.set_property("git.apply-failed", failed)
-        s.set_property("git.apply-log", log)
-        s.set_property("git.need-apply", False)
+        p = Project.objects.get(name=project)
+        r = Message.objects.series_heads().get(project=p,
+                                               message_id=message_id).git_result
+        r.log = log
+        if failed:
+            r.status = Result.FAILURE
+        else:
+            data = {}
+            data['repo'] = repo
+            data['tag'] = 'refs/tags/' + tag
+            if url:
+                data['url'] = url
+            elif url_template and tag:
+                url_template = p.get_property("git.url_template")
+                data['url'] = url_template.replace("%t", tag)
+            if base:
+                data['base'] = base
+            r.data = data
+            r.status = Result.SUCCESS
+        r.save()

@@ -14,7 +14,7 @@ sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
 import shutil
 import subprocess
-from api.models import Message
+from api.models import Message, Result
 
 class GitTest(PatchewTestCase):
 
@@ -34,37 +34,37 @@ class GitTest(PatchewTestCase):
     def do_apply(self):
         self.cli(["apply", "--applier-mode"])
         for s in Message.objects.series_heads():
-            self.assertFalse(s.get_property("git.need-apply"))
+            self.assertNotEqual(s.git_result.status, Result.PENDING)
 
     def test_need_apply(self):
         self.cli_import("0001-simple-patch.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
-        self.assertEqual(s.get_property("git.need-apply"), True)
+        self.assertEqual(s.git_result.status, Result.PENDING)
         self.do_apply()
 
     def test_need_apply_multiple(self):
         self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
-        self.assertEqual(s.get_property("git.need-apply"), True)
+        self.assertEqual(s.git_result.status, Result.PENDING)
         self.do_apply()
 
     def test_need_apply_incomplete(self):
         self.cli_import("0012-incomplete-series.mbox.gz")
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, False)
-        self.assertEqual(s.get_property("git.need-apply"), None)
+        self.assertEqual(s.git_result is None, True)
 
     def test_apply(self):
         self.cli_import("0013-foo-patch.mbox.gz")
         self.do_apply()
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_complete, True)
-        self.assertEqual(s.get_property("git.repo"), self.repo)
-        self.assertEqual(s.get_property("git.tag"),
-                         "patchew/20160628014747.20971-1-famz@redhat.com")
-        self.assertEqual(s.get_property("git.url"),
+        self.assertEqual(s.git_result.data['repo'], self.repo)
+        self.assertEqual(s.git_result.data['tag'],
+                         "refs/tags/patchew/20160628014747.20971-1-famz@redhat.com")
+        self.assertEqual(s.git_result.data['url'],
                          self.repo + " patchew/20160628014747.20971-1-famz@redhat.com")
 
     def test_apply_with_base(self):
@@ -74,10 +74,10 @@ class GitTest(PatchewTestCase):
         self.do_apply()
         s = Message.objects.series_heads().filter(message_id="20160628014747.20971-2-famz@redhat.com")[0]
         self.assertEqual(s.is_complete, True)
-        self.assertEqual(s.get_property("git.repo"), self.repo)
-        self.assertEqual(s.get_property("git.tag"),
-                         "patchew/20160628014747.20971-2-famz@redhat.com")
-        self.assertEqual(s.get_property("git.url"),
+        self.assertEqual(s.git_result.data['repo'], self.repo)
+        self.assertEqual(s.git_result.data['tag'],
+                         "refs/tags/patchew/20160628014747.20971-2-famz@redhat.com")
+        self.assertEqual(s.git_result.data['url'],
                          self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
 
     def test_apply_with_base_and_brackets(self):
@@ -87,10 +87,10 @@ class GitTest(PatchewTestCase):
         self.do_apply()
         s = Message.objects.series_heads().filter(message_id="20160628014747.20971-2-famz@redhat.com")[0]
         self.assertEqual(s.is_complete, True)
-        self.assertEqual(s.get_property("git.repo"), self.repo)
-        self.assertEqual(s.get_property("git.tag"),
-                         "patchew/20160628014747.20971-2-famz@redhat.com")
-        self.assertEqual(s.get_property("git.url"),
+        self.assertEqual(s.git_result.data['repo'], self.repo)
+        self.assertEqual(s.git_result.data['tag'],
+                         "refs/tags/patchew/20160628014747.20971-2-famz@redhat.com")
+        self.assertEqual(s.git_result.data['url'],
                          self.repo + " patchew/20160628014747.20971-2-famz@redhat.com")
 
     def test_rest_need_apply(self):

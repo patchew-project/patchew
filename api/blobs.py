@@ -35,3 +35,11 @@ def load_blob_json(name):
     except json.decoder.JSONDecodeError as e:
         logging.error('Failed to load blob %s: %s' %(name, e))
         return None
+
+def delete_blob(name):
+    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
+    try:
+        os.remove(fn)
+    except FileNotFoundError:
+        pass
+
