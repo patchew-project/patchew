@@ -18,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Message, MessageProperty, Result
+from api.models import Message, MessageProperty, Result, ResultTuple
 from api.rest import PluginMethodField
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
@@ -150,7 +150,7 @@ class GitModule(PatchewModule):
                 status = Result.SUCCESS
         else:
             status = Result.PENDING
-        results.append(Result(name='git', obj=obj, status=status,
+        results.append(ResultTuple(name='git', obj=obj, status=status,
                               log=log, data=data, renderer=self))
 
     def prepare_message_hook(self, request, message, detailed):

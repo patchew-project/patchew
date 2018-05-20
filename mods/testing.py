@@ -17,7 +17,7 @@ from mod import PatchewModule
 import time
 import math
 from api.views import APILoginRequiredView
-from api.models import Message, MessageProperty, Project, Result
+from api.models import Message, MessageProperty, Project, Result, ResultTuple
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -270,12 +270,12 @@ class TestingModule(PatchewModule):
 
             data = p.copy()
             del data['passed']
-            results.append(Result(name='testing.' + tn, obj=obj, status=passed_str,
+            results.append(ResultTuple(name='testing.' + tn, obj=obj, status=passed_str,
                                   log=log, data=data, renderer=self))
 
         if obj.get_property("testing.ready"):
             for tn in all_tests:
-                results.append(Result(name='testing.' + tn, obj=obj, status='pending'))
+                results.append(ResultTuple(name='testing.' + tn, obj=obj, status='pending'))
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

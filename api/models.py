@@ -14,7 +14,9 @@ import json
 import datetime
 import re
 
+from django.core import validators
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.urls import reverse
 import jsonfield
@@ -24,6 +26,115 @@ from mbox import MboxMessage
 from event import emit_event, declare_event
 from .blobs import save_blob, load_blob, load_blob_json
 import mod
+
+class LogEntry(models.Model):
+    data_xz = models.BinaryField()
+
+    @property
+    def data(self):
+        if not hasattr(self, "_data"):
+            self._data = lzma.decompress(self.data_xz).decode("utf-8")
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+        self.data_xz = lzma.compress(value.encode("utf-8"))
+
+class Result(models.Model):
+    PENDING = 'pending'
+    SUCCESS = 'success'
+    FAILURE = 'failure'
+    RUNNING = 'running'
+    VALID_STATUSES = (PENDING, SUCCESS, FAILURE, RUNNING)
+    VALID_STATUSES_RE = '|'.join(VALID_STATUSES)
+
+    name = models.CharField(max_length=256)
+    last_update = models.DateTimeField()
+    status = models.CharField(max_length=7, validators=[
+        validators.RegexValidator(regex=VALID_STATUSES_RE,
+                                  message='status must be one of ' + ', '.join(VALID_STATUSES),
+                                  code='invalid')])
+    log_entry = models.OneToOneField(LogEntry, on_delete=models.CASCADE,
+                                     null=True)
+    data = jsonfield.JSONField()
+
+    class Meta:
+        index_together = [('status', 'name')]
+
+    def is_success(self):
+        return self.status == self.SUCCESS
+
+    def is_failure(self):
+        return self.status == self.FAILURE
+
+    def is_completed(self):
+        return self.is_success() or self.is_failure()
+
+    def is_pending(self):
+        return self.status == self.PENDING
+
+    def is_running(self):
+        return self.status == self.RUNNING
+
+    def save(self):
+        self.last_update = datetime.datetime.utcnow()
+        return super(Result, self).save()
+
+    @property
+    def renderer(self):
+        found = re.match("^[^.]*", self.name)
+        return mod.get_module(found.group(0)) if found else None
+
+    @property
+    def obj(self):
+        return None
+
+    def render(self):
+        if self.renderer is None:
+            return None
+        return self.renderer.render_result(self)
+
+    @property
+    def log(self):
+        if self.log_entry is None:
+            return None
+        else:
+            return self.log_entry.data
+
+    @log.setter
+    def log(self, value):
+        entry = self.log_entry
+        if value is None:
+            if entry is not None:
+                self.log_entry = None
+                entry.delete()
+        else:
+            if entry is None:
+                entry = LogEntry()
+            entry.data = value
+            entry.save()
+            if self.log_entry is None:
+                self.log_entry = entry
+
+    def get_log_url(self, request=None):
+        if not self.is_completed() or self.renderer is None:
+            return None
+        log_url = self.renderer.get_result_log_url(self)
+        if log_url is not None and request is not None:
+            log_url = request.build_absolute_uri(log_url)
+        return log_url
+
+    @staticmethod
+    def get_result_tuples(obj, module, results):
+        name_filter = Q(name=module) | Q(name__startswith=module + '.')
+        renderer = mod.get_module(module)
+        for r in obj.results.filter(name_filter):
+            results.append(ResultTuple(name=r.name, obj=obj, status=r.status,
+                                       log=r.log, data=r.data, renderer=renderer))
+
+    def __str__(self):
+        return '%s (%s)' % (self.name, self.status)
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
@@ -182,6 +293,16 @@ class Project(models.Model):
                 series.is_merged = True
                 series.save()
         return len(updated_series)
+
+    def create_result(self, **kwargs):
+        return ProjectResult(project=self, **kwargs)
+
+class ProjectResult(Result):
+    project = models.ForeignKey(Project, related_name='results')
+
+    @property
+    def obj(self):
+        return self.project
 
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
@@ -592,11 +713,21 @@ class Message(models.Model):
         self.save()
         emit_event("SeriesComplete", project=self.project, series=self)
 
+    def create_result(self, **kwargs):
+        return MessageResult(message=self, **kwargs)
+
     def __str__(self):
         return self.subject
 
     class Meta:
         unique_together = ('project', 'message_id',)
+
+class MessageResult(Result):
+    message = models.ForeignKey(Message, related_name='results')
+
+    @property
+    def obj(self):
+        return self.message
 
 class MessageProperty(models.Model):
     message = models.ForeignKey('Message', on_delete=models.CASCADE,
@@ -626,34 +757,29 @@ class Module(models.Model):
     def __str__(self):
         return self.name
 
-class Result(namedtuple("Result", "name status log obj data renderer")):
+class ResultTuple(namedtuple("ResultTuple", "name status log obj data renderer")):
     __slots__ = ()
-    PENDING = 'pending'
-    SUCCESS = 'success'
-    FAILURE = 'failure'
-    RUNNING = 'running'
-    VALID_STATUSES = (PENDING, SUCCESS, FAILURE, RUNNING)
 
     def __new__(cls, name, status, obj, log=None, data=None, renderer=None):
-        if status not in cls.VALID_STATUSES:
+        if status not in Result.VALID_STATUSES:
             raise ValueError("invalid value '%s' for status field" % status)
-        return super(cls, Result).__new__(cls, status=status, log=log,
+        return super(cls, ResultTuple).__new__(cls, status=status, log=log,
                                           obj=obj, data=data, name=name, renderer=renderer)
 
     def is_success(self):
-        return self.status == self.SUCCESS
+        return self.status == Result.SUCCESS
 
     def is_failure(self):
-        return self.status == self.FAILURE
+        return self.status == Result.FAILURE
 
     def is_completed(self):
         return self.is_success() or self.is_failure()
 
     def is_pending(self):
-        return self.status == self.PENDING
+        return self.status == Result.PENDING
 
     def is_running(self):
-        return self.status == self.RUNNING
+        return self.status == Result.RUNNING
 
     def render(self):
         if self.renderer is None:
