@@ -10,7 +10,6 @@
 
 
 from collections import namedtuple
-import json
 import datetime
 import re
 
@@ -23,8 +22,9 @@ import lzma
 
 from mbox import MboxMessage
 from event import emit_event, declare_event
-from .blobs import save_blob, load_blob, load_blob_json
+from .blobs import save_blob, load_blob
 import mod
+import lzma
 
 class LogEntry(models.Model):
     data_xz = models.BinaryField()
@@ -171,37 +171,23 @@ class Project(models.Model):
     def get_property(self, prop, default=None):
         a = ProjectProperty.objects.filter(project=self, name=prop).first()
         if a:
-            if a.blob:
-                return load_blob_json(a.value)
-            else:
-                return json.loads(a.value)
+            return a.value
         else:
             return default
 
     def get_properties(self):
         r = {}
         for m in ProjectProperty.objects.filter(project=self):
-            if m.blob:
-                r[m.name] = load_blob_json(m.value)
-            else:
-                r[m.name] = json.loads(m.value)
+            r[m.name] = m.value
         return r
 
     def _do_set_property(self, prop, value):
         if value == None:
             ProjectProperty.objects.filter(project=self, name=prop).delete()
             return
-        # TODO: drop old blob
-        json_data = json.dumps(value)
-        blob = len(json_data) > 1024
-        if blob:
-            value = save_blob(json_data)
-        else:
-            value = json.dumps(value)
         pp, created = ProjectProperty.objects.get_or_create(project=self,
                                                             name=prop)
         pp.value = value
-        pp.blob = blob
         pp.save()
 
     def set_property(self, prop, value):
@@ -298,8 +284,7 @@ class ProjectResult(Result):
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, db_index=True)
-    value = models.CharField(max_length=1024)
-    blob = models.BooleanField(blank=True, default=False)
+    value = jsonfield.JSONField()
 
     class Meta:
         unique_together = ('project', 'name',)
@@ -562,10 +547,7 @@ class Message(models.Model):
             all_props = self.properties.all()
         r = {}
         for m in all_props:
-            if m.blob:
-                r[m.name] = load_blob_json(m.value)
-            else:
-                r[m.name] = json.loads(m.value)
+            r[m.name] = m.value
         self._properties = r
         return r
 
@@ -573,17 +555,9 @@ class Message(models.Model):
         if value == None:
             MessageProperty.objects.filter(message=self, name=prop).delete()
             return
-        json_data = json.dumps(value)
-        blob = len(json_data) > 1024
         mp, created = MessageProperty.objects.get_or_create(message=self,
                                                             name=prop)
-        # TODO: drop old blob
-        if blob:
-            value = save_blob(json_data)
-        else:
-            value = json_data
         mp.value = value
-        mp.blob = blob
         mp.save()
         # Invalidate cache
         self._properties = None
@@ -724,9 +698,7 @@ class MessageProperty(models.Model):
     message = models.ForeignKey('Message', on_delete=models.CASCADE,
                                 related_name='properties')
     name = models.CharField(max_length=256)
-    # JSON encoded value
-    value = models.CharField(max_length=1024)
-    blob = models.BooleanField(blank=True, default=False)
+    value = jsonfield.JSONField()
 
     def __str__(self):
         if len(self.value) > 30:

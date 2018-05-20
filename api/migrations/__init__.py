@@ -26,7 +26,7 @@ def get_property_raw(model, name, **kwargs):
         return None
 
 def load_property(mp):
-    if mp.blob:
+    if hasattr(mp, 'blob') and mp.blob:
         return load_blob_json_safe(mp.value)
     else:
         return json.loads(mp.value)
@@ -37,7 +37,7 @@ def get_property(model, name, **kwargs):
 
 def delete_property_blob(model, name, **kwargs):
     mp = get_property_raw(model, name, **kwargs)
-    if mp.blob:
+    if hasattr(mp, 'blob') and mp.blob:
         blobs.delete_blob(mp.value)
 
 def set_property(model, name, value, **kwargs):
@@ -45,5 +45,6 @@ def set_property(model, name, value, **kwargs):
         value = json.dumps(value)
     mp, created = model.objects.get_or_create(name=name, **kwargs)
     mp.value = value
-    mp.blob = False
+    if hasattr(mp, 'blob'):
+        mp.blob = False
     mp.save()
