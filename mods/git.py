@@ -181,25 +181,24 @@ class GitModule(PatchewModule):
         if not result.is_completed():
             return None
 
-        if result.log_url is not None:
-            html_log_url = result.log_url + "?html=1"
-            colorbox_a = format_html('<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
-                                     html_log_url, result.log_url)
-            if result.is_failure():
-                return format_html('Failed in applying to current master ({})', colorbox_a)
+        html_log_url = result.log_url + "?html=1"
+        colorbox_a = format_html('<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
+                                 html_log_url, result.log_url)
+        if result.is_failure():
+            return format_html('Failed in applying to current master ({})', colorbox_a)
+        else:
+            if 'url' in result.data:
+                s = format_html('<a href="{}">tree</a>, {}', result.data['url'], colorbox_a)
             else:
-                if 'url' in result.data:
-                    s = format_html('<a href="{}">tree</a>, {}', result.data['url'], colorbox_a)
-                else:
-                    s = colorbox_a
-                s = format_html('Patches applied successfully ({})', s)
-                if 'repo' in result.data and 'tag' in result.data:
-                    git_repo = result.data['repo']
-                    git_tag = result.data['tag']
-                    if git_tag.startswith('refs/tags/'):
-                        git_tag = git_tag[5:]
-                    s += format_html('<br/><samp>git fetch {} {}</samp>', git_repo, git_tag)
-                return s
+                s = colorbox_a
+            s = format_html('Patches applied successfully ({})', s)
+            if 'repo' in result.data and 'tag' in result.data:
+                git_repo = result.data['repo']
+                git_tag = result.data['tag']
+                if git_tag.startswith('refs/tags/'):
+                    git_tag = git_tag[5:]
+                s += format_html('<br/><samp>git fetch {} {}</samp>', git_repo, git_tag)
+            return s
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
