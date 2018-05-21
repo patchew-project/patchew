@@ -118,6 +118,24 @@ class TestingModule(PatchewModule):
         elif isinstance(obj, Project) and name == "git.head" \
             and old_value != value:
             self.clear_and_start_testing(obj)
+        elif isinstance(obj, Project) and name.startswith("testing.tests.") \
+            and old_value != value:
+            self.recalc_pending_tests(obj)
+
+    def is_testing_done(self, obj, tn):
+        return obj.get_property("testing.report." + tn)
+
+    def recalc_pending_tests(self, obj):
+        test_dict = self.get_tests(obj)
+        all_tests = set((k for k, v in test_dict.items() if v.get("enabled", False)))
+        if len(all_tests):
+            done_tests = set((tn for tn in all_tests if self.is_testing_done(obj, tn)))
+            if len(done_tests) < len(all_tests):
+                obj.set_property("testing.done", None)
+                obj.set_property("testing.ready", 1)
+                return
+        obj.set_property("testing.done", True)
+        obj.set_property("testing.ready", None)
 
     def clear_and_start_testing(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
@@ -129,7 +147,7 @@ class TestingModule(PatchewModule):
                k.startswith("testing.report." + test) or \
                k.startswith("testing.log." + test):
                 obj.set_property(k, None)
-        obj.set_property("testing.ready", 1)
+        self.recalc_pending_tests(obj)
 
     def www_view_testing_reset(self, request, project_or_series):
         if not request.user.is_authenticated:
@@ -404,14 +422,10 @@ class TestingGetView(APILoginRequiredView):
                                         test=test)
 
     def _find_applicable_test(self, user, project, tester, capabilities, obj):
-        all_tests = set([k for k, v in _instance.get_tests(obj).items() if v["enabled"]])
-        done_tests = set()
         for tn, t in _instance.get_tests(project).items():
             if not t.get("enabled"):
                 continue
-            all_tests.add(tn)
-            if obj.get_property("testing.report." + tn):
-                done_tests.add(tn)
+            if _instance.is_testing_done(obj, tn):
                 continue
             # TODO: group?
             ok = True
@@ -423,8 +437,6 @@ class TestingGetView(APILoginRequiredView):
             if not ok:
                 continue
             return t
-        if len(all_tests) and all_tests.issubset(done_tests):
-            obj.set_property("testing.done", True)
 
     def _find_project_test(self, request, po, tester, capabilities):
         if not po.get_property("testing.ready"):
