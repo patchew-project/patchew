@@ -10,39 +10,20 @@
 
 
 from collections import namedtuple
-import os
 import json
 import datetime
 import re
-import uuid
-import logging
 
-from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
 import jsonfield
-from mbox import MboxMessage
-from event import emit_event, declare_event
 import lzma
 
-def save_blob(data, name=None):
-    if not name:
-        name = str(uuid.uuid4())
-    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
-    lzma.open(fn, 'w').write(data.encode("utf-8"))
-    return name
-
-def load_blob(name):
-    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
-    return lzma.open(fn, 'r').read().decode("utf-8")
-
-def load_blob_json(name):
-    try:
-        return json.loads(load_blob(name))
-    except json.decoder.JSONDecodeError as e:
-        logging.error('Failed to load blob %s: %s' %(name, e))
-        return None
+from mbox import MboxMessage
+from event import emit_event, declare_event
+from .blobs import save_blob, load_blob, load_blob_json
+import mod
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
