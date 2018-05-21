@@ -22,8 +22,6 @@ def create_test(project, name):
     project.set_property(prefix + "enabled", True)
     project.set_property(prefix + "script", "#!/bin/bash\ntrue")
     project.set_property(prefix + "requirements", "")
-    project.set_property(prefix + "users", "")
-    project.set_property(prefix + "tester", "")
 
 class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 

@@ -59,10 +59,6 @@ class TestingModule(PatchewModule):
                         BooleanSchema("enabled", "Enabled",
                                       desc="Whether this test is enabled",
                                       default=True),
-                        StringSchema("users", "Users",
-                                     desc="List of allowed users to run this test"),
-                        StringSchema("testers", "Testers",
-                                     desc="List of allowed testers to run this test"),
                         StringSchema("requirements", "Requirements",
                                      desc="List of requirements of the test"),
                         IntegerSchema("timeout", "Timeout",
@@ -256,10 +252,6 @@ class TestingModule(PatchewModule):
                         })
         return ret
 
-    def _build_message_prop_url(message, prop):
-        return reverse("testing-get-prop",
-                       kwargs={"project_or_series": obj.message_id})
-
     def rest_results_hook(self, request, obj, results, detailed=False):
         for pn, p in obj.get_properties().items():
             if not pn.startswith("testing.report."):
@@ -409,10 +401,6 @@ class TestingGetView(APILoginRequiredView):
             all_tests.add(tn)
             if obj.get_property("testing.report." + tn):
                 done_tests.add(tn)
-                continue
-            if t.get("tester") and tester != t["tester"]:
-                continue
-            if t.get("user") and user.username != t["user"]:
                 continue
             # TODO: group?
             ok = True
