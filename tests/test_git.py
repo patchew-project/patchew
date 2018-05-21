@@ -101,6 +101,17 @@ class GitTest(PatchewTestCase):
         self.assertEqual(resp.data['log_url'], None)
         self.assertEqual(resp.data['log'], None)
 
+    def test_rest_git_base(self):
+        self.cli_import("0013-foo-patch.mbox.gz")
+        self.do_apply()
+        s = Message.objects.series_heads()[0]
+        self.cli_import("0014-bar-patch.mbox.gz")
+        MESSAGE_ID = '20160628014747.20971-2-famz@redhat.com'
+        resp = self.api_client.get('%sseries/%s/' % (self.PROJECT_BASE, MESSAGE_ID))
+        self.assertEqual(resp.data['is_complete'], True)
+        self.assertEqual(resp.data['based_on']['repo'], self.repo)
+        self.assertEqual(resp.data['based_on']['tag'], 'refs/tags/patchew/20160628014747.20971-1-famz@redhat.com')
+
     def test_rest_apply_failure(self):
         self.cli_import("0014-bar-patch.mbox.gz")
         self.do_apply()

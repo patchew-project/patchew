@@ -19,6 +19,7 @@ from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Message, MessageProperty, Result
+from api.rest import PluginMethodField
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
@@ -111,6 +112,20 @@ class GitModule(PatchewModule):
             raise Exception("Project git repo invalid: %s" % project_git)
         return upstream, branch
 
+    def get_based_on(self, message, request, format):
+        git_base = self.get_base(message)
+        if not git_base:
+            return None
+
+        return {
+             "repo": git_base.get_property("git.repo"),
+             "tag": 'refs/tags/' + git_base.get_property("git.tag")
+        }
+
+
+    def rest_series_fields_hook(self, request, fields, detailed):
+        fields['based_on'] = PluginMethodField(obj=self, required=False)
+
     def rest_results_hook(self, request, obj, results, detailed=False):
         if not isinstance(obj, Message):
             return
@@ -123,12 +138,15 @@ class GitModule(PatchewModule):
                 git_repo = obj.get_property("git.repo")
                 git_tag = obj.get_property("git.tag")
                 git_url = obj.get_property("git.url")
+                git_base = obj.get_property("git.base")
                 data = {}
                 if git_repo and git_tag:
                     data['repo'] = git_repo
                     data['tag'] = 'refs/tags/' + git_tag
                     if git_url:
                         data['url'] = git_url
+                    if git_base:
+                        data['base'] = git_base
                 status = Result.SUCCESS
             log_url = reverse("git-log", kwargs={'series': obj.message_id})
         else:
@@ -208,11 +226,7 @@ class GitModule(PatchewModule):
                                    "content_html": self.build_config_html(request,
                                                                           project)})
 
-    def prepare_series_hook(self, request, series, response):
-        po = series.project
-        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
-            if po.get_property(prop):
-                response[prop] = po.get_property(prop)
+    def get_base(self, series):
         for tag in series.get_property("tags", []):
             if not tag.startswith("Based-on:"):
                 continue
@@ -220,14 +234,20 @@ class GitModule(PatchewModule):
             if base_id.startswith("<") and base_id.endswith(">"):
                 base_id = base_id[1:-1]
             base = Message.objects.series_heads().\
-                    filter(project=po, message_id=base_id).first()
+                    filter(project=series.project, message_id=base_id).first()
             if not base:
-                break
-            if not base.get_property("git.repo"):
-                break
+                return None
+            return base if base.get_property("git.repo") else None
+
+    def prepare_series_hook(self, request, series, response):
+        po = series.project
+        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
+            if po.get_property(prop):
+                response[prop] = po.get_property(prop)
+        base = self.get_base(series)
+        if base:
             response["git.repo"] = base.get_property("git.repo")
             response["git.base"] = base.get_property("git.tag")
-            break
 
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
