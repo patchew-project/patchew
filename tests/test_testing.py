@@ -14,7 +14,7 @@ import os
 import subprocess
 sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
-from api.models import Message
+from api.models import Message, Result
 
 def create_test(project, name):
     prefix = "testing.tests." + name + "."
@@ -35,14 +35,24 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
         create_test(self.p, "a")
 
-    def _do_testing_done(self, obj, log, report):
-        if not 'passed' in report:
-            report['passed'] = True
-        obj.set_property("testing.report.tests", report)
-        if log is not None:
-            obj.set_property("testing.log.tests", log)
+    def modify_test_result(self, obj, **kwargs):
+        try:
+            r = obj.results.get(name='testing.a')
+        except:
+            r = obj.create_result(name='testing.a')
+            if not 'status' in kwargs:
+                kwargs['status'] = Result.PENDING
+
+        if len(kwargs):
+            for k, v in kwargs.items():
+                setattr(r, k, v)
+            r.save()
+
+    def _do_testing_done(self, obj, **kwargs):
+        if not 'status' in kwargs:
+            kwargs['status'] = Result.SUCCESS
+        self.modify_test_result(obj, **kwargs)
         obj.set_property("testing.done", True)
-        obj.set_property("testing.ready", None)
 
     def do_testing_report(self, **report):
         self.api_login()
@@ -81,6 +91,8 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
                            tester="dummy tester",
                            capabilities=[])
         self.assertIn("head", td)
+        resp = self.get_test_result('a')
+        self.assertEquals(resp.data['status'], 'running')
 
     def test_done(self):
         self.do_testing_done()
@@ -96,8 +108,8 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
         self.assertEquals(resp.data['status'], 'pending')
 
     def test_rest_done_success(self):
-        self.do_testing_done(log='everything good!', passed=True)
-        resp = self.get_test_result('tests')
+        self.do_testing_done(log='everything good!', status=Result.SUCCESS)
+        resp = self.get_test_result('a')
         self.assertEquals(resp.data['status'], 'success')
         self.assertEquals(resp.data['log'], 'everything good!')
         log = self.client.get(resp.data['log_url'])
@@ -105,10 +117,9 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
         self.assertEquals(log.content, b'everything good!')
 
     def test_rest_done_failure(self):
-        self.do_testing_done(log='sorry no good', passed=False, random_stuff='xyz')
-        resp = self.get_test_result('tests')
+        self.do_testing_done(log='sorry no good', status=Result.FAILURE)
+        resp = self.get_test_result('a')
         self.assertEquals(resp.data['status'], 'failure')
-        self.assertEquals(resp.data['data']['random_stuff'], 'xyz')
         self.assertEquals(resp.data['log'], 'sorry no good')
         log = self.client.get(resp.data['log_url'])
         self.assertEquals(log.status_code, 200)
@@ -151,8 +162,8 @@ class MessageTestingTest(TestingTestCase):
         self.msg.set_property("git.tag", "dummy tag")
         self.msg.set_property("git.base", "dummy base")
 
-    def do_testing_done(self, log=None, **report):
-        self._do_testing_done(self.msg, log, report)
+    def do_testing_done(self, **kwargs):
+        self._do_testing_done(self.msg, **kwargs)
 
     def do_testing_report(self, **report):
         r = super(MessageTestingTest, self).do_testing_report(**report)
@@ -164,17 +175,18 @@ class MessageTestingTest(TestingTestCase):
                                        self.PROJECT_BASE, self.msg.message_id, test_name))
 
     def test_testing_ready(self):
-        self.assertTrue(self.msg.get_property("testing.ready"))
         # Set property through series_heads elements must be handled the same
         self.msg.set_property("git.repo", None)
         self.msg.set_property("git.tag", None)
-        self.msg.set_property("testing.ready", None)
+        self.assertEqual(self.msg.results.filter(name='testing.a').first().status,
+                         Result.PENDING)
         msg = Message.objects.series_heads()[0]
         self.assertEqual(self.msg.message_id, msg.message_id)
         msg.set_property("git.repo", "dummy repo")
         msg.set_property("git.tag", "dummy tag")
         msg.set_property("git.base", "dummy base")
-        self.assertTrue(msg.get_property("testing.ready"))
+        self.assertEqual(self.msg.results.filter(name='testing.a').first().status,
+                         Result.PENDING)
 
 class ProjectTestingTest(TestingTestCase):
 
@@ -182,10 +194,9 @@ class ProjectTestingTest(TestingTestCase):
         super(ProjectTestingTest, self).setUp()
         self.p.set_property("git.head", "5678")
         self.p.set_property("testing.tested-head", "1234")
-        self.p.set_property("testing.ready", 1)
 
-    def do_testing_done(self, log=None, **report):
-        self._do_testing_done(self.p, log, report)
+    def do_testing_done(self, **kwargs):
+        self._do_testing_done(self.p, **kwargs)
 
     def do_testing_report(self, **report):
         r = super(ProjectTestingTest, self).do_testing_report(**report)

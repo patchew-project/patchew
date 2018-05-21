@@ -11,13 +11,15 @@
 from django.conf.urls import url
 from django.http import HttpResponseForbidden, Http404, HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import format_html
 from mod import PatchewModule
 import time
 import math
 from api.views import APILoginRequiredView
-from api.models import Message, MessageProperty, Project, Result, ResultTuple
+from api.models import (Message, MessageProperty, MessageResult,
+        Project, ProjectResult, Result, ResultTuple)
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -42,10 +44,8 @@ class TestingLogViewer(LogView):
             obj = Message.objects.find_series(project_or_series)
         if not obj:
             raise Http404("Object not found: " + project_or_series)
-        log = obj.get_property("testing.log." + testing_name)
-        if log is None:
-            raise Http404("Testing log not found: " + testing_name)
-        return log
+        r = _instance.get_testing_result(obj, testing_name)
+        return r.log
 
 
 class TestingModule(PatchewModule):
@@ -122,31 +122,40 @@ class TestingModule(PatchewModule):
             and old_value != value:
             self.recalc_pending_tests(obj)
 
-    def is_testing_done(self, obj, tn):
-        return obj.get_property("testing.report." + tn)
+    def get_testing_results(self, obj, *args, **kwargs):
+        return obj.results.filter(name__startswith='testing.', *args, **kwargs)
+
+    def get_testing_result(self, obj, name):
+        try:
+            return obj.results.get(name='testing.' + name)
+        except:
+            raise Http404("Test doesn't exist")
+
+    def get_test_name(self, result):
+        return result.name[len('testing.'):]
 
     def recalc_pending_tests(self, obj):
         test_dict = self.get_tests(obj)
         all_tests = set((k for k, v in test_dict.items() if v.get("enabled", False)))
+        for r in self.get_testing_results(obj, status=Result.PENDING):
+            r.delete()
         if len(all_tests):
-            done_tests = set((tn for tn in all_tests if self.is_testing_done(obj, tn)))
+            done_tests = [self.get_test_name(r) for r in self.get_testing_results(obj)]
+            for tn in all_tests:
+                if not tn in done_tests:
+                    obj.create_result(name='testing.' + tn, status=Result.PENDING).save()
             if len(done_tests) < len(all_tests):
                 obj.set_property("testing.done", None)
-                obj.set_property("testing.ready", 1)
                 return
         obj.set_property("testing.done", True)
-        obj.set_property("testing.ready", None)
 
     def clear_and_start_testing(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
-            if (not test and k == "testing.started") or \
-               (not test and k == "testing.start-time") or \
-               (not test and k == "testing.failed") or \
-               k == "testing.done" or \
-               k == "testing.tested-head" or \
-               k.startswith("testing.report." + test) or \
-               k.startswith("testing.log." + test):
+            if k == "testing.done" or \
+               k == "testing.tested-head":
                 obj.set_property(k, None)
+        for r in self.get_testing_results(obj):
+            r.delete()
         self.recalc_pending_tests(obj)
 
     def www_view_testing_reset(self, request, project_or_series):
@@ -202,24 +211,21 @@ class TestingModule(PatchewModule):
                 raise Exception("Series doesn't exist")
             project = obj.project.name
         user = request.user
+
+        r = self.get_testing_result(obj, test)
+        r.data = {"is_timeout": is_timeout,
+                  "user": user.username,
+                  "tester": tester or user.username}
+        r.log = log
+        r.status = Result.SUCCESS if passed else Result.FAILURE
+        r.save()
+        if not self.get_testing_results(obj,
+                       status__in=(Result.PENDING, Result.RUNNING)).exists():
+            obj.set_property("testing.done", True)
+            obj.set_property("testing.tested-head", head)
+
         log_url = self.reverse_testing_log(obj, test, request=request)
         html_log_url = self.reverse_testing_log(obj, test, request=request, html=True)
-        obj.set_property("testing.report." + test,
-                         {"passed": passed,
-                          "is_timeout": is_timeout,
-                          "user": user.username,
-                          "tester": tester or user.username,
-                         })
-        obj.set_property("testing.log." + test, log)
-        if not passed:
-            obj.set_property("testing.failed", True)
-        reports = [x for x in obj.get_properties() if x.startswith("testing.report.")]
-        done_tests = set([x[len("testing.report."):] for x in reports])
-        all_tests = set([k for k, v in self.get_tests(obj).items() if v["enabled"]])
-        if all_tests.issubset(done_tests):
-            obj.set_property("testing.done", True)
-            obj.set_property("testing.ready", None)
-            obj.set_property("testing.tested-head", head)
         emit_event("TestingReport", tester=tester, user=user.username,
                     obj=obj, passed=passed, test=test, log=log, log_url=log_url,
                     html_log_url=html_log_url, is_timeout=is_timeout)
@@ -257,11 +263,8 @@ class TestingModule(PatchewModule):
                 "class": "warning",
                 "icon": "refresh",
                }]
-        for pn, p in obj.get_properties().items():
-            if not pn.startswith("testing.report."):
-                continue
-            tn = pn[len("testing.report."):]
-            failed = not p["passed"]
+        for r in self.get_testing_results(obj, ~Q(status=Result.PENDING)):
+            tn = self.get_test_name(r)
             ret.append({"url": url + "&test=" + tn,
                         "title": format_html("Reset <b>{}</b> testing state", tn),
                         "class": "warning",
@@ -270,39 +273,16 @@ class TestingModule(PatchewModule):
         return ret
 
     def rest_results_hook(self, obj, results, detailed=False):
-        all_tests = set([k for k, v in _instance.get_tests(obj).items() if v["enabled"]])
-        for pn, p in obj.get_properties().items():
-            if not pn.startswith("testing.report."):
-                continue
-            tn = pn[len("testing.report."):]
-            try:
-                all_tests.remove(tn)
-            except:
-                pass
-            failed = not p["passed"]
-            passed_str = Result.FAILURE if failed else Result.SUCCESS
-            if detailed:
-                log = obj.get_property("testing.log." + tn)
-            else:
-                log = None
-
-            data = p.copy()
-            del data['passed']
-            results.append(ResultTuple(name='testing.' + tn, obj=obj, status=passed_str,
-                                  log=log, data=data, renderer=self))
-
-        if obj.get_property("testing.ready"):
-            for tn in all_tests:
-                results.append(ResultTuple(name='testing.' + tn, obj=obj, status='pending'))
+        Result.get_result_tuples(obj, "testing", results)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
         if message.project.maintained_by(request.user) \
-                and message.get_property("testing.started"):
+                and self.get_testing_results(message, ~Q(status=Result.PENDING)).exists():
             message.extra_ops += self._build_reset_ops(message)
 
-        if message.get_property("testing.failed"):
+        if self.get_testing_results(message, status=Result.FAILURE).exists():
             message.status_tags.append({
                 "title": "Testing failed",
                 "url": reverse("series_detail",
@@ -421,61 +401,45 @@ class TestingGetView(APILoginRequiredView):
                                         },
                                         test=test)
 
-    def _find_applicable_test(self, user, project, tester, capabilities, obj):
-        for tn, t in _instance.get_tests(project).items():
-            if not t.get("enabled"):
+    def _find_applicable_test(self, queryset, user, po, tester, capabilities):
+        # Prefer non-running tests, or tests that started the earliest
+        q = queryset.filter(status__in=(Result.PENDING, Result.RUNNING),
+                            name__startswith='testing.').order_by('status', 'last_update')
+        tests = _instance.get_tests(po)
+        for r in q:
+            tn = _instance.get_test_name(r)
+            t = tests.get(tn, None)
+            # Shouldn't happen, but let's protect against it
+            if not t:
                 continue
-            if _instance.is_testing_done(obj, tn):
-                continue
-            # TODO: group?
-            ok = True
             reqs = t.get("requirements", "")
             for r in [x.strip() for x in reqs.split(",") if x]:
                 if r not in capabilities:
-                    ok = False
                     break
-            if not ok:
-                continue
-            return t
+            else:
+                yield r, t
 
     def _find_project_test(self, request, po, tester, capabilities):
-        if not po.get_property("testing.ready"):
-            return
         head = po.get_property("git.head")
         repo = po.git
         tested = po.get_property("testing.tested-head")
         if not head or not repo:
-            return
-        test = self._find_applicable_test(request.user, po,
-                                          tester, capabilities, po)
-        if not test:
-            return
-        td = self._generate_project_test_data(po.name, repo, head, tested, test)
-        return po, td
+            return None
+        candidates = self._find_applicable_test(ProjectResult.objects.filter(project=po),
+                                                request.user, po, tester, capabilities)
+        for r, test in candidates:
+            td = self._generate_project_test_data(po.name, repo, head, tested, test)
+            return r, po, td
+        return None
 
     def _find_series_test(self, request, po, tester, capabilities):
-        q = MessageProperty.objects.filter(name="testing.ready",
-                                           value=1,
-                                           message__project=po)
-        candidate = None
-        for prop in q:
-            s = prop.message
-            test = self._find_applicable_test(request.user, po,
-                                              tester, capabilities, s)
-            if not test:
-                continue
-            if not s.get_property("testing.started"):
-                candidate = s, test
-                break
-            # Pick one series that started test the earliest
-            if not candidate or \
-                    s.get_property("testing.start-time") < \
-                    candidate[0].get_property("testing.start-time"):
-                candidate = s, test
-        if not candidate:
-            return None
-        return candidate[0], \
-               self._generate_series_test_data(candidate[0], candidate[1])
+        candidates = self._find_applicable_test(MessageResult.objects.filter(message__project=po),
+                                                request.user, po, tester, capabilities)
+        for r, test in candidates:
+            s = r.message
+            td = self._generate_series_test_data(s, test)
+            return r, s, td
+        return None
 
     def handle(self, request, project, tester, capabilities):
         # Try project head test first
@@ -486,9 +450,9 @@ class TestingGetView(APILoginRequiredView):
             candidate = self._find_series_test(request, po, tester, capabilities)
         if not candidate:
             return
-        obj, test_data = candidate
-        obj.set_property("testing.started", True)
-        obj.set_property("testing.start-time", time.time())
+        r, obj, test_data = candidate
+        r.status = Result.RUNNING
+        r.save()
         return test_data
 
 class TestingReportView(APILoginRequiredView):
