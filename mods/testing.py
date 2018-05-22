@@ -201,7 +201,6 @@ class TestingModule(PatchewModule):
         if all_tests.issubset(done_tests):
             obj.set_property("testing.done", True)
             obj.set_property("testing.ready", None)
-        if all_tests.issubset(done_tests):
             obj.set_property("testing.tested-head", head)
         emit_event("TestingReport", tester=tester, user=user.username,
                     obj=obj, passed=passed, test=test, log=log, log_url=log_url,
