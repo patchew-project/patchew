@@ -120,34 +120,11 @@ class UpdateProjectHeadView(APILoginRequiredView):
 
     def handle(self, request, project, old_head, new_head, message_ids):
         po = Project.objects.get(name=project)
-        old_head_0 = po.get_property("git.head")
+        old_head_0 = po.project_head
         if old_head_0 and old_head_0 != old_head:
             raise Exception("wrong old head")
-        ret = 0
-        updated_series = []
-        for msgid in message_ids:
-            if msgid.startswith("<") and msgid.endswith(">"):
-                msgid = msgid[1:-1]
-            mo = Message.objects.filter(project=po, message_id=msgid,
-                                        is_merged=False).first()
-            if not mo:
-                continue
-            ret += 1
-            mo.is_merged = True
-            mo.save()
-            s = mo.get_series_head()
-            if s:
-                updated_series.append(s)
-        for s in updated_series:
-            merged = True
-            for p in s.get_patches():
-                if not p.is_merged:
-                    merged = False
-                    break
-            if merged:
-                s.is_merged = True
-                s.save()
-        po.set_property("git.head", new_head)
+        ret = po.series_update(message_ids)
+        po.project_head = new_head
         return ret
 
 class SetPropertyView(APILoginRequiredView):

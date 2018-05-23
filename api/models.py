@@ -171,6 +171,37 @@ class Project(models.Model):
     def get_subprojects(self):
         return Project.objects.filter(parent_project=self)
 
+    def get_project_head(self):
+        return self.get_property("git.head")
+
+    def set_project_head(self, new_head):
+        self.set_property("git.head", new_head)
+
+    project_head = property(get_project_head, set_project_head)
+
+    def series_update(self, message_ids):
+        updated_series = []
+        for msgid in message_ids:
+            if msgid.startswith("<") and msgid.endswith(">"):
+                msgid = msgid[1:-1]
+            mo = Message.objects.filter(project=self, message_id=msgid,
+                                            is_merged=False).first()
+            if not mo:
+                continue
+            mo.is_merged = True
+            mo.save()
+            s = mo.get_series_head()
+            if s:
+                updated_series.append(s)
+        for s in updated_series:
+            for p in series.get_patches():
+                if not p.is_merged:
+                    break
+            else:
+                series.is_merged = True
+                series.save()
+        return len(updated_series)
+
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     name = models.CharField(max_length=1024, db_index=True)
