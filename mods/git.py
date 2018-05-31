@@ -35,15 +35,12 @@ Message.git_result = property(_get_git_result)
 
 
 class GitLogViewer(LogView):
-    def content(self, request, **kwargs):
+    def get_result(self, request, **kwargs):
         series = kwargs['series']
         obj = Message.objects.find_series(series)
         if not obj:
             raise Http404("Object not found: " + series)
-        r = obj.git_result
-        if r is None or not r.is_completed():
-            raise Http404("Git apply log not found")
-        return r.log
+        return obj.git_result
 
 
 class GitModule(PatchewModule):

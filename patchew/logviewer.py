@@ -436,7 +436,7 @@ def ansi2html(input, white_bg=False):
 
 class LogView(View, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def content(request, **kwargs):
+    def get_result(request, **kwargs):
         return None
 
     # Unfortunately <pre> items cannot be focused; for arrow keys to
@@ -463,16 +463,18 @@ if (parent.jQuery && parent.jQuery.colorbox) {
     });
 }</script><body>""")
 
-    def generate_html(self):
+    def generate_html(self, log):
         yield self.HTML_PROLOG
-        yield from ansi2html(self.text)
+        yield from ansi2html(log)
 
     def get(self, request, **kwargs):
-        self.text = self.content(request, **kwargs)
+        result = self.get_result(request, **kwargs)
+        if result is None or not result.is_completed() or result.log is None:
+            raise Http404("No log found")
         if request.GET.get('html', None) != '1':
-            return HttpResponse(self.text, content_type='text/plain')
+            return HttpResponse(result.log, content_type='text/plain')
 
-        return StreamingHttpResponse(self.generate_html())
+        return StreamingHttpResponse(self.generate_html(result.log))
 
 if __name__ == "__main__":
     import io

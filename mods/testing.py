@@ -35,7 +35,7 @@ exit 0
 """
 
 class TestingLogViewer(LogView):
-    def content(self, request, **kwargs):
+    def get_result(self, request, **kwargs):
         project_or_series = kwargs['project_or_series']
         testing_name = kwargs['testing_name']
         if request.GET.get("type") == "project":
@@ -44,8 +44,7 @@ class TestingLogViewer(LogView):
             obj = Message.objects.find_series(project_or_series)
         if not obj:
             raise Http404("Object not found: " + project_or_series)
-        r = _instance.get_testing_result(obj, testing_name)
-        return r.log
+        return _instance.get_testing_result(obj, testing_name)
 
 
 class TestingModule(PatchewModule):
