@@ -193,7 +193,7 @@ class Project(models.Model):
             s = mo.get_series_head()
             if s:
                 updated_series.append(s)
-        for s in updated_series:
+        for series in updated_series:
             for p in series.get_patches():
                 if not p.is_merged:
                     break
