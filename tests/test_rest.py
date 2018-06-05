@@ -86,6 +86,24 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['mailing_list'], "qemu-block@nongnu.org")
         self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
+    def test_update_project_head(self):
+        resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                       self.p.id, '20160628014747.20971-1-famz@redhat.com')
+        self.api_client.login(username=self.user, password=self.password)        
+        resp_before = self.api_client.get(self.PROJECT_BASE + "series/"+ "20160628014747.20971-1-famz@redhat.com/")
+        data = {
+                "message_ids": ["20160628014747.20971-1-famz@redhat.com"],
+                "old_head": "None",
+                "new_head": "000000"
+                }
+        resp = self.api_client.post(self.PROJECT_BASE + "update_project_head/", data=json.dumps(data), content_type='application/json')
+        resp_after = self.api_client.get(self.PROJECT_BASE + "series/"+ "20160628014747.20971-1-famz@redhat.com/")
+        self.assertEquals(resp_before.data['is_merged'], False)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data['count'], 1)
+        self.assertEquals(resp.data['new_head'], "000000")
+        self.assertEquals(resp_after.data['is_merged'], True)
+
     def test_project_post_no_login(self):
         data = {
             'name': 'keycodemapdb',

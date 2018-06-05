@@ -18,7 +18,7 @@ from .models import Project, Message
 from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
     mixins, generics, renderers, status)
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import detail_route, action
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
@@ -140,6 +140,27 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
     permission_classes = (PatchewPermission,)
+
+    @action(methods=['post'], detail=True, permission_classes=[ImportPermission])
+    def update_project_head(self, request, pk=None):
+        """
+        updates the project head and message_id which are matched are merged. 
+        Data input format:
+        {
+            "old_head": "..",
+            "new_head": "..",
+            "message_ids": []
+        }
+        """
+        project = self.get_object()
+        head = project.project_head
+        old_head = request.data['old_head']
+        message_ids = request.data['message_ids']
+        if head and head != old_head:
+            return Response('Wrong old head', status_code=status.HTTP_409_CONFLICT)
+        ret = project.series_update(message_ids)
+        project.project_head = request.data['new_head']
+        return Response({"new_head": project.project_head, "count": ret})
 
 # Common classes for series and messages
 
