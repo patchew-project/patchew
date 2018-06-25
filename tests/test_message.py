@@ -10,7 +10,7 @@
 
 import time
 import datetime
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 
 class ProjectTest(PatchewTestCase):
 

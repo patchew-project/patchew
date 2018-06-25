@@ -16,7 +16,7 @@ import unittest
 from django.contrib.auth.models import User
 
 sys.path.append(os.path.dirname(__file__))
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 from api.models import Message
 from api.rest import AddressSerializer
 from collections import OrderedDict

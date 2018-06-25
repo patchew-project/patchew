@@ -11,7 +11,7 @@
 import sys
 import os
 sys.path.append(os.path.dirname(__file__))
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 import shutil
 import subprocess
 from api.models import Message

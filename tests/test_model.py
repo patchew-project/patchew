@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 from api.models import Message
 
 class ImportTest(PatchewTestCase):

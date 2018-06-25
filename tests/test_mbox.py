@@ -12,7 +12,7 @@ import os
 import sys
 import mbox
 sys.path.append(os.path.dirname(__file__))
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 
 class MboxTest(PatchewTestCase):
 

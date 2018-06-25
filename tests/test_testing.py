@@ -13,7 +13,7 @@ import sys
 import os
 import subprocess
 sys.path.append(os.path.dirname(__file__))
-from patchewtest import PatchewTestCase, main
+from tests.patchewtest import PatchewTestCase, main
 from api.models import Message
 
 def create_test(project, name):
