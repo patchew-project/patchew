@@ -276,10 +276,10 @@ class ApplierReportView(APILoginRequiredView):
         r = Message.objects.series_heads().get(project=p,
                                                message_id=message_id).git_result
         r.log = log
+        data = {}
         if failed:
             r.status = Result.FAILURE
         else:
-            data = {}
             data['repo'] = repo
             data['tag'] = 'refs/tags/' + tag
             if url:
@@ -289,6 +289,6 @@ class ApplierReportView(APILoginRequiredView):
                 data['url'] = url_template.replace("%t", tag)
             if base:
                 data['base'] = base
-            r.data = data
             r.status = Result.SUCCESS
+        r.data = data
         r.save()

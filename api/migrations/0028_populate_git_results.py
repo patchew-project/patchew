@@ -34,6 +34,7 @@ def result_from_properties(apps, schema_editor):
             log_entry = LogEntry(data_xz=log_xz)
             log_entry.save()
             r.log_entry = log_entry
+            data = {}
             if get_property(MessageProperty, "git.apply-failed", message=m):
                 r.status = api.models.Result.FAILURE
             else:
@@ -41,7 +42,6 @@ def result_from_properties(apps, schema_editor):
                 git_tag = get_property(MessageProperty, "git.tag", message=m)
                 git_url = get_property(MessageProperty, "git.url", message=m)
                 git_base = get_property(MessageProperty, "git.base", message=m)
-                data = {}
                 if git_repo and git_tag:
                     data['repo'] = git_repo
                     data['tag'] = 'refs/tags/' + git_tag
@@ -49,8 +49,8 @@ def result_from_properties(apps, schema_editor):
                         data['url'] = git_url
                     if git_base:
                         data['base'] = git_base
-                r.data = data
                 r.status = api.models.Result.SUCCESS
+            r.data = data
         else:
             status = api.models.Result.PENDING
         r.last_update = datetime.datetime.utcnow()
