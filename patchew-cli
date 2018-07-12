@@ -124,7 +124,9 @@ class SubCommand(object):
             r = None
         return r
 
-    def rest_api_do(self, url_cmd, request_method='get', query=None, content_type=None, data=None):
+    def rest_api_do(
+        self, url_cmd, request_method="get", query=None, content_type=None, data=None
+    ):
         logging.debug("API call '%s':" % url_cmd)
         if query:
             logging.debug("query:\n%s" % query)
@@ -143,7 +145,7 @@ class SubCommand(object):
         if url_cmd.startswith("http"):
             url = url_cmd
         else:
-            url = self.base_url + '/api/v1/' + url_cmd + '/'
+            url = self.base_url + "/api/v1/" + url_cmd + "/"
         if query:
             url = url + "?" + urllib.parse.urlencode(query)
         if data is None:
@@ -152,9 +154,13 @@ class SubCommand(object):
             post_data = data
         resp = None
         while resp is None:
-            req = urllib.request.Request(url, data=bytes(post_data, encoding="utf-8"), method=request_method.upper())
+            req = urllib.request.Request(
+                url,
+                data=bytes(post_data, encoding="utf-8"),
+                method=request_method.upper(),
+            )
             if content_type is not None:
-                req.add_header('Content-Type', content_type)
+                req.add_header("Content-Type", content_type)
             try:
                 resp = opener.open(req)
             except urllib.error.HTTPError as e:
@@ -314,11 +320,11 @@ class ProjectCommand(SubCommand):
             "--verbose", "-v", action="store_true", help="Show details about projects"
         )
         args = parser.parse_args(argv)
-        r = self.api_do("get-projects")
+        r = self.rest_api_do(url_cmd="projects", request_method="get")
         if args.raw:
             print(json.dumps(r, indent=2, separators=",:"))
             return 0
-        for p in r:
+        for p in r["results"]:
             print(p["name"])
             if args.verbose:
                 for k, v in p.items():
@@ -331,16 +337,15 @@ class ProjectCommand(SubCommand):
         parser = argparse.ArgumentParser()
         parser.add_argument("name", nargs="+", help="The name of project to show info")
         args = parser.parse_args(argv)
-        r = self.api_do("get-projects")
-        for p in r:
+        r = self.rest_api_do(url_cmd="projects", request_method="get")
+        items = ["mailing_list", "prefix_tags", "url", "git", "description", "logo"]
+        for p in r["results"]:
             if not p["name"] in args.name:
                 continue
             if len(args.name) > 1:
                 print(p["name"])
-            for k, v in p.items():
-                if k == "name":
-                    continue
-                print("  %s: %s" % (k, v))
+            for k in items:
+                print("  %s: %s" % (k, p[k]))
         return 0
 
     def add_project(self, argv):
@@ -353,13 +358,18 @@ class ProjectCommand(SubCommand):
             "--desc", "-d", default="", help="Project short discription"
         )
         args = parser.parse_args(argv)
-        self.api_do(
-            "add-project",
-            name=args.name,
-            mailing_list=args.mailing_list,
-            url=args.url,
-            git=args.git,
-            description=args.desc,
+        data = {
+            "name": args.name,
+            "mailing_list": args.mailing_list,
+            "url": args.url,
+            "git": args.git,
+            "description": args.desc,
+        }
+        self.rest_api_do(
+            url_cmd="projects",
+            request_method="post",
+            content_type="application/json",
+            data=json.dumps(data),
         )
 
     def update_one_project(self, wd, project):
@@ -383,7 +393,7 @@ class ProjectCommand(SubCommand):
         )
         logging.debug("new head: %s", new_head)
         try:
-            old_head = project["properties"]["git.head"].strip()
+            old_head = project["mirror"]["head"].strip()
             if old_head == new_head:
                 logging.info("no change since last update")
                 return
@@ -412,7 +422,7 @@ class ProjectCommand(SubCommand):
         ).decode()
         msgids = [x[len("message-id:") :].strip() for x in output.splitlines()]
         logging.debug("message ids: \n%s" % "\n".join(["  " + x for x in msgids]))
-        push_to = project["properties"].get("git.push_to")
+        push_to = project["mirror"].get("pushurl")
         if push_to:
             try:
                 subprocess.check_call(
@@ -423,19 +433,23 @@ class ProjectCommand(SubCommand):
                 logging.warn(
                     "Failed to push the new head to patchew mirror: %s", str(e)
                 )
-        self.api_do(
-            "update-project-head",
-            project=project["name"],
-            old_head=old_head,
-            new_head=new_head,
-            message_ids=msgids,
+        url = project["resource_uri"] + "update_project_head/"
+        data = {"old_head": old_head, "new_head": new_head, "message_ids": msgids}
+        self.rest_api_do(
+            url,
+            request_method="post",
+            content_type="application/json",
+            data=json.dumps(data),
         )
 
     def update_project(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("--name", "-n", help="Name of the project")
         args = parser.parse_args(argv)
-        projects = self.api_do("get-projects", name=args.name)
+        r = self.rest_api_do(url_cmd="projects", request_method="get")
+        projects = [
+            p for p in r["results"] if p["name"] == args.name or args.name == None
+        ]
         wd = tempfile.mkdtemp()
         logging.debug("TMPDIR: %s", wd)
         try:
