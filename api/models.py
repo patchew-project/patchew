@@ -463,6 +463,11 @@ class MessageManager(models.Manager):
     def create(self, project, **validated_data):
         mbox = validated_data.pop("mbox")
         m = MboxMessage(mbox)
+        msg = Message.objects.filter(
+            message_id=m.get_message_id(), project=project
+        ).first()
+        if msg is not None:
+            return msg
         msg = Message(**validated_data)
         if "in_reply_to" not in validated_data:
             msg.in_reply_to = m.get_in_reply_to() or ""

@@ -279,11 +279,16 @@ class ImportCommand(SubCommand):
                     print("[OLD] " + mo["Subject"])
                     return
             print("[NEW] " + mo["Subject"])
-            r = self.api_do("import", mboxes=[mo.as_string()])
-            for p in r:
-                if p not in projects:
-                    projects.add(p)
-                    print(p)
+            for mbox in [mo.as_string()]:
+                r = self.rest_api_do(url_cmd="messages",
+                                     request_method='post',
+                                     content_type='message/rfc822',
+                                     data=mbox)
+                projects_list = [x['resource_uri'].split("messages")[0] for x in r['results']]
+                for p in projects_list:
+                    if p not in projects:
+                        projects.add(p)
+                        print(p)
             if ff:
                 open(ff, "wb").close()
 
@@ -310,6 +315,9 @@ class ImportCommand(SubCommand):
         for f in args.file:
             try:
                 import_one(f)
+                if len(projects) == 0:
+                    print("The message was not imported to any project. Perhaps you're not logged in as an importer or maintainer")
+                    r = 1
             except:
                 print("Error in importing:", f)
                 traceback.print_exc()
