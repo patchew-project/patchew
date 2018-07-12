@@ -237,7 +237,16 @@ class DeleteCommand(SubCommand):
         if not argv and not args.all:
             print("Must specify --all to delete all patches")
             return 1
-        self.api_do("delete", terms=argv)
+        if argv and args.all:
+            print("--all cannot be specified together with search terms")
+            return 1
+        series_list = []
+        query = {'q': ' '.join(argv)} if len(argv) else None
+        series_resp = self.rest_api_do('series', query=query)
+        series_list = series_resp['results']
+        for series in series_list:
+            url = series['resource_uri']
+            self.rest_api_do(url, request_method='delete')
         return 0
 
 

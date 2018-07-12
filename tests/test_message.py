@@ -42,6 +42,21 @@ class MessageTest(PatchewTestCase):
         age = message.get_age()
         self.assertEqual(age, "1 day")
 
+    def test_delete(self):
+        self.cli_login()
+        self.add_project("QEMU", "qemu-devel@nongnu.org")
+        self.cli_import("0002-unusual-cased-tags.mbox.gz")
+        self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
+        a, b = self.check_cli(["search", "-r", "-o", "message-id"])
+        ao = json.loads(a)[0]
+        self.assertEqual("20160628014747.20971-1-famz@redhat.com", ao["message-id"])
+        self.cli_delete("from:Fam")
+        a, b = self.check_cli(["search", "-r", "-o", "message-id"])
+        ao = json.loads(a)[0]
+        self.assertEqual(
+            "1469192015-16487-1-git-send-email-berrange@redhat.com", ao["message-id"]
+        )
+
     def test_asctime(self):
         message = Message()
         dt = datetime.datetime(2016, 10, 22, 10, 16, 40)
