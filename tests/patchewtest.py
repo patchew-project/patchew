@@ -112,6 +112,9 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
     def cli_import(self, mbox, rc=0):
         self.check_cli(["import", self.get_data_path(mbox)], rc)
 
+    def cli_delete(self, terms, rc=0):
+        self.check_cli(["delete", terms], rc)
+
     def do_apply(self, debug=False):
         while True:
             r, out, err = self.do_cli(debug, ["apply", "--applier-mode"])
