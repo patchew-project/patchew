@@ -124,6 +124,54 @@ class SubCommand(object):
             r = None
         return r
 
+    def rest_api_do(self, url_cmd, request_method='get', query=None, content_type=None, data=None):
+        logging.debug("API call '%s':" % url_cmd)
+        if query:
+            logging.debug("query:\n%s" % query)
+        if data:
+            logging.debug("data:\n%s" % data)
+        cookie = http.cookiejar.MozillaCookieJar(COOKIE_FILENAME)
+        try:
+            cookie.load()
+        except IOError:
+            pass
+        except http.cookiejar.LoadError:
+            print("Error while loading cookie", COOKIE_FILENAME)
+            pass
+        handler = urllib.request.HTTPCookieProcessor(cookie)
+        opener = urllib.request.build_opener(handler)
+        if url_cmd.startswith("http"):
+            url = url_cmd
+        else:
+            url = self.base_url + '/api/v1/' + url_cmd + '/'
+        if query:
+            url = url + "?" + urllib.parse.urlencode(query)
+        if data is None:
+            post_data = ""
+        else:
+            post_data = data
+        resp = None
+        while resp is None:
+            req = urllib.request.Request(url, data=bytes(post_data, encoding="utf-8"), method=request_method.upper())
+            if content_type is not None:
+                req.add_header('Content-Type', content_type)
+            try:
+                resp = opener.open(req)
+            except urllib.error.HTTPError as e:
+                # urllib requires confirmation from us before following a 307 with POST
+                if e.code == 307:
+                    url = e.headers["location"]
+                else:
+                    raise e
+        cookie.save(ignore_discard=True, ignore_expires=True)
+        respdata = resp.read()
+        logging.debug("Server response:\n%s" % (respdata or "<empty>"))
+        if respdata:
+            r = json.loads(respdata.decode("utf-8"))
+        else:
+            r = None
+        return r
+
     def do(self, args, argv):
         """Do command"""
         print("Not implemented")
