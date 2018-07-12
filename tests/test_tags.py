@@ -26,12 +26,7 @@ class ImportTest(PatchewTestCase):
         self.PROJECT_BASE = "%sprojects/%d/" % (self.REST_BASE, self.p.id)
 
     def test_import_one(self):
-        resp = self.apply_and_retrieve(
-            "0017-qemu-web-is-not-qemu.mbox.gz",
-            self.p.id,
-            "1504250391-6353-1-git-send-email-thuth@redhat.com",
-        )
-        self.assertEquals(resp.status_code, 404)
+        self.cli_import("0017-qemu-web-is-not-qemu.mbox.gz", rc=1)
 
     def test_rest_single(self):
         resp = self.apply_and_retrieve(
