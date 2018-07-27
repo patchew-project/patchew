@@ -28,8 +28,6 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
     def setUp(self):
         self.create_superuser()
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
-        self.p.git = "dummy repo"
-        self.p.save()
 
         self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
@@ -153,14 +151,10 @@ class MessageTestingTest(TestingTestCase):
         super(MessageTestingTest, self).setUp()
 
         self.cli_login()
-        self.cli_import('0001-simple-patch.mbox.gz')
+        self.cli_import('0013-foo-patch.mbox.gz')
+        self.do_apply()
         self.cli_logout()
-
         self.msg = Message.objects.all()[0]
-        self.msg.save()
-        self.msg.set_property("git.repo", "dummy repo")
-        self.msg.set_property("git.tag", "dummy tag")
-        self.msg.set_property("git.base", "dummy base")
 
     def do_testing_done(self, **kwargs):
         self._do_testing_done(self.msg, **kwargs)
@@ -175,16 +169,6 @@ class MessageTestingTest(TestingTestCase):
                                        self.PROJECT_BASE, self.msg.message_id, test_name))
 
     def test_testing_ready(self):
-        # Set property through series_heads elements must be handled the same
-        self.msg.set_property("git.repo", None)
-        self.msg.set_property("git.tag", None)
-        self.assertEqual(self.msg.results.filter(name='testing.a').first().status,
-                         Result.PENDING)
-        msg = Message.objects.series_heads()[0]
-        self.assertEqual(self.msg.message_id, msg.message_id)
-        msg.set_property("git.repo", "dummy repo")
-        msg.set_property("git.tag", "dummy tag")
-        msg.set_property("git.base", "dummy base")
         self.assertEqual(self.msg.results.filter(name='testing.a').first().status,
                          Result.PENDING)
 
@@ -212,30 +196,21 @@ class TesterTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
 
+        self.repo = self.create_git_repo("repo")
         self.p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
         create_test(self.p1, "a")
         self.p2 = self.add_project("UMEQ", "qemu-devel@nongnu.org")
         create_test(self.p2, "b")
 
         self.cli_login()
-        self.cli_import('0001-simple-patch.mbox.gz')
+        self.cli_import('0013-foo-patch.mbox.gz')
         self.cli_logout()
 
-        self.repo = os.path.join(self.get_tmpdir(), "repo")
-        os.mkdir(self.repo)
-        subprocess.check_output(["git", "init"], cwd=self.repo)
-        for f in ["foo", "bar"]:
-            self.add_file_and_commit(f)
         self.update_head(self.p1)
         self.update_head(self.p2)
         base = subprocess.check_output(["git", "rev-parse", "HEAD~1"],
                                        cwd=self.repo).decode()
         subprocess.check_output(["git", "tag", "test"], cwd=self.repo)
-
-        for msg in Message.objects.all():
-            msg.set_property("git.repo", self.repo)
-            msg.set_property("git.tag", "test")
-            msg.set_property("git.base", base)
 
     def add_file_and_commit(self, f):
         subprocess.check_output(["touch", f], cwd=self.repo)
