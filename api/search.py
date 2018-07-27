@@ -12,6 +12,19 @@ from .models import Message, MessageProperty, MessageResult, Result
 from functools import reduce
 from django.db.models import Q
 
+from django.db.models import Lookup
+from django.db.models.fields import Field
+
+@Field.register_lookup
+class NotEqual(Lookup):
+    lookup_name = 'ne'
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
+        return '%s <> %s' % (lhs, rhs), params
+
 class InvalidSearchTerm(Exception):
     pass
 
@@ -94,6 +107,24 @@ Compare the address info of message. Example:
 
 ---
 
+### Search by result
+
+Syntax:
+
+ - pending:NAME, failure:NAME, running:NAME - any result with the given
+   name is in the pending/failure/running state
+ - success:NAME - all results with the given name are in the success state
+   (and there is at least one result with the given name)
+
+where NAME can be e.g. "git", "testing", "testing.TEST-NAME"
+
+Example:
+
+    success:git
+    failure:testing.FreeBSD
+
+---
+
 ### Reverse condition
 
  - Syntax: !TERM
@@ -131,6 +162,10 @@ Search text keyword in the email message. Example:
     def _make_filter_subquery(self, model, q):
         message_ids = model.objects.filter(q).values('message_id')
         return Q(id__in=message_ids)
+
+    def _make_filter_result(self, term, **kwargs):
+        q = Q(name=term, **kwargs) | Q(name__startswith=term+'.', **kwargs)
+        return self._make_filter_subquery(MessageResult, q)
 
     def _make_filter_age(self, cond):
         import datetime
@@ -217,6 +252,17 @@ Search text keyword in the email message. Example:
                 return Q(last_comment_date__isnull=False)
             else:
                 return Q(properties__name=cond)
+        elif term.startswith("failure:"):
+            return self._make_filter_result(term[8:], status=Result.FAILURE)
+        elif term.startswith("success:"):
+            # What we want is "all results are successes", but the only way to
+            # express it is "there is a result and not (any result is not a success)".
+            return self._make_filter_result(term[8:]) \
+                & ~self._make_filter_result(term[8:], status__ne=Result.SUCCESS)
+        elif term.startswith("pending:"):
+            return self._make_filter_result(term[8:], status=Result.PENDING)
+        elif term.startswith("running:"):
+            return self._make_filter_result(term[8:], status=Result.RUNNING)
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)
