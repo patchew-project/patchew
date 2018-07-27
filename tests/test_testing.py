@@ -16,11 +16,11 @@ sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
 from api.models import Message, Result
 
-def create_test(project, name, requirements=""):
+def create_test(project, name, requirements="", script="#!/bin/bash\ntrue"):
     prefix = "testing.tests." + name + "."
     project.set_property(prefix + "timeout", 3600)
     project.set_property(prefix + "enabled", True)
-    project.set_property(prefix + "script", "#!/bin/bash\ntrue")
+    project.set_property(prefix + "script", script)
     project.set_property(prefix + "requirements", requirements)
 
 class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
@@ -284,6 +284,56 @@ class TesterTest(PatchewTestCase):
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
         self.cli_logout()
+
+class TestingResetTest(PatchewTestCase):
+
+    def setUp(self):
+        self.create_superuser()
+
+        self.repo = self.create_git_repo("repo")
+
+        self.p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        create_test(self.p1, "a")
+        create_test(self.p1, "b")
+        create_test(self.p1, "c", script="#!/bin/bash\nfalse")
+
+    def verify_results(self, m, results):
+        for r in m.results.filter():
+            self.assertEqual(r.status, results[r.name])
+
+    def test_reset_one(self):
+        self.cli_login()
+        self.cli_import('0013-foo-patch.mbox.gz')
+        self.do_apply()
+        out, err = self.check_cli(["tester", "-p", "QEMU", "--no-wait"])
+        self.assertIn("Project: QEMU\n", out)
+        self.cli_logout()
+
+        msg = Message.objects.all()[0]
+        self.verify_results(msg, {"git": Result.SUCCESS,
+                                  "testing.a": Result.SUCCESS,
+                                  "testing.b": Result.SUCCESS,
+                                  "testing.c": Result.FAILURE})
+        self.assertTrue(msg.get_property("testing.done"))
+
+        self.api_login()
+        self.client.post('/login/', {'username': self.user, 'password': self.password})
+        self.client.get('/testing-reset/%s/?type=message&test=a' % msg.message_id)
+
+        msg = Message.objects.all()[0]
+        self.verify_results(msg, {"git": Result.SUCCESS,
+                                  "testing.a": Result.PENDING,
+                                  "testing.b": Result.SUCCESS,
+                                  "testing.c": Result.FAILURE})
+        self.assertFalse(msg.get_property("testing.done"))
+
+        self.client.get('/testing-reset/%s/?type=message&test=b' % msg.message_id)
+        self.client.get('/testing-reset/%s/?type=message&test=c' % msg.message_id)
+        self.verify_results(msg, {"git": Result.SUCCESS,
+                                  "testing.a": Result.PENDING,
+                                  "testing.b": Result.PENDING,
+                                  "testing.c": Result.PENDING})
+        self.assertFalse(msg.get_property("testing.done"))
 
 # do not run tests on the abstract class
 del TestingTestCase
