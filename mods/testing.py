@@ -164,8 +164,13 @@ class TestingModule(PatchewModule):
             if k == "testing.done" or \
                k == "testing.tested-head":
                 obj.set_property(k, None)
-        for r in self.get_testing_results(obj):
-            r.delete()
+        if test:
+            r = self.get_testing_result(obj, test)
+            if r:
+                r.delete()
+        else:
+            for r in self.get_testing_results(obj):
+                r.delete()
         self.recalc_pending_tests(obj)
 
     def www_view_testing_reset(self, request, project_or_series):
