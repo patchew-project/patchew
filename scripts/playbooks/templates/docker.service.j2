@@ -2,6 +2,7 @@
 Description=Patchew docker instance control service for {{ instance_name }}
 Requires=docker.service
 After=docker.service
+StartLimitIntervalSec=0
 
 [Service]
 Restart=always
@@ -11,6 +12,7 @@ ExecStart=/usr/bin/docker run --privileged --name {{ instance_name }} \
     -e PATCHEW_DATA_DIR=/data/patchew \
     patchew:{{ instance_name }}
 ExecStop=/usr/bin/docker stop -t 10 {{ instance_name }}
+RestartSec=60
 
 [Install]
 WantedBy=default.target
