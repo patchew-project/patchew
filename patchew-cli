@@ -452,7 +452,7 @@ class TesterCommand(SubCommand):
                             help="comma separated project names to run test")
         parser.add_argument("--name", "-n",
                             help="name of this tester (default is the logged in username)")
-        parser.add_argument("--num", "-N", type=int, default=0,
+        parser.add_argument("--num", "-N", type=int, default=-1,
                             help="max number of tests to run")
         parser.add_argument("--no-clean-up", action="store_true",
                             help="skip cleaning up after finish")
