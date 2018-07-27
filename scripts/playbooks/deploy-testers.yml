@@ -23,7 +23,7 @@
       default: patchew
       private: no
   vars:
-    base_dir: "/data/{{ instance_name }}"
+    base_dir: "{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     patchew_cmd: "{{ src_dir }}/patchew-cli -s {{ patchew_server }}"
   tasks:
@@ -52,16 +52,10 @@
           - "--exclude=/venv"
     - name: Generate password file
       shell: "echo {{ tester_pass }} > $HOME/.patchew-tester-pass"
-      become: true
-      become_user: "{{ cron_user }}"
     - name: Login with patchew-cli
       shell: "{{ patchew_cmd }} login {{ tester_user }} $(cat $HOME/.patchew-tester-pass)"
-      become: true
-      become_user: "{{ cron_user }}"
     - name: Logout with patchew-cli
       shell: "{{ patchew_cmd }} logout"
-      become: true
-      become_user: "{{ cron_user }}"
     - name: Define PATCHEW env in cron
       cron:
         name: PATCHEW
