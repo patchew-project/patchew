@@ -134,7 +134,7 @@ Search text keyword in the email message. Example:
         if term.startswith("age:"):
             cond = term[term.find(":") + 1:]
             q = self._process_age_term(query, cond)
-        elif term[0] in "<>":
+        elif term[0] in "<>" and len(term) > 1:
             q = self._process_age_term(query, term)
         elif term.startswith("from:"):
             cond = term[term.find(":") + 1:]
