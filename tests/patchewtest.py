@@ -118,8 +118,12 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         return Project.objects.all()
 
     def add_project(self, name, mailing_list="", git_repo=""):
-        p = Project(name=name, mailing_list=mailing_list, git=git_repo)
+        p = Project(name=name, mailing_list=mailing_list, git=git_repo or self.create_git_repo(name))
         p.save()
+        push_repo = self.create_git_repo(name + "_push")
+        p.set_property("git.push_to", push_repo)
+        p.set_property("git.public_repo", push_repo)
+        p.set_property("git.url_template", push_repo)
         return p
 
     def api_login(self):
@@ -146,9 +150,12 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         repo = os.path.join(self.get_tmpdir(), name)
         os.mkdir(repo)
         subprocess.check_output(["git", "init"], cwd=repo)
-        subprocess.check_output(["touch", "foo"], cwd=repo)
+        subprocess.check_output(["touch", "foo", "bar"], cwd=repo)
         subprocess.check_output(["git", "add", "foo"], cwd=repo)
         subprocess.check_output(["git", "commit", "-m", "initial commit"],
+                                cwd=repo)
+        subprocess.check_output(["git", "add", "bar"], cwd=repo)
+        subprocess.check_output(["git", "commit", "-m", "another commit"],
                                 cwd=repo)
         return repo
 
