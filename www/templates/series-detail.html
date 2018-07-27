@@ -51,18 +51,24 @@
 
 <div class="status">
 {% if series.num_patches < series.total_patches %}
-<div class="status-content status-alert">
+<div class="status-content">
    <span class="fa fa-lg fa-warning"></span>
    <div>Only {{ series.num_patches }} patches received!</div>
 </div>
 {% endif %}
 {% for result in results %}
-<div class="status-content status-{{ result.status }}">
+<div class="status-content">
  {% if result.status == "pending" %} <span class="fa fa-lg fa-hourglass"></span>
  {% elif result.status == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
  {% elif result.status == "failure" %} <span class="fa fa-lg fa-warning"></span>
  {% elif result.status == "success" %} <span class="fa fa-lg fa-check"></span>{% endif %}
  <div>{{ result.html }}</div>
+</div>
+{% endfor %}
+{% for status in series.extra_status %}
+<div class="status-content">
+ {% if status.icon %}<span class="fa fa-lg {{ status.icon }}"></span>{% endif %}
+ <div>{{ status.html }}</div>
 </div>
 {% endfor %}
 

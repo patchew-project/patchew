@@ -137,10 +137,10 @@ h1, h2, h3, .h1, .h2, .h3 {
 .status-content > .fa {
     color: #337ab7;
 }
-.status-content.status-failure > .fa {
+.status-content > .fa-warning {
     color: #CC0000;
 }
-.status-content.status-success > .fa {
+.status-content > .fa-check {
     color: #009900;
 }
 .status-content > div {

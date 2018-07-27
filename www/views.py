@@ -52,6 +52,7 @@ def prepare_message(request, project, m, detailed):
                 })
     # hook points for plugins
     m.has_other_revisions = False
+    m.extra_status = []
     m.extra_ops = []
     m.extra_links = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
