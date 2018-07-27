@@ -409,8 +409,8 @@ class TestingGetView(APILoginRequiredView):
             if not t:
                 continue
             reqs = t.get("requirements", "")
-            for r in [x.strip() for x in reqs.split(",") if x]:
-                if r not in capabilities:
+            for req in [x.strip() for x in reqs.split(",") if x]:
+                if req not in capabilities:
                     break
             else:
                 yield r, t
