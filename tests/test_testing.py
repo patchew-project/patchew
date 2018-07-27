@@ -16,12 +16,12 @@ sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
 from api.models import Message, Result
 
-def create_test(project, name):
+def create_test(project, name, requirements=""):
     prefix = "testing.tests." + name + "."
     project.set_property(prefix + "timeout", 3600)
     project.set_property(prefix + "enabled", True)
     project.set_property(prefix + "script", "#!/bin/bash\ntrue")
-    project.set_property(prefix + "requirements", "")
+    project.set_property(prefix + "requirements", requirements)
 
 class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
@@ -197,10 +197,22 @@ class TesterTest(PatchewTestCase):
         self.create_superuser()
 
         self.repo = self.create_git_repo("repo")
+
         self.p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
         create_test(self.p1, "a")
+
         self.p2 = self.add_project("UMEQ", "qemu-devel@nongnu.org")
         create_test(self.p2, "b")
+
+        self.p3 = self.add_project("ALLOW", "qemu-devel@nongnu.org")
+        self.p3.set_property("testing.requirements.allow.script",
+                             "#!/bin/sh\ntrue")
+        create_test(self.p3, "c", "allow")
+
+        self.p4 = self.add_project("DENY", "qemu-devel@nongnu.org")
+        self.p4.set_property("testing.requirements.deny.script",
+                             "#!/bin/sh\nfalse")
+        create_test(self.p4, "d", "deny")
 
         self.cli_login()
         self.cli_import('0013-foo-patch.mbox.gz')
@@ -208,6 +220,8 @@ class TesterTest(PatchewTestCase):
 
         self.update_head(self.p1)
         self.update_head(self.p2)
+        self.update_head(self.p3)
+        self.update_head(self.p4)
         base = subprocess.check_output(["git", "rev-parse", "HEAD~1"],
                                        cwd=self.repo).decode()
         subprocess.check_output(["git", "tag", "test"], cwd=self.repo)
@@ -225,41 +239,48 @@ class TesterTest(PatchewTestCase):
 
     def test_tester(self):
         self.cli_login()
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait"])
         self.assertIn("Project: QEMU\n", out)
         self.assertIn("Project: UMEQ\n", out)
+        self.assertIn("Project: ALLOW\n", out)
+        self.assertNotIn("Project: DENY\n", out)
         self.cli_logout()
 
     def test_tester_single(self):
         self.cli_login()
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Project: QEMU\n", out)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Project: UMEQ\n", out)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
+                                   "--no-wait", "-N", "1"])
+        self.assertIn("Project: ALLOW\n", out)
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
         self.cli_logout()
 
     def test_tester_project(self):
         self.cli_login()
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait"])
         self.assertIn("Project: QEMU\n", out)
         self.assertIn("Project: UMEQ\n", out)
+        self.assertIn("Project: ALLOW\n", out)
+        self.assertNotIn("Project: DENY\n", out)
 
         self.p1.git = self.repo
         self.p1.save()
         self.add_file_and_commit("baz")
         self.update_head(self.p1)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Project: QEMU\n", out)
         self.assertIn("'type': 'project'", out)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ",
+        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
         self.cli_logout()
