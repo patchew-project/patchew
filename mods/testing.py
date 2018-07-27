@@ -106,6 +106,7 @@ class TestingModule(PatchewModule):
                       html_log_url="URL to test log (HTML)",
                       is_timeout="whether the test has timeout")
         register_handler("SetProperty", self.on_set_property)
+        register_handler("ResultUpdate", self.on_result_update)
 
     def on_set_property(self, evt, obj, name, value, old_value):
         if ((isinstance(obj, Message) and obj.is_series_head) \
@@ -120,6 +121,16 @@ class TestingModule(PatchewModule):
         elif isinstance(obj, Project) and name.startswith("testing.tests.") \
             and old_value != value:
             self.recalc_pending_tests(obj)
+
+    def on_result_update(self, evt, obj, old_status, result):
+        if result.name != "git":
+            return
+        if isinstance(obj, Message) \
+            and obj.is_series_head \
+            and old_status != Result.SUCCESS \
+            and result.status == result.SUCCESS \
+            and result.data.get("tag") and result.data.get("repo"):
+                self.clear_and_start_testing(obj)
 
     def get_testing_results(self, obj, *args, **kwargs):
         return obj.results.filter(name__startswith='testing.', *args, **kwargs)
