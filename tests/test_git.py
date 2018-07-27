@@ -31,11 +31,6 @@ class GitTest(PatchewTestCase):
     def cleanUp(self):
         shutil.rmtree(self.repo)
 
-    def do_apply(self):
-        self.cli(["apply", "--applier-mode"])
-        for s in Message.objects.series_heads():
-            self.assertNotEqual(s.git_result.status, Result.PENDING)
-
     def test_need_apply(self):
         self.cli_import("0001-simple-patch.mbox.gz")
         s = Message.objects.series_heads()[0]
