@@ -78,7 +78,11 @@ class Result(models.Model):
 
     def save(self):
         self.last_update = datetime.datetime.utcnow()
-        return super(Result, self).save()
+        old_result = Result.objects.filter(pk=self.pk).first()
+        old_status = old_result.status if old_result else None
+        r = super(Result, self).save()
+        emit_event("ResultUpdate", obj=self.obj,
+                   old_status=old_status, result=self)
 
     @property
     def renderer(self):
@@ -299,6 +303,10 @@ declare_event("SetProperty", obj="object to set the property",
               name="name of the property",
               value="value of the property",
               old_value="old value if any")
+
+declare_event("ResultUpdate", obj="the updated object",
+              old_status='the old result status',
+              result="the new result object")
 
 class MessageManager(models.Manager):
 
