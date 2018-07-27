@@ -377,10 +377,12 @@ class TestingGetView(APILoginRequiredView):
         return r
 
     def _generate_series_test_data(self, s, test):
+        gr = s.git_result
+        assert gr.is_success()
         return self._generate_test_data(project=s.project.name,
-                                        repo=s.get_property("git.repo"),
-                                        head=s.get_property("git.tag"),
-                                        base=s.get_property("git.base"),
+                                        repo=gr.data["repo"],
+                                        head=gr.data["tag"],
+                                        base=gr.data.get("base", None),
                                         identity={
                                             "type": "series",
                                             "message-id": s.message_id,
