@@ -24,17 +24,15 @@
 		    patch{% if series.total_patches != 1 %}es{% endif %}
 	    </span> <span class="message-age" title="{{ series.date }}">
 		    {{ series.age }} ago</span>
+  {% if series.extra_links %}
   <ul id="series-links">
-    <li>
-      <span class="fa fa-download"></span> <a
-        href="/{{ project }}/{{ series.message_id }}/mbox">Download series mbox</a></li>
-    </li>
     {% for op in series.extra_links %}
     <li>
       <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span>
         {{ op.html }}</li>
     {% endfor %}
   </ul>
+  {% endif %}
 </div>
 
 {% if series.extra_ops %}

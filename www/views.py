@@ -13,6 +13,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, Http404
 from django.db.models import Exists, OuterRef
 from django.urls import reverse
+from django.utils.html import format_html
 from django.conf import settings
 import api
 from mod import dispatch_module_hook
@@ -39,6 +40,7 @@ def prepare_message(request, project, m, detailed):
     m.age = m.get_age()
     m.url = reverse("series_detail", kwargs={"project": project.name, "message_id": m.message_id})
     m.status_tags = []
+    m.extra_links = []
     if m.is_series_head:
         m.num_patches = m.get_num_patches()
         m.total_patches = m.get_total_patches()
@@ -50,11 +52,11 @@ def prepare_message(request, project, m, detailed):
                 "type": "warning",
                 "char": "?",
                 })
+
     # hook points for plugins
     m.has_other_revisions = False
     m.extra_status = []
     m.extra_ops = []
-    m.extra_links = []
     dispatch_module_hook("prepare_message_hook", request=request, message=m,
                          detailed=detailed)
     if m.is_merged:
@@ -237,13 +239,18 @@ def view_series_list(request, project):
     query = api.models.Message.objects.series_heads(prj.id)
     return render_series_list_page(request, query, project=project)
 
-def view_series_mbox(request, project, message_id):
-    s = api.models.Message.objects.find_series(message_id, project)
+def view_mbox(request, project, message_id):
+    s = api.models.Message.objects.find_message(message_id, project)
     if not s:
         raise Http404("Series not found")
-    r = prepare_series(request, s)
+    if s.is_cover_letter:
+        if not s.is_complete:
+            raise Http404("Series not complete")
+        messages = s.get_patches()
+    else:
+        messages = [s]
     mbox = "\n".join(["From %s %s\n" % (x.get_sender_addr(), x.get_asctime()) + \
-                      x.get_mbox() for x in r])
+                      x.get_mbox(x) for x in messages])
     return HttpResponse(mbox, content_type="text/plain")
 
 def view_series_detail(request, project, message_id):
@@ -256,6 +263,11 @@ def view_series_detail(request, project, message_id):
     is_cover_letter=not s.is_patch
     messages = prepare_series(request, s, is_cover_letter)
     series = messages[0]
+    if s.num_patches >= s.total_patches:
+        mbox_url = reverse("mbox", kwargs={"project": project, "message_id": message_id})
+        title = 'Download series mbox' if is_cover_letter else 'Download mbox'
+        series.extra_links.append({'html': format_html('<a href="{}">{}</a>', mbox_url, title),
+                                  'icon': 'download'})
     return render_page(request, 'series-detail.html',
                        subject=s.subject,
                        stripped_subject=s.stripped_subject,
@@ -283,6 +295,9 @@ def view_series_message(request, project, thread_id, message_id):
     search = "id:" + thread_id
     series = prepare_message(request, s.project, s, True)
     messages = prepare_series(request, m)
+    mbox_url = reverse("mbox", kwargs={"project": project, "message_id": message_id})
+    series.extra_links.append({'html': format_html('<a href="{}">Download mbox</a>', mbox_url),
+                              'icon': 'download'})
     return render_page(request, 'series-detail.html',
                        subject=m.subject,
                        stripped_subject=s.stripped_subject,
