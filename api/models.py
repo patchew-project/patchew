@@ -460,6 +460,7 @@ class Message(models.Model):
     version = models.PositiveSmallIntegerField(default=0)
     sender = jsonfield.JSONCharField(max_length=4096, db_index=True)
     recipients = jsonfield.JSONField()
+    tags = jsonfield.JSONField(default=[])
     prefixes = jsonfield.JSONField(blank=True)
     is_series_head = models.BooleanField()
     is_complete = models.BooleanField(default=False)

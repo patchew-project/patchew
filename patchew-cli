@@ -693,8 +693,9 @@ class ApplyCommand(SubCommand):
                     subprocess.check_output(["git", "log", "-n", "1",
                                              "--format=%b"], cwd=repo) \
                                            .decode('utf-8').splitlines()
-            for t in set(p["properties"].get("tags", []) + \
-                         s["properties"].get("tags", [])):
+            # old servers do not have "tags" directly in the response
+            for t in set(p["properties"].get("tags", []) + p.get("tags", []) + \
+                         s["properties"].get("tags", []) + s.get("tags", [])):
                 if t in commit_message_lines:
                     continue
                 filter_cmd += "echo '%s';" % t

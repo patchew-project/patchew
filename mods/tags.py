@@ -56,10 +56,11 @@ series cover letter, patch mail body and their replies.
         return set([x.strip() for x in tagsconfig.split(",") if x.strip()] + BUILT_IN_TAGS)
 
     def update_tags(self, s):
-        old = s.get_property("tags", [])
+        old = s.tags
         new = self.look_for_tags(s)
         if set(old) != set(new):
-            s.set_property("tags", list(set(new)))
+            s.tags = list(set(new))
+            s.save()
             return True
 
     def on_message_added(self, event, message):
@@ -84,7 +85,7 @@ series cover letter, patch mail body and their replies.
         num_reviewed = 0
         def _find_reviewers(what):
             ret = set()
-            for rev_tag in [x for x in what.get_property("tags", []) if x.lower().startswith(REV_BY_PREFIX.lower())]:
+            for rev_tag in [x for x in what.tags if x.lower().startswith(REV_BY_PREFIX.lower())]:
                 ret.add(parse_address(rev_tag[len(REV_BY_PREFIX):]))
             return ret
         for p in series.get_patches():
@@ -119,12 +120,6 @@ series cover letter, patch mail body and their replies.
                 continue
             r += self.look_for_tags(x)
         return r
-
-    def get_tags(self, m, request, format):
-        return m.get_property("tags", [])
-
-    def rest_message_fields_hook(self, request, fields):
-        fields['tags'] = PluginMethodField(obj=self)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:

@@ -19,7 +19,7 @@ from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
     mixins, generics, renderers, status)
 from rest_framework.decorators import detail_route, action
-from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField
+from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField, ListField
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 import rest_framework
@@ -238,11 +238,12 @@ class AddressSerializer(serializers.Serializer):
 class BaseMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ('resource_uri', 'message_id', 'subject', 'date', 'sender', 'recipients')
+        fields = ('resource_uri', 'message_id', 'subject', 'date', 'sender', 'recipients', 'tags')
 
     resource_uri = HyperlinkedMessageField(view_name='messages-detail')
     recipients = AddressSerializer(many=True)
     sender = AddressSerializer()
+    tags = ListField(child=CharField(), required=False)
    
     def create(self, validated_data):
         validated_data['recipients'] = self.fields['recipients'].create(validated_data['recipients'])

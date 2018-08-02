@@ -228,7 +228,7 @@ class GitModule(PatchewModule):
                                                                           project)})
 
     def get_base(self, series):
-        for tag in series.get_property("tags", []):
+        for tag in series.tags:
             if not tag.startswith("Based-on:"):
                 continue
             base_id = tag[len("Based-on:"):].strip()
@@ -279,7 +279,8 @@ class ApplierGetView(APILoginRequiredView):
         if not m:
             return None
 
-        response = prepare_series(request, m, fields=["project", "message-id", "patches", "properties"])
+        response = prepare_series(request, m, fields=["project", "message-id", "patches",
+                                                      "properties", "tags"])
 
         po = m.project
         for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
