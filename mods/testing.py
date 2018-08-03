@@ -20,7 +20,7 @@ import math
 from api.views import APILoginRequiredView
 from api.models import (Message, MessageProperty, MessageResult,
         Project, ProjectResult, Result)
-from api.rest import reverse_detail
+from api.rest import PluginMethodField, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -385,6 +385,12 @@ class TestingModule(PatchewModule):
             name = name[:name.find(".")]
             ret[name] = v
         return ret
+
+    def get_testing_probes(self, project, request, format):
+        return self.get_capability_probes(project)
+
+    def rest_project_fields_hook(self, request, fields):
+        fields['testing_probes'] = PluginMethodField(obj=self)
 
     def tester_check_in(self, project, tester):
         assert project

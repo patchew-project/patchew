@@ -171,6 +171,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     series = HyperlinkedIdentityField(view_name='series-list', lookup_field='pk',
                                        lookup_url_kwarg='projects_pk')
 
+    def get_fields(self):
+        fields = super(ProjectSerializer, self).get_fields()
+        request = self.context['request']
+        dispatch_module_hook("rest_project_fields_hook", request=request,
+                             fields=fields)
+        return fields
+
 class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
