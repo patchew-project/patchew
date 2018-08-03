@@ -258,12 +258,10 @@ class TesterTest(PatchewTestCase):
         p.set_property("git.head", head)
 
     def test_print_capability(self):
-        self.cli_login()
         out, err = self.check_cli(["tester", "-p", "ALLOW", "--print-capabilities"])
         self.assertEqual(out, "allow")
         out, err = self.check_cli(["tester", "-p", "DENY", "--print-capabilities"])
         self.assertEqual(out, "")
-        self.cli_logout()
 
     def test_tester(self):
         self.cli_login()

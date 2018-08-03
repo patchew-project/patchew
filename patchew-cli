@@ -593,13 +593,13 @@ class TesterCommand(SubCommand):
         subprocess.check_output(["chmod", "+x", filename])
         return filename
 
-    def _refresh_capabilities(self, project, name):
+    def _refresh_capabilities(self, project):
         wd = tempfile.mkdtemp()
-        r = self.api_do("testing-capabilities", project=project, tester=name)
-        if not r:
+        project = self.rest_api_do("projects/by-name/%s" % project)
+        if not project or "testing_probes" not in project:
             return []
         ret = []
-        for name, val in r.items():
+        for name, val in project["testing_probes"].items():
             script = self._make_script(wd, "probe", val)
             try:
                 if 0 == subprocess.call(
@@ -760,7 +760,7 @@ class TesterCommand(SubCommand):
             if len(projects) > 1:
                 print("Only one project is allowed for --print-capabilities")
                 return 1
-            caps = self._refresh_capabilities(projects[0], args.name)
+            caps = self._refresh_capabilities(projects[0])
             for i in caps:
                 print(i)
             return 0
@@ -775,7 +775,7 @@ class TesterCommand(SubCommand):
             for p in projects:
                 if count % cap_refresh == 0:
                     for sp in projects:
-                        capabilities[sp] = self._refresh_capabilities(sp, args.name)
+                        capabilities[sp] = self._refresh_capabilities(sp)
                 if self.test_one(
                     args.name, p, args.no_clean_up, capabilities=capabilities[p]
                 ):
