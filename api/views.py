@@ -168,8 +168,6 @@ def prepare_series(request, s, fields=None):
         r["subject"] = s.subject
     if want_field("project"):
         r["project"] = s.project.name
-    if want_field("project.git"):
-        r["project.git"] = s.project.git
     if want_field("message-id"):
         r["message-id"] = s.message_id
     if want_field("patches"):
@@ -178,8 +176,6 @@ def prepare_series(request, s, fields=None):
         r["properties"] = s.get_properties()
     if want_field("is_complete"):
         r["is_complete"] = s.is_complete
-    dispatch_module_hook("prepare_series_hook", request=request, series=s,
-                         response=r)
     if fields:
         r = dict([(k, v) for k, v in r.items() if k in fields])
     return r

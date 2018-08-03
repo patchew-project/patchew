@@ -19,7 +19,7 @@ from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Message, MessageProperty, Project, Result
-from api.rest import PluginMethodField
+from api.rest import PluginMethodField, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
@@ -218,16 +218,6 @@ class GitModule(PatchewModule):
             r = base.git_result
             return r if r and r.data.get("repo") else None
 
-    def prepare_series_hook(self, request, series, response):
-        po = series.project
-        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
-            if po.get_property(prop):
-                response[prop] = po.get_property(prop)
-        base = self.get_base(series)
-        if base:
-            response["git.repo"] = base.data["repo"]
-            response["git.base"] = base.data["tag"]
-
     def _poll_project(self, po):
         repo, branch = self._get_project_repo_and_branch(po)
         cache_repo = self._update_cache_repo(po.name, repo, branch)
@@ -263,8 +253,22 @@ class ApplierGetView(APILoginRequiredView):
 
     def handle(self, request):
         m = Message.objects.filter(results__name="git", results__status="pending").first()
-        if m:
-            return prepare_series(request, m)
+        if not m:
+            return None
+
+        response = prepare_series(request, m, fields=["project", "message-id", "patches", "properties"])
+
+        po = m.project
+        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
+            if po.get_property(prop):
+                response[prop] = po.get_property(prop)
+        base = _instance.get_base(m)
+        if base:
+            response["git.repo"] = base.data["repo"]
+            response["git.base"] = base.data["tag"]
+        response["project.git"] = po.git
+        response["result_uri"] = reverse_detail(m.git_result, request)
+        return response
 
 class ApplierReportView(APILoginRequiredView):
     name = "applier-report"
