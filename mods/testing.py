@@ -123,6 +123,15 @@ class TestingModule(PatchewModule):
             self.recalc_pending_tests(obj)
 
     def on_result_update(self, evt, obj, old_status, result):
+        if result.name.startswith("testing.") and result.status != old_status:
+            if 'tester' in result.data:
+                po = obj if isinstance(obj, Project) else obj.project
+                _instance.tester_check_in(po, result.data['tester'])
+            if not self.get_testing_results(obj,
+                           status__in=(Result.PENDING, Result.RUNNING)).exists():
+                obj.set_property("testing.done", True)
+                obj.set_property("testing.tested-head", result.data["head"])
+
         if result.name != "git":
             return
         if isinstance(obj, Message) \
@@ -230,14 +239,11 @@ class TestingModule(PatchewModule):
         r = self.get_testing_result(obj, test)
         r.data = {"is_timeout": is_timeout,
                   "user": user.username,
+                  "head": head,
                   "tester": tester or user.username}
         r.log = log
         r.status = Result.SUCCESS if passed else Result.FAILURE
         r.save()
-        if not self.get_testing_results(obj,
-                       status__in=(Result.PENDING, Result.RUNNING)).exists():
-            obj.set_property("testing.done", True)
-            obj.set_property("testing.tested-head", head)
 
         log_url = self.reverse_testing_log(obj, test, request=request)
         html_log_url = self.reverse_testing_log(obj, test, request=request, html=True)
@@ -476,7 +482,6 @@ class TestingReportView(APILoginRequiredView):
     def handle(self, request, tester, project, test,
                head, base, passed, log, identity,
                is_timeout=False):
-        _instance.tester_check_in(project, tester or request.user.username)
         _instance.add_test_report(request, project, tester,
                                   test, head, base, identity, passed, log,
                                   is_timeout)

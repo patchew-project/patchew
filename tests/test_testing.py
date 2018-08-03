@@ -38,9 +38,14 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
             r = obj.results.get(name='testing.a')
         except:
             r = obj.create_result(name='testing.a')
-            if not 'status' in kwargs:
+            if 'status' not in kwargs:
                 kwargs['status'] = Result.PENDING
 
+        if kwargs['status'] == Result.SUCCESS or kwargs['status'] == Result.FAILURE:
+            if 'data' not in kwargs:
+                kwargs['data'] = {}
+            if 'head' not in kwargs['data']:
+                kwargs['data']['head'] = '0123456789abcdef'
         if len(kwargs):
             for k, v in kwargs.items():
                 setattr(r, k, v)
