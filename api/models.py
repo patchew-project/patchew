@@ -56,7 +56,7 @@ class Result(models.Model):
                                   code='invalid')])
     log_entry = models.OneToOneField(LogEntry, on_delete=models.CASCADE,
                                      null=True)
-    data = jsonfield.JSONField()
+    data = jsonfield.JSONField(default={})
 
     class Meta:
         index_together = [('status', 'name')]
