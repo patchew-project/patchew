@@ -20,6 +20,7 @@ import math
 from api.views import APILoginRequiredView
 from api.models import (Message, MessageProperty, MessageResult,
         Project, ProjectResult, Result)
+from api.rest import reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
@@ -388,17 +389,18 @@ class TestingGetView(APILoginRequiredView):
     name = "testing-get"
     allowed_groups = ["testers"]
 
-    def _generate_test_data(self, project, repo, head, base, identity, test):
+    def _generate_test_data(self, project, repo, head, base, identity, result_uri, test):
         r = {"project": project,
              "repo": repo,
              "head": head,
              "base": base,
              "test": test,
-             "identity": identity
+             "identity": identity,
+             "result_uri": result_uri,
              }
         return r
 
-    def _generate_series_test_data(self, s, test):
+    def _generate_series_test_data(self, request, s, result, test):
         gr = s.git_result
         assert gr.is_success()
         return self._generate_test_data(project=s.project.name,
@@ -410,15 +412,17 @@ class TestingGetView(APILoginRequiredView):
                                             "message-id": s.message_id,
                                             "subject": s.subject,
                                         },
+                                        result_uri=reverse_detail(result, request),
                                         test=test)
 
-    def _generate_project_test_data(self, project, repo, head, base, test):
+    def _generate_project_test_data(self, request, project, repo, head, base, result, test):
         return self._generate_test_data(project=project,
                                         repo=repo, head=head, base=base,
                                         identity={
                                             "type": "project",
                                             "head": head,
                                         },
+                                        result_uri=reverse_detail(result, request),
                                         test=test)
 
     def _find_applicable_test(self, queryset, user, po, tester, capabilities):
@@ -448,7 +452,7 @@ class TestingGetView(APILoginRequiredView):
         candidates = self._find_applicable_test(ProjectResult.objects.filter(project=po),
                                                 request.user, po, tester, capabilities)
         for r, test in candidates:
-            td = self._generate_project_test_data(po.name, repo, head, tested, test)
+            td = self._generate_project_test_data(request, po.name, repo, head, tested, r, test)
             return r, po, td
         return None
 
@@ -457,7 +461,7 @@ class TestingGetView(APILoginRequiredView):
                                                 request.user, po, tester, capabilities)
         for r, test in candidates:
             s = r.message
-            td = self._generate_series_test_data(s, test)
+            td = self._generate_series_test_data(request, s, r, test)
             return r, s, td
         return None
 

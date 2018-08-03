@@ -77,6 +77,34 @@ class PatchewPermission(permissions.BasePermission):
 class ImportPermission(PatchewPermission):
     allowed_groups = ('importers',)
 
+# utility function to generate REST API URLs
+
+def reverse_detail(obj, request):
+    if isinstance(obj, Project):
+        return rest_framework.reverse.reverse("project-detail",
+                                              request=request,
+                                              kwargs={"pk": obj.id})
+    if isinstance(obj, Message):
+        assert obj.is_series_head
+        return rest_framework.reverse.reverse("series-detail",
+                                              request=request,
+                                              kwargs={"projects_pk": obj.project.id,
+                                                      "message_id": obj.message_id})
+    if isinstance(obj, ProjectResult):
+        po = obj.obj
+        return rest_framework.reverse.reverse("results-detail",
+                                              request=request,
+                                              kwargs={"projects_pk": po.id,
+                                                      "name": obj.name})
+    if isinstance(obj, MessageResult):
+        m = obj.obj
+        return rest_framework.reverse.reverse("results-detail",
+                                              request=request,
+                                              kwargs={"projects_pk": m.project.id,
+                                                      "series_message_id": m.message_id,
+                                                      "name": obj.name})
+    raise Error("unhandled object type")
+
 # pluggable field for plugin support
 
 class PluginMethodField(SerializerMethodField):
