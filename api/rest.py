@@ -10,7 +10,7 @@
 
 from collections import OrderedDict
 from django.contrib.auth.models import User
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.template import loader
 
 from mod import dispatch_module_hook
@@ -203,6 +203,16 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         ret = project.series_update(message_ids)
         project.project_head = request.data['new_head']
         return Response({"new_head": project.project_head, "count": ret})
+
+class ProjectsByNameViewSet(viewsets.GenericViewSet):
+    queryset = Project.objects.all()
+    permission_classes = (PatchewPermission,)
+    lookup_field = 'name'
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        url = reverse_detail(instance, request)
+        return HttpResponseRedirect(url, status=status.HTTP_307_TEMPORARY_REDIRECT)
 
 # Common classes for series and messages
 

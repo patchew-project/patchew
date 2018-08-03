@@ -86,6 +86,14 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['mailing_list'], "qemu-block@nongnu.org")
         self.assertEquals(resp.data['parent_project'], self.PROJECT_BASE)
 
+    def test_project_by_name(self):
+        resp = self.api_client.get(self.REST_BASE + 'projects/by-name/QEMU/')
+        self.assertEquals(resp.status_code, 307)
+        resp = self.api_client.get(resp['Location'])
+        self.assertEquals(resp.data['resource_uri'], self.PROJECT_BASE)
+        self.assertEquals(resp.data['name'], "QEMU")
+        self.assertEquals(resp.data['mailing_list'], "qemu-devel@nongnu.org")
+
     def test_update_project_head(self):
         resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
