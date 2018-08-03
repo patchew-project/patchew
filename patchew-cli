@@ -241,12 +241,12 @@ class DeleteCommand(SubCommand):
             print("--all cannot be specified together with search terms")
             return 1
         series_list = []
-        query = {'q': ' '.join(argv)} if len(argv) else None
-        series_resp = self.rest_api_do('series', query=query)
-        series_list = series_resp['results']
+        query = {"q": " ".join(argv)} if len(argv) else None
+        series_resp = self.rest_api_do("series", query=query)
+        series_list = series_resp["results"]
         for series in series_list:
-            url = series['resource_uri']
-            self.rest_api_do(url, request_method='delete')
+            url = series["resource_uri"]
+            self.rest_api_do(url, request_method="delete")
         return 0
 
 
@@ -280,11 +280,15 @@ class ImportCommand(SubCommand):
                     return
             print("[NEW] " + mo["Subject"])
             for mbox in [mo.as_string()]:
-                r = self.rest_api_do(url_cmd="messages",
-                                     request_method='post',
-                                     content_type='message/rfc822',
-                                     data=mbox)
-                projects_list = [x['resource_uri'].split("messages")[0] for x in r['results']]
+                r = self.rest_api_do(
+                    url_cmd="messages",
+                    request_method="post",
+                    content_type="message/rfc822",
+                    data=mbox,
+                )
+                projects_list = [
+                    x["resource_uri"].split("messages")[0] for x in r["results"]
+                ]
                 for p in projects_list:
                     if p not in projects:
                         projects.add(p)
@@ -316,7 +320,9 @@ class ImportCommand(SubCommand):
             try:
                 import_one(f)
                 if len(projects) == 0:
-                    print("The message was not imported to any project. Perhaps you're not logged in as an importer or maintainer")
+                    print(
+                        "The message was not imported to any project. Perhaps you're not logged in as an importer or maintainer"
+                    )
                     r = 1
             except:
                 print("Error in importing:", f)
@@ -556,13 +562,13 @@ class TesterCommand(SubCommand):
         subprocess.check_output(["chmod", "+x", filename])
         return filename
 
-    def _refresh_capabilities(self, project, name):
+    def _refresh_capabilities(self, project):
         wd = tempfile.mkdtemp()
-        r = self.api_do("testing-capabilities", project=project, tester=name)
-        if not r:
+        project = self.rest_api_do("projects/by-name/%s" % project)
+        if not project or "testing_probes" not in project:
             return []
         ret = []
-        for name, val in r.items():
+        for name, val in project["testing_probes"].items():
             script = self._make_script(wd, "probe", val)
             try:
                 if 0 == subprocess.call(
@@ -720,7 +726,7 @@ class TesterCommand(SubCommand):
             if len(projects) > 1:
                 print("Only one project is allowed for --print-capabilities")
                 return 1
-            caps = self._refresh_capabilities(projects[0], args.name)
+            caps = self._refresh_capabilities(projects[0])
             for i in caps:
                 print(i)
             return 0
@@ -735,7 +741,7 @@ class TesterCommand(SubCommand):
             for p in projects:
                 if count % cap_refresh == 0:
                     for sp in projects:
-                        capabilities[sp] = self._refresh_capabilities(sp, args.name)
+                        capabilities[sp] = self._refresh_capabilities(sp)
                 if self.test_one(
                     args.name, p, args.no_clean_up, capabilities=capabilities[p]
                 ):
