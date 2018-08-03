@@ -446,6 +446,8 @@ class TesterCommand(SubCommand):
     want_argv = True
 
     def arguments(self, parser):
+        parser.add_argument("--print-capabilities", action="store_true",
+                            help="print capabilities for the current machine")
         parser.add_argument("--singleton", "-S", action="store_true",
                             help="quit if another singleton mode tester is running")
         parser.add_argument("--project", "-p", required=True,
@@ -591,14 +593,22 @@ class TesterCommand(SubCommand):
 
     def do(self, args, argv):
         # Make sure git works
+        projects = [x.strip() for x in args.project.split(",") if len(x.strip())]
+        if not projects:
+            raise Exception("No project specified")
+        if args.print_capabilities:
+            if len(projects) > 1:
+                print("Only one project is allowed for --print-capabilities")
+                return 1
+            caps = self._refresh_capabilities(projects[0], args.name)
+            for i in caps:
+                print(i)
+            return 0
         if args.singleton:
             self._check_singleton()
         subprocess.check_output(["git", "version"])
         count = 0
         cap_refresh = 10
-        projects = [x.strip() for x in args.project.split(",") if len(x.strip())]
-        if not projects:
-            raise Exception("No project specified")
         capabilities = {}
         while True:
             progress = False
