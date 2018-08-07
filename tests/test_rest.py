@@ -230,7 +230,7 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['count'], 2)
 
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/')
-        self.assertEqual(resp.data['count'], 0)
+        self.assertEqual(resp.status_code, 404)
 
     def test_series_results_list(self):
         resp1 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
@@ -263,9 +263,9 @@ class RestTest(PatchewTestCase):
         self.assertEqual('patches' in resp.data['results'][1], False)
 
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=quorum')
-        self.assertEqual(resp.data['count'], 0)
+        self.assertEqual(resp.status_code, 404)
         resp = self.api_client.get(self.REST_BASE + 'projects/12345/series/?q=project:QEMU')
-        self.assertEqual(resp.data['count'], 0)
+        self.assertEqual(resp.status_code, 404)
 
     def test_series_delete(self):
         test_message_id = '1469192015-16487-1-git-send-email-berrange@redhat.com'

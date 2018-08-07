@@ -253,8 +253,10 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
 
     def get_serializer_context(self):
         if self.project is None:
-            return Http404
-        return {'project': self.project, 'request': self.request}
+            raise Http404
+        context = super(ProjectMessagesViewSetMixin, self).get_serializer_context()
+        context['project'] = self.project
+        return context
 
 # Series
 
