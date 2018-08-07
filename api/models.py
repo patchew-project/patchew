@@ -84,10 +84,14 @@ class Result(models.Model):
         emit_event("ResultUpdate", obj=self.obj,
                    old_status=old_status, result=self)
 
+    @staticmethod
+    def renderer_from_name(name):
+        found = re.match("^[^.]*", name)
+        return mod.get_module(found.group(0)) if found else None
+
     @property
     def renderer(self):
-        found = re.match("^[^.]*", self.name)
-        return mod.get_module(found.group(0)) if found else None
+        return Result.renderer_from_name(self.name)
 
     @property
     def obj(self):

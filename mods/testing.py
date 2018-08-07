@@ -25,6 +25,8 @@ from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
 from schema import *
+from rest_framework import serializers
+from rest_framework.fields import CharField, BooleanField
 
 _instance = None
 
@@ -47,11 +49,18 @@ class TestingLogViewer(LogView):
             raise Http404("Object not found: " + project_or_series)
         return _instance.get_testing_result(obj, testing_name)
 
+class ResultDataSerializer(serializers.Serializer):
+    # TODO: is_timeout should be present iff the result is a failure
+    is_timeout = BooleanField(required=False)
+    head = CharField()
+    tester = CharField(default=serializers.CurrentUserDefault())
 
 class TestingModule(PatchewModule):
     """Testing module"""
 
     name = "testing"
+    allowed_groups = ('testers', )
+    result_data_serializer_class = ResultDataSerializer
 
     test_schema = \
         ArraySchema("{name}", "Test", desc="Test spec",

@@ -23,6 +23,8 @@ from api.rest import PluginMethodField, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
+from rest_framework import serializers
+from rest_framework.fields import CharField
 
 _instance = None
 
@@ -42,10 +44,20 @@ class GitLogViewer(LogView):
             raise Http404("Object not found: " + series)
         return obj.git_result
 
+class ResultDataSerializer(serializers.Serializer):
+    base = CharField()
+
+    # TODO: should be present iff the result is a success
+    repo = CharField(required=False)
+    url = CharField(required=False)
+    tag = CharField(required=False)
 
 class GitModule(PatchewModule):
     """Git module"""
+
     name = "git"
+    allowed_groups = ('importers', )
+    result_data_serializer_class = ResultDataSerializer
 
     project_property_schema = \
         ArraySchema("git", desc="Configuration for git module",
