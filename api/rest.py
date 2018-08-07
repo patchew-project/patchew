@@ -48,31 +48,33 @@ class PatchewPermission(permissions.BasePermission):
     def has_project_permission(self, request, view, obj):
         return obj.maintained_by(request.user)
 
-    def has_message_permission(self, request, view, obj):
-        return obj.project.maintained_by(request.user)
-
-    def has_group_permission(self, request, view):
+    def has_group_permission(self, request, view, groups):
         for grp in request.user.groups.all():
-            if grp.name in self.allowed_groups:
+            if grp.name in groups:
                 return True
         return False
 
     def has_generic_permission(self, request, view):
         return (request.method in permissions.SAFE_METHODS) or \
                self.is_superuser(request) or \
-               self.has_group_permission(request, view)
+               self.has_group_permission(request, view, self.allowed_groups)
 
     def has_permission(self, request, view):
+        # The user can get permissions to operate on an object or a list from one of:
+        # - the HTTP method (has_generic_permission)
+        # - the groups that are allowed for the view (has_generic_permission)
+        # - the parent project of an object (view.project + has_project_permission)
         return self.has_generic_permission(request, view) or \
                (hasattr(view, 'project') and view.project and \
                 self.has_project_permission(request, view, view.project))
 
     def has_object_permission(self, request, view, obj):
+        # For non-project objects, has_project_permission has been evaluated
+        # already in has_permission, based on the primary key included in the
+        # URL.
         return self.has_generic_permission(request, view) or \
-               (isinstance(obj, Message) and \
-                self.has_message_permission(request, view, obj)) or \
-               (isinstance(obj, Project) and \
-                self.has_project_permission(request, view, obj))
+               not isinstance(obj, Project) or \
+               self.has_project_permission(request, view, obj)
 
 class ImportPermission(PatchewPermission):
     allowed_groups = ('importers',)
