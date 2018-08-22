@@ -140,6 +140,17 @@ class GitModule(PatchewModule):
         git_base = self.get_base(message)
         return git_base.data if git_base else None
 
+    def get_mirror(self, po, request, format):
+        response = {}
+        for key, prop in (("head", "git.head"),
+                          ("pushurl", "git.push_to"),
+                          ("url", "git.public_repo")):
+            response[key] = po.get_property(prop) or None
+        return response
+
+    def rest_project_fields_hook(self, request, fields):
+        fields['mirror'] = PluginMethodField(obj=self, required=False)
+
     def rest_series_fields_hook(self, request, fields, detailed):
         fields['based_on'] = PluginMethodField(obj=self, required=False)
 
