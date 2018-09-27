@@ -222,7 +222,7 @@ Search text keyword in the email message. Example:
             return Q(is_merged=True)
         return None
 
-    def _make_filter(self, term):
+    def _make_filter(self, term, user):
         if term.startswith("age:"):
             cond = term[term.find(":") + 1:]
             return self._make_filter_age(cond)
@@ -271,7 +271,7 @@ Search text keyword in the email message. Example:
         # Keyword in subject is the default
         return self._make_filter_keywords(term)
 
-    def _process_term(self, term):
+    def _process_term(self, term, user):
         """ Return a Q object that will be applied to the query """
         is_plusminus = neg = False
         if term[0] in "+-!":
@@ -282,7 +282,7 @@ Search text keyword in the email message. Example:
         if is_plusminus and ":" not in term:
             q = self._make_filter_is(term) or self._make_filter_keywords(term)
         else:
-            q = self._make_filter(term)
+            q = self._make_filter(term, user)
         if neg:
             return ~q
         else:
@@ -294,11 +294,12 @@ Search text keyword in the email message. Example:
     def project(self):
         return next(iter(self._projects)) if len(self._projects) == 1 else None
 
-    def search_series(self, *terms, queryset=None):
+    def search_series(self, *terms, user=None, queryset=None):
         self._last_keywords = []
         self._projects = set()
         q = reduce(lambda x, y: x & y,
-                map(lambda t: self._process_term(t), terms), Q())
+                map(lambda t: self._process_term(t, user), terms),
+                Q())
         if queryset is None:
             queryset = Message.objects.series_heads()
         return queryset.filter(q)

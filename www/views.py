@@ -224,7 +224,7 @@ def view_search(request):
     search = request.GET.get("q", "").strip()
     terms = [x.strip() for x in search.split(" ") if x]
     se = SearchEngine()
-    query = se.search_series(*terms)
+    query = se.search_series(user=request.user, *terms)
     return render_series_list_page(request, query, search=search,
                                    project=se.project(),
                                    keywords=se.last_keywords())

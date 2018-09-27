@@ -185,7 +185,7 @@ class SearchView(APIView):
 
     def handle(self, request, terms, fields=None):
         se = SearchEngine()
-        r = se.search_series(*terms)
+        r = se.search_series(user=request.user, *terms)
         return [prepare_series(request, x, fields) for x in r]
 
 class ImportView(APILoginRequiredView):
@@ -211,7 +211,7 @@ class DeleteView(APILoginRequiredView):
             Message.objects.all().delete()
         else:
             se = SearchEngine()
-            for r in se.search_series(*terms):
+            for r in se.search_series(user=request.user, *terms):
                 Message.objects.delete_subthread(r)
 
 class Logout(APIView):
