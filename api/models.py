@@ -423,6 +423,11 @@ class MessageManager(models.Manager):
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
 
+class Review(models.Model):
+    user = models.ForeignKey(User)
+    message = models.ForeignKey('Message')
+    accept = models.BooleanField()
+
 class Message(models.Model):
     """ Patch email message """
 
@@ -458,6 +463,8 @@ class Message(models.Model):
 
     # number of patches we've got if is_series_head
     num_patches = models.IntegerField(null=False, default=-1, blank=True)
+
+    reviews = models.ManyToManyField(User, blank=True, through=Review)
 
     objects = MessageManager()
 

@@ -137,7 +137,7 @@ h1, h2, h3, .h1, .h2, .h3 {
 .status-content > .fa {
     color: #337ab7;
 }
-.status-content > .fa-warning {
+.status-content > .fa-warning, .status-content > .fa-times {
     color: #CC0000;
 }
 .status-content > .fa-check {
