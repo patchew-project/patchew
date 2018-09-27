@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from .models import Message
+from .models import Message, Result
 from django.db.models import Q
 
 class InvalidSearchTerm(Exception):
@@ -70,6 +70,7 @@ Syntax:
  - is:complete - the series has all the patches it contains
  - is:merged - the series is included in the project's git tree
  - is:pull - the series is a pull request
+ - is:applied - a git tree is available for the series
  - has:replies - the series received a reply (apart from patches sent by the submitter)
 
 Example:
@@ -170,10 +171,8 @@ Search text keyword in the email message. Example:
                     ~Q(properties__name="obsoleted-by",
                       properties__value__iexact='')
             elif cond == "applied":
-                q = Q(properties__name="git.tag",
-                      properties__value__isnull=False) & \
-                    ~Q(properties__name="git.tag",
-                      properties__value__iexact='')
+                q = Q(results__name="git",
+                      results__status=Result.SUCCESS)
             elif cond == "tested":
                 q = Q(properties__name="testing.done",
                       properties__value="true")
