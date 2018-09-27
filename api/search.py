@@ -9,6 +9,7 @@
 # http://opensource.org/licenses/MIT.
 
 from .models import Message, MessageProperty, MessageResult, Result
+from functools import reduce
 from django.db.models import Q
 
 class InvalidSearchTerm(Exception):
@@ -128,19 +129,19 @@ Search text keyword in the email message. Example:
         message_ids = model.objects.filter(q).values('message_id')
         return Q(id__in=message_ids)
 
-    def _process_term(self, query, term, neg=False):
+    def _process_term(self, term, neg=False):
         """ Return a Q object that will be applied to the query """
         def as_keywords(t):
             self._last_keywords.append(t)
             return Q(subject__icontains=t)
 
         if term.startswith("!"):
-            return self._process_term(query, term[1:], not neg)
+            return self._process_term(term[1:], not neg)
         if term.startswith("age:"):
             cond = term[term.find(":") + 1:]
-            q = self._process_age_term(query, cond)
+            q = self._process_age_term(cond)
         elif term[0] in "<>" and len(term) > 1:
-            q = self._process_age_term(query, term)
+            q = self._process_age_term(term)
         elif term.startswith("from:"):
             cond = term[term.find(":") + 1:]
             q = Q(sender__icontains=cond)
@@ -196,9 +197,9 @@ Search text keyword in the email message. Example:
             # Keyword in subject is the default
             q = as_keywords(term)
         if neg:
-            return query.exclude(pk__in=query.filter(q))
+            return ~q
         else:
-            return query.filter(q)
+            return q
 
     def last_keywords(self):
         return getattr(self, "_last_keywords", [])
@@ -209,13 +210,13 @@ Search text keyword in the email message. Example:
     def search_series(self, *terms, queryset=None):
         self._last_keywords = []
         self._projects = set()
+        q = reduce(lambda x, y: x & y,
+                map(lambda t: self._process_term(t), terms), Q())
         if queryset is None:
             queryset = Message.objects.series_heads()
-        for t in terms:
-            queryset = self._process_term(queryset, t)
-        return queryset
+        return queryset.filter(q)
 
-    def _process_age_term(self, query, cond):
+    def _process_age_term(self, cond):
         import datetime
         def human_to_seconds(n, unit):
             if unit == "d":
