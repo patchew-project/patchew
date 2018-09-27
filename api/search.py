@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from .models import Message, Result
+from .models import Message, MessageProperty, MessageResult, Result
 from django.db.models import Q
 
 class InvalidSearchTerm(Exception):
@@ -124,6 +124,10 @@ Search text keyword in the email message. Example:
     regression
 
 """
+    def _make_filter_subquery(self, model, q):
+        message_ids = model.objects.filter(q).values('message_id')
+        return Q(id__in=message_ids)
+
     def _process_term(self, query, term, neg=False):
         """ Return a Q object that will be applied to the query """
         def as_keywords(t):
@@ -163,19 +167,15 @@ Search text keyword in the email message. Example:
             elif cond == "pull":
                 q = Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
             elif cond == "reviewed":
-                q = Q(properties__name="reviewed",
-                      properties__value=True)
+                q = self._make_filter_subquery(MessageProperty, Q(name="reviewed", value=True))
             elif cond in ("obsoleted", "old"):
-                q = Q(properties__name="obsoleted-by",
-                      properties__value__isnull=False) & \
-                    ~Q(properties__name="obsoleted-by",
-                      properties__value__iexact='')
+                q = self._make_filter_subquery(MessageProperty,
+                                               Q(name="obsoleted-by", value__isnull=False) &
+                                               ~Q(name="obsoleted-by", value__iexact=''))
             elif cond == "applied":
-                q = Q(results__name="git",
-                      results__status=Result.SUCCESS)
+                q = self._make_filter_subquery(MessageResult, Q(name="git", status=Result.SUCCESS))
             elif cond == "tested":
-                q = Q(properties__name="testing.done",
-                      properties__value=True)
+                q = self._make_filter_subquery(MessageProperty, Q(name="testing.done", value=True))
             elif cond == "merged":
                 q = Q(is_merged=True)
             else:
