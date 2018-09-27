@@ -164,7 +164,7 @@ Search text keyword in the email message. Example:
                 q = Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
             elif cond == "reviewed":
                 q = Q(properties__name="reviewed",
-                      properties__value="true")
+                      properties__value=True)
             elif cond in ("obsoleted", "old"):
                 q = Q(properties__name="obsoleted-by",
                       properties__value__isnull=False) & \
@@ -175,7 +175,7 @@ Search text keyword in the email message. Example:
                       results__status=Result.SUCCESS)
             elif cond == "tested":
                 q = Q(properties__name="testing.done",
-                      properties__value="true")
+                      properties__value=True)
             elif cond == "merged":
                 q = Q(is_merged=True)
             else:
