@@ -348,6 +348,25 @@ class TestingResetTest(PatchewTestCase):
                                   "testing.c": Result.PENDING})
         self.assertFalse(msg.get_property("testing.done"))
 
+class TestingDisableTest(PatchewTestCase):
+
+    def setUp(self):
+        self.create_superuser()
+
+        self.repo = self.create_git_repo("repo")
+
+        self.p1 = self.add_project("QEMU", "qemu-devel@nongnu.org")
+        create_test(self.p1, "a")
+
+    def test_disable_test(self):
+        self.cli_login()
+        self.cli_import('0013-foo-patch.mbox.gz')
+        self.do_apply()
+        self.p1.set_property("testing.tests.a.enabled", False)
+        out, err = self.check_cli(["tester", "-p", "QEMU", "--no-wait"])
+        self.assertNotIn("Project: QEMU\n", out)
+        self.cli_logout()
+
 # do not run tests on the abstract class
 del TestingTestCase
 

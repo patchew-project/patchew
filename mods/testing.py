@@ -130,7 +130,7 @@ class TestingModule(PatchewModule):
             self.clear_and_start_testing(obj)
         elif isinstance(obj, Project) and name.startswith("testing.tests.") \
             and old_value != value:
-            self.recalc_pending_tests(obj)
+            self.project_recalc_pending_tests(obj)
 
     def on_result_update(self, evt, obj, old_status, result):
         if result.name.startswith("testing.") and result.status != old_status:
@@ -151,8 +151,11 @@ class TestingModule(PatchewModule):
             and result.data.get("tag") and result.data.get("repo"):
                 self.clear_and_start_testing(obj)
 
+    def filter_testing_results(self, queryset, *args, **kwargs):
+        return queryset.filter(name__startswith='testing.', *args, **kwargs)
+
     def get_testing_results(self, obj, *args, **kwargs):
-        return obj.results.filter(name__startswith='testing.', *args, **kwargs)
+        return self.filter_testing_results(obj.results, *args, **kwargs)
 
     def get_testing_result(self, obj, name):
         try:
@@ -177,6 +180,16 @@ class TestingModule(PatchewModule):
                 obj.set_property("testing.done", None)
                 return
         obj.set_property("testing.done", True)
+
+    def project_recalc_pending_tests(self, project):
+        self.recalc_pending_tests(project)
+
+        # Only operate on messages for which testing has not completed yet.
+        message_ids = self.filter_testing_results(MessageResult.objects,
+                message__project=project, status=Result.PENDING).values('message_id')
+        messages = Message.objects.filter(id__in=message_ids)
+        for obj in messages:
+            self.recalc_pending_tests(obj)
 
     def clear_and_start_testing(self, obj, test=""):
         for k in list(obj.get_properties().keys()):
