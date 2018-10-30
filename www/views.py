@@ -253,8 +253,9 @@ def view_series_detail(request, project, message_id):
     nav_path = prepare_navigate_list("View series",
                     ("series_list", {"project": project}, project))
     search = "id:" + message_id
-    series = prepare_message(request, s.project, s, True)
-    is_cover_letter=not series.is_patch
+    is_cover_letter=not s.is_patch
+    messages = prepare_series(request, s, is_cover_letter)
+    series = messages[0]
     return render_page(request, 'series-detail.html',
                        subject=s.subject,
                        stripped_subject=s.stripped_subject,
@@ -269,7 +270,7 @@ def view_series_detail(request, project, message_id):
                        search=search,
                        results=prepare_results(request, s),
                        patches=prepare_patches(request, s),
-                       messages=prepare_series(request, s, is_cover_letter))
+                       messages=messages)
 
 def view_series_message(request, project, thread_id, message_id):
     s = api.models.Message.objects.find_series(thread_id, project)
@@ -281,6 +282,7 @@ def view_series_message(request, project, thread_id, message_id):
                     ("series_detail", {"project": project, "message_id": thread_id}, s.subject ))
     search = "id:" + thread_id
     series = prepare_message(request, s.project, s, True)
+    messages = prepare_series(request, m)
     return render_page(request, 'series-detail.html',
                        subject=m.subject,
                        stripped_subject=s.stripped_subject,
@@ -295,4 +297,4 @@ def view_series_message(request, project, thread_id, message_id):
                        search=search,
                        results=[],
                        patches=prepare_patches(request, s),
-                       messages=prepare_series(request, m))
+                       messages=messages)
