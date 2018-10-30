@@ -30,6 +30,7 @@ router = DefaultRouter(trailing_slash=True)
 router.include_format_suffixes = False
 router.register('users', rest.UsersViewSet)
 router.register('projects', rest.ProjectsViewSet)
+router.register('projects/by-name', rest.ProjectsByNameViewSet)
 router.register('series', rest.SeriesViewSet, base_name='series')
 router.register('messages', rest.MessagesViewSet)
 

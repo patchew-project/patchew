@@ -41,6 +41,18 @@ def addr_db_to_rest(obj):
         else:
             return {"address": obj[1]}
 
+def decode_payload(m):
+    payload = m.get_payload(decode=True)
+    charset = m.get_content_charset()
+    try:
+        return payload.decode(charset or 'utf-8', errors='replace')
+    except:
+        if charset != 'utf-8':
+            # Still fall back from non-utf-8 to utf-8
+            return payload.decode('utf-8')
+        else:
+            raise
+
 class MboxMessage(object):
     """ Helper class to process mbox """
     def __init__(self, m):
@@ -161,21 +173,11 @@ class MboxMessage(object):
         return s.intersection(self.get_prefixes(upper=True))
 
     def get_body(self):
-        def decode_payload(payload, charset):
-            try:
-                return payload.decode(charset or 'utf-8', errors='replace')
-            except:
-                if charset != 'utf-8':
-                    # Still fall back from non-utf-8 to utf-8
-                    return payload.decode('utf-8')
-                else:
-                    raise
         def _get_message_text(m):
             payload = m.get_payload(decode=not self._m.is_multipart())
             body = ''
             if m.get_content_type() == "text/plain":
-                body = decode_payload(m.get_payload(decode=True),
-                                      self._m.get_content_charset())
+                body = decode_payload(m)
             elif isinstance(payload, list):
                 for p in payload:
                     body += _get_message_text(p)

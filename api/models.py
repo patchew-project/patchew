@@ -84,10 +84,14 @@ class Result(models.Model):
         emit_event("ResultUpdate", obj=self.obj,
                    old_status=old_status, result=self)
 
+    @staticmethod
+    def renderer_from_name(name):
+        found = re.match("^[^.]*", name)
+        return mod.get_module(found.group(0)) if found else None
+
     @property
     def renderer(self):
-        found = re.match("^[^.]*", self.name)
-        return mod.get_module(found.group(0)) if found else None
+        return Result.renderer_from_name(self.name)
 
     @property
     def obj(self):
@@ -313,20 +317,27 @@ class MessageManager(models.Manager):
     class DuplicateMessageError(Exception):
         pass
 
-    def series_heads(self, project=None):
-        q = super(MessageManager, self).get_queryset()\
-                .filter(is_series_head=True).prefetch_related('properties', 'project')
+    def project_messages(self, project):
+        q = super(MessageManager, self).get_queryset()
         if isinstance(project, str):
             po = Project.objects.get(name=project)
         elif isinstance(project, int):
             po = Project.objects.get(id=project)
-        else:
-            return q
         q = q.filter(project=po) | q.filter(project__parent_project=po)
         return q
 
+    def series_heads(self, project=None):
+        if project:
+            q = self.project_messages(project)
+        else:
+            q = super(MessageManager, self).get_queryset()
+        return q.filter(is_series_head=True).prefetch_related('properties', 'project')
+
     def find_series(self, message_id, project_name=None):
         return self.series_heads(project_name).filter(message_id=message_id).first()
+
+    def find_message(self, message_id, project_name):
+        return self.project_messages(project_name).filter(message_id=message_id).first()
 
     def patches(self):
         return super(MessageManager, self).get_queryset().\
@@ -419,6 +430,11 @@ class MessageManager(models.Manager):
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
 
+class Review(models.Model):
+    user = models.ForeignKey(User)
+    message = models.ForeignKey('Message')
+    accept = models.BooleanField()
+
 class Message(models.Model):
     """ Patch email message """
 
@@ -444,6 +460,7 @@ class Message(models.Model):
     version = models.PositiveSmallIntegerField(default=0)
     sender = jsonfield.JSONCharField(max_length=4096, db_index=True)
     recipients = jsonfield.JSONField()
+    tags = jsonfield.JSONField(default=[])
     prefixes = jsonfield.JSONField(blank=True)
     is_series_head = models.BooleanField()
     is_complete = models.BooleanField(default=False)
@@ -454,6 +471,8 @@ class Message(models.Model):
 
     # number of patches we've got if is_series_head
     num_patches = models.IntegerField(null=False, default=-1, blank=True)
+
+    reviews = models.ManyToManyField(User, blank=True, through=Review)
 
     objects = MessageManager()
 

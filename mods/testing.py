@@ -20,11 +20,13 @@ import math
 from api.views import APILoginRequiredView
 from api.models import (Message, MessageProperty, MessageResult,
         Project, ProjectResult, Result)
-from api.rest import reverse_detail
+from api.rest import PluginMethodField, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
 from schema import *
+from rest_framework import serializers
+from rest_framework.fields import CharField, BooleanField
 
 _instance = None
 
@@ -47,11 +49,18 @@ class TestingLogViewer(LogView):
             raise Http404("Object not found: " + project_or_series)
         return _instance.get_testing_result(obj, testing_name)
 
+class ResultDataSerializer(serializers.Serializer):
+    # TODO: is_timeout should be present iff the result is a failure
+    is_timeout = BooleanField(required=False)
+    head = CharField()
+    tester = CharField(default=serializers.CurrentUserDefault())
 
 class TestingModule(PatchewModule):
     """Testing module"""
 
     name = "testing"
+    allowed_groups = ('testers', )
+    result_data_serializer_class = ResultDataSerializer
 
     test_schema = \
         ArraySchema("{name}", "Test", desc="Test spec",
@@ -377,6 +386,12 @@ class TestingModule(PatchewModule):
             ret[name] = v
         return ret
 
+    def get_testing_probes(self, project, request, format):
+        return self.get_capability_probes(project)
+
+    def rest_project_fields_hook(self, request, fields):
+        fields['testing_probes'] = PluginMethodField(obj=self)
+
     def tester_check_in(self, project, tester):
         assert project
         assert tester
@@ -508,6 +523,6 @@ class UntestView(APILoginRequiredView):
 
     def handle(self, request, terms):
         se = SearchEngine()
-        q = se.search_series(*terms)
+        q = se.search_series(user=request.user, *terms)
         for s in q:
             _instance.clear_and_start_testing(s)

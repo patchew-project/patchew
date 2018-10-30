@@ -151,11 +151,18 @@ class SetProjectPropertiesView(APILoginRequiredView):
         for k, v in properties.items():
             po.set_property(k, v)
 
+def get_properties(m):
+    r = m.get_properties()
+    # for compatibility with patchew-cli's applier mode
+    if m.tags:
+        r['tags'] = m.tags
+    return r
+
 def prepare_patch(p):
     r = {"subject": p.subject,
          "message-id": p.message_id,
          "mbox": p.get_mbox(),
-         "properties": p.get_properties(),
+         "properties": get_properties(p)
          }
     return r
 
@@ -173,7 +180,9 @@ def prepare_series(request, s, fields=None):
     if want_field("patches"):
         r["patches"] = [prepare_patch(x) for x in s.get_patches()]
     if want_field("properties"):
-        r["properties"] = s.get_properties()
+        r["properties"] = get_properties(s)
+    if want_field("tags"):
+        r["tags"] = s.tags
     if want_field("is_complete"):
         r["is_complete"] = s.is_complete
     if fields:
@@ -185,7 +194,7 @@ class SearchView(APIView):
 
     def handle(self, request, terms, fields=None):
         se = SearchEngine()
-        r = se.search_series(*terms)
+        r = se.search_series(user=request.user, *terms)
         return [prepare_series(request, x, fields) for x in r]
 
 class ImportView(APILoginRequiredView):
@@ -211,7 +220,7 @@ class DeleteView(APILoginRequiredView):
             Message.objects.all().delete()
         else:
             se = SearchEngine()
-            for r in se.search_series(*terms):
+            for r in se.search_series(user=request.user, *terms):
                 Message.objects.delete_subthread(r)
 
 class Logout(APIView):

@@ -23,6 +23,8 @@ from api.rest import PluginMethodField, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
+from rest_framework import serializers
+from rest_framework.fields import CharField
 
 _instance = None
 
@@ -42,10 +44,20 @@ class GitLogViewer(LogView):
             raise Http404("Object not found: " + series)
         return obj.git_result
 
+class ResultDataSerializer(serializers.Serializer):
+    base = CharField()
+
+    # TODO: should be present iff the result is a success
+    repo = CharField(required=False)
+    url = CharField(required=False)
+    tag = CharField(required=False)
 
 class GitModule(PatchewModule):
     """Git module"""
+
     name = "git"
+    allowed_groups = ('importers', )
+    result_data_serializer_class = ResultDataSerializer
 
     project_property_schema = \
         ArraySchema("git", desc="Configuration for git module",
@@ -128,6 +140,17 @@ class GitModule(PatchewModule):
         git_base = self.get_base(message)
         return git_base.data if git_base else None
 
+    def get_mirror(self, po, request, format):
+        response = {}
+        for key, prop in (("head", "git.head"),
+                          ("pushurl", "git.push_to"),
+                          ("url", "git.public_repo")):
+            response[key] = po.get_property(prop) or None
+        return response
+
+    def rest_project_fields_hook(self, request, fields):
+        fields['mirror'] = PluginMethodField(obj=self, required=False)
+
     def rest_series_fields_hook(self, request, fields, detailed):
         fields['based_on'] = PluginMethodField(obj=self, required=False)
 
@@ -205,7 +228,7 @@ class GitModule(PatchewModule):
                                                                           project)})
 
     def get_base(self, series):
-        for tag in series.get_property("tags", []):
+        for tag in series.tags:
             if not tag.startswith("Based-on:"):
                 continue
             base_id = tag[len("Based-on:"):].strip()
@@ -256,7 +279,8 @@ class ApplierGetView(APILoginRequiredView):
         if not m:
             return None
 
-        response = prepare_series(request, m, fields=["project", "message-id", "patches", "properties"])
+        response = prepare_series(request, m, fields=["project", "message-id", "patches",
+                                                      "properties", "tags"])
 
         po = m.project
         for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
