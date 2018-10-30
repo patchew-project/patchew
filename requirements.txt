@@ -7,3 +7,4 @@ djangorestframework>=3.0.0
 jsonfield2 >= 3.0, < 4.0
 drf-nested-routers
 coreapi-cli
+pyyaml
