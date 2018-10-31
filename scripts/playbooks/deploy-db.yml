@@ -1,0 +1,18 @@
+- hosts: db
+  vars_prompt:
+    - name: instance_name
+      prompt: "Instance name of the patchew postgres db"
+      default: patchew-server-db
+      private: no
+  vars:
+    base_dir: "/data/{{ instance_name }}"
+    src_dir: "{{ base_dir }}/src"
+    data_dir: "{{ base_dir }}/data"
+  tasks:
+    - name: Create data dir
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+    - import_tasks: tasks/docker-deploy.yml
+      vars:
+        instance_role: db

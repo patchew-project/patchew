@@ -17,11 +17,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", "-s", dest="web_server",
                         help="Web server host address")
+    parser.add_argument("--db", "-d", dest="db_server",
+                        help="Database host address")
     parser.add_argument("--tester", "-t", nargs="*", dest="testers",
                         help="Tester host address")
     parser.add_argument("--importer", "-i", nargs="?",
                         help="Importer host address")
-    parser.add_argument("--debug", "-d", action="store_true",
+    parser.add_argument("--debug", "-D", action="store_true",
                         help="Enable debug output")
     return parser.parse_known_args()
 
@@ -31,12 +33,16 @@ def generate_inventory_file(args):
 [servers]
 %s
 
+[db]
+%s
+
 [importers]
 %s
 
 [testers]
 %s""" \
         % (args.web_server or "",
+           args.db_server or "",
            args.importer or "",
            "\n".join(args.testers or [])))
     f.flush()
@@ -50,6 +56,8 @@ def main():
     playbooks = []
     if args.web_server:
         playbooks.append("deploy-servers.yml")
+    if args.db_server:
+        playbooks.append("deploy-db.yml")
     if args.testers:
         playbooks.append("deploy-testers.yml")
     if args.importer:
