@@ -101,9 +101,6 @@ def env_detect():
     if "PATCHEW_DATA_DIR" in os.environ:
         # Docker deployment
         return False, os.environ.get("PATCHEW_DATA_DIR")
-    elif "OPENSHIFT_DATA_DIR" in os.environ:
-        # OpenShift deployment
-        return False, os.environ.get("OPENSHIFT_DATA_DIR")
     elif "VIRTUAL_ENV" in os.environ or os.environ.get("PATCHEW_DEBUG", False):
         # Development setup
         return True, os.path.join(os.environ.get("VIRTUAL_ENV",
