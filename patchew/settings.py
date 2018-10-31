@@ -98,21 +98,35 @@ WSGI_APPLICATION = 'patchew.wsgi.application'
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 def env_detect():
-    if "PATCHEW_DATA_DIR" in os.environ:
+    if "PATCHEW_DB_PORT_5432_TCP_ADDR" in os.environ:
         # Docker deployment
-        return False, os.environ.get("PATCHEW_DATA_DIR")
+        return (False, os.environ.get("PATCHEW_DATA_DIR"),
+            {
+                'default': {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': 'patchew',
+                    'USER': 'patchew',
+                    'PASSWORD': 'patchew',
+                    'HOST': os.environ.get('PATCHEW_DB_PORT_5432_TCP_ADDR'),
+                    'PORT': '5432',
+                    }
+            })
     elif "VIRTUAL_ENV" in os.environ or os.environ.get("PATCHEW_DEBUG", False):
         # Development setup
-        return True, os.path.join(os.environ.get("VIRTUAL_ENV",
-                                                 "/var/tmp/patchew-dev"),
-                                  "data")
-    elif os.environ.get("PATCHEW_TEST"):
-        # Test environment
-        return True, os.environ.get("PATCHEW_TEST_DATA_DIR")
+        data_dir = os.path.join(os.environ.get("VIRTUAL_ENV",
+                                               "/var/tmp/patchew-dev"),
+                                "data")
+        return (True, data_dir,
+            {
+                'default': {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': os.path.join(data_dir, "patchew-db.sqlite3"),
+                    }
+            })
     else:
         raise Exception("Unknown running environment")
 
-DEBUG, DATA_DIR = env_detect()
+DEBUG, DATA_DIR, DATABASES = env_detect()
 
 # In production environments, we run in a container, behind nginx, which should
 # filter the allowed host names. So be a little flexible here
@@ -134,13 +148,6 @@ MEDIA_URL = "/media/"
 
 if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(DATA_DIR, "patchew-db.sqlite3"),
-    }
-}
 
 # If the PATCHEW_ADMIN_EMAIL env var is set, let Django send error reporting to
 # the address.

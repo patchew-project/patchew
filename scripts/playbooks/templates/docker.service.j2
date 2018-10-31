@@ -10,6 +10,7 @@ ExecStartPre=-/usr/bin/docker stop {{ instance_name }} ; -/usr/bin/docker rm {{ 
 ExecStart=/usr/bin/docker run --privileged --name {{ instance_name }} \
     -v {{ data_dir }}:/data/patchew:rw \
     -e PATCHEW_DATA_DIR=/data/patchew \
+    {{ docker_run_args | default() }} \
     patchew:{{ instance_name }}
 ExecStop=/usr/bin/docker stop -t 10 {{ instance_name }}
 RestartSec=60
