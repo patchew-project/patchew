@@ -317,6 +317,7 @@ TMPL_MAP_ITEM = """
     <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         {{ item_schema.title }}
         <strong id="item-name">{{ item.name }}</strong>
+        <input type="hidden" value="{{ prefix }}{{ item.name }}." id="prefix" />
     </div>
     <div class="panel-body panel-collapse collapse">
         {{ item.html }}
@@ -447,19 +448,16 @@ function map_add_item(btn) {
 }
 function map_delete_item(btn) {
     name = $(btn).parent().parent().parent().find("#item-name").html();
+    prefix = $(btn).parent().parent().parent().find("#prefix").val();
     if (!window.confirm("Really delete '" + name +"'?")) {
         return;
-    }
-    props = collect_properties(btn, false);
-    for (var k in props) {
-        props[k] = null;
     }
     $(btn).addClass("disabled");
     $(btn).text("Deleting...");
     $(btn).parent().find(".delete-message").remove();
-    patchew_api_do("set-project-properties",
+    patchew_api_do("delete-project-properties-by-prefix",
                    { project: "{{ project.name }}",
-                     properties: props })
+                     prefix: prefix })
         .done(function (data) {
             container = $(btn).parent().parent().parent();
             container.remove();
