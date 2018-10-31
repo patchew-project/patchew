@@ -446,6 +446,8 @@ class TestingGetView(APILoginRequiredView):
                             name__startswith='testing.').order_by('status', 'last_update')
         tests = _instance.get_tests(po)
         for r in q:
+            if isinstance(r, MessageResult) and not r.message.git_result.is_success():
+                continue
             tn = _instance.get_test_name(r)
             t = tests.get(tn, None)
             # Shouldn't happen, but let's protect against it
