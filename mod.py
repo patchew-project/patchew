@@ -29,6 +29,13 @@ class PatchewModule(object):
         _module_init_config(self.__class__)
         return PC.objects.get(name=self.name)
 
+    def enabled(self):
+        try:
+            m = self.get_model()
+            return m.enabled
+        except:
+            return True
+
     def get_config_raw(self):
         return self.get_model().config or ""
 
@@ -164,18 +171,6 @@ def _module_init_config(cls):
         pc.save()
     return pc
 
-def _init_module(cls):
-    name = cls.name
-    if name in _loaded_modules:
-        raise Exception("The module named '%s' is already loaded" % name)
-    pc = _module_init_config(cls)
-    if not pc.enabled:
-        return None
-    i = cls()
-    # TODO: let i.enabled follows pc.enabled
-    i.enabled = pc.enabled
-    return i
-
 def load_modules():
     _module_path = settings.MODULE_DIR
     sys.path.append(_module_path)
@@ -187,17 +182,12 @@ def load_modules():
             except:
                 traceback.print_exc()
     for cls in PatchewModule.__subclasses__():
-        try:
-            i = _init_module(cls)
-            if not i:
-                continue
-            _loaded_modules[cls.name] = i
+        if cls.name not in _loaded_modules:
+            _loaded_modules[cls.name] = cls()
             print("Loaded module:", cls.name)
-        except Exception as e:
-            print("Cannot load module '%s':" % cls, e)
 
 def dispatch_module_hook(hook_name, **params):
-    for i in [x for x in list(_loaded_modules.values()) if x.enabled]:
+    for i in [x for x in list(_loaded_modules.values()) if x.enabled()]:
         if hasattr(i, hook_name):
             try:
                 getattr(i, hook_name)(**params)
