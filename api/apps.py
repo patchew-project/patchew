@@ -13,19 +13,9 @@
 from django.apps import AppConfig
 import mod
 
-_default_groups = ['maintainers', 'testers', 'importers']
-
-def create_default_groups():
-    from django.contrib.auth.models import Group
-    for grp in _default_groups:
-        Group.objects.get_or_create(name=grp)
-
 class ApiConfig(AppConfig):
     name = 'api'
     verbose_name = "Patchew Core"
     def ready(self):
-        try:
-            mod.load_modules()
-            create_default_groups()
-        except Exception as e:
-            print("Error while loading modules:", e)
+        from mod import load_modules
+        load_modules()
