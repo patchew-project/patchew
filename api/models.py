@@ -714,6 +714,10 @@ class Message(models.Model):
 
     class Meta:
         unique_together = ('project', 'message_id',)
+        index_together = [('is_series_head', 'project', 'last_reply_date'),
+                          ('is_series_head', 'project', 'date'),
+                          ('is_series_head', 'last_reply_date'),
+                          ('is_series_head', 'date')]
 
 class MessageResult(Result):
     message = models.ForeignKey(Message, related_name='results')

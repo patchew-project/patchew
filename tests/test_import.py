@@ -91,8 +91,10 @@ class ImportTest(PatchewTestCase):
         self.assertTrue(s.project.name, sp.name)
 
         self.cli_import("0020-libvirt.mbox.gz")
-        subj2 = subj + '\n[libvirt]  [PATCH v2] vcpupin: add clear feature'
-        self.check_cli(["search", "project:Libvirt"], stdout=subj2)
+        # the order of the search results may change, so we cannot use stdout=...
+        a, b = self.check_cli(["search", "project:Libvirt"])
+        self.assertEqual(sorted(a.split('\n')),
+                         ['[libvirt]  [PATCH v2] vcpupin: add clear feature', subj])
         self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
 
 class UnprivilegedImportTest(ImportTest):
