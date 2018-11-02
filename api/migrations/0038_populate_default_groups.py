@@ -14,7 +14,7 @@ def populate_default_groups(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0036_populate_message_tags'),
+        ('api', '0037_auto_20181031_1439'),
     ]
 
     operations = [
