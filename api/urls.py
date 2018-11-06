@@ -16,6 +16,7 @@ from rest_framework.schemas import get_schema_view
 from . import views
 from . import rest
 
+
 def _build_urls(base=None, r=[]):
     for cls in (base or views.APIView).__subclasses__():
         if cls.name:
@@ -25,6 +26,7 @@ def _build_urls(base=None, r=[]):
         else:
             _build_urls(cls, r)
     return r
+
 
 router = DefaultRouter(trailing_slash=True)
 router.include_format_suffixes = False
@@ -47,12 +49,10 @@ results_router.register('results', rest.SeriesResultsViewSet, base_name='results
 schema_view = get_schema_view(title='API schema')
 
 urlpatterns = _build_urls() + [
-        url(r"v1/", include(router.urls)),
-        url(r"v1/", include(projects_router.urls)),
-        url(r"v1/", include(results_router.urls)),
-        url(r'^v1/schema/$', schema_view),
-        # Use the base class's handler by default
-        url(r".*", views.APIView.as_view())
-    ]
-
-
+    url(r"v1/", include(router.urls)),
+    url(r"v1/", include(projects_router.urls)),
+    url(r"v1/", include(results_router.urls)),
+    url(r'^v1/schema/$', schema_view),
+    # Use the base class's handler by default
+    url(r".*", views.APIView.as_view())
+]

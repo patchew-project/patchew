@@ -17,7 +17,7 @@ from mod import dispatch_module_hook
 from .models import Project, ProjectResult, Message, MessageResult, Result
 from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
-    mixins, generics, renderers, status)
+                            mixins, renderers, status)
 from rest_framework.decorators import detail_route, action
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField, ListField
 from rest_framework.relations import HyperlinkedIdentityField
@@ -25,11 +25,11 @@ from rest_framework.response import Response
 import rest_framework
 from mbox import addr_db_to_rest, MboxMessage
 from rest_framework.parsers import JSONParser, BaseParser
-from rest_framework.exceptions import ValidationError
 
 SEARCH_PARAM = 'q'
 
 # patchew-specific permission classes
+
 
 class PatchewPermission(permissions.BasePermission):
     """
@@ -57,8 +57,8 @@ class PatchewPermission(permissions.BasePermission):
 
     def has_generic_permission(self, request, view):
         return (request.method in permissions.SAFE_METHODS) or \
-               self.is_superuser(request) or \
-               self.has_group_permission(request, view, self.allowed_groups)
+            self.is_superuser(request) or \
+            self.has_group_permission(request, view, self.allowed_groups)
 
     def has_permission(self, request, view):
         # The user can get permissions to operate on an object or a list from one of:
@@ -67,22 +67,35 @@ class PatchewPermission(permissions.BasePermission):
         # - the parent project of an object (view.project + has_project_permission)
         # - the groups that are allowed for a result
         #   (view.result_renderer + has_group_permission)
-        return self.has_generic_permission(request, view) or \
-               (hasattr(view, 'project') and view.project and \
-                self.has_project_permission(request, view, view.project)) or \
-               (hasattr(view, 'result_renderer') and view.result_renderer and \
-                self.has_group_permission(request, view, view.result_renderer.allowed_groups))
+        conditions = [
+            self.has_generic_permission(request, view),
+        ]
+
+        if hasattr(view, 'project'):
+            conditions.append(
+                view.project and self.has_project_permission(request, view, view.project)
+            )
+
+        if hasattr(view, 'result_renderer'):
+            conditions.append(
+                view.result_renderer and self.has_group_permission(
+                    request, view, view.result_renderer.allowed_groups)
+            )
+
+        return any(conditions)
 
     def has_object_permission(self, request, view, obj):
         # For non-project objects, has_project_permission has been evaluated
         # already in has_permission, based on the primary key included in the
         # URL.
         return self.has_generic_permission(request, view) or \
-               not isinstance(obj, Project) or \
-               self.has_project_permission(request, view, obj)
+            not isinstance(obj, Project) or \
+            self.has_project_permission(request, view, obj)
+
 
 class ImportPermission(PatchewPermission):
     allowed_groups = ('importers',)
+
 
 # utility function to generate REST API URLs
 
@@ -110,10 +123,10 @@ def reverse_detail(obj, request):
                                               kwargs={"projects_pk": m.project.id,
                                                       "series_message_id": m.message_id,
                                                       "name": obj.name})
-    raise Error("unhandled object type")
+    raise Exception("unhandled object type")
+
 
 # pluggable field for plugin support
-
 class PluginMethodField(SerializerMethodField):
     """
     A read-only field that get its representation from calling a method on
@@ -139,28 +152,29 @@ class PluginMethodField(SerializerMethodField):
         format = self.context.get('format', None)
         return method(value, request, format)
 
+
 # Users
 
 # TODO: include list of projects maintained by the user, login
-
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('resource_uri', 'username')
+
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('id')
     serializer_class = UserSerializer
     permission_classes = (PatchewPermission,)
 
+
 # Projects
 
 # TODO: include list of maintainers, connect plugins
-
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
-        fields = ('resource_uri', 'name', 'mailing_list', 'prefix_tags', 'url', 'git', \
+        fields = ('resource_uri', 'name', 'mailing_list', 'prefix_tags', 'url', 'git',
                   'description', 'display_order', 'logo', 'parent_project', 'messages',
                   'results', 'series')
 
@@ -169,7 +183,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     results = HyperlinkedIdentityField(view_name='results-list', lookup_field='pk',
                                        lookup_url_kwarg='projects_pk')
     series = HyperlinkedIdentityField(view_name='series-list', lookup_field='pk',
-                                       lookup_url_kwarg='projects_pk')
+                                      lookup_url_kwarg='projects_pk')
 
     def get_fields(self):
         fields = super(ProjectSerializer, self).get_fields()
@@ -177,6 +191,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         dispatch_module_hook("rest_project_fields_hook", request=request,
                              fields=fields)
         return fields
+
 
 class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
@@ -186,7 +201,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=True, permission_classes=[ImportPermission])
     def update_project_head(self, request, pk=None):
         """
-        updates the project head and message_id which are matched are merged. 
+        updates the project head and message_id which are matched are merged.
         Data input format:
         {
             "old_head": "..",
@@ -204,6 +219,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         project.project_head = request.data['new_head']
         return Response({"new_head": project.project_head, "count": ret})
 
+
 class ProjectsByNameViewSet(viewsets.GenericViewSet):
     queryset = Project.objects.all()
     permission_classes = (PatchewPermission,)
@@ -214,26 +230,30 @@ class ProjectsByNameViewSet(viewsets.GenericViewSet):
         url = reverse_detail(instance, request)
         return HttpResponseRedirect(url, status=status.HTTP_307_TEMPORARY_REDIRECT)
 
+
 # Common classes for series and messages
 
 class HyperlinkedMessageField(HyperlinkedIdentityField):
     lookup_field = 'message_id'
+
     def get_url(self, obj, view_name, request, format):
         kwargs = {'projects_pk': obj.project_id, self.lookup_field: obj.message_id}
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
+
 class AddressSerializer(serializers.Serializer):
     name = CharField(required=False)
     address = EmailField()
-    
+
     def to_representation(self, obj):
         return addr_db_to_rest(obj)
 
     def create(self, validated_data):
         try:
             return [validated_data['name'], validated_data['address']]
-        except:
+        except Exception:
             return [validated_data['address'], validated_data['address']]
+
 
 class BaseMessageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -244,7 +264,7 @@ class BaseMessageSerializer(serializers.ModelSerializer):
     recipients = AddressSerializer(many=True)
     sender = AddressSerializer()
     tags = ListField(child=CharField(), required=False)
-   
+
     def create(self, validated_data):
         validated_data['recipients'] = self.fields['recipients'].create(validated_data['recipients'])
         validated_data['sender'] = self.fields['sender'].create(validated_data['sender'])
@@ -253,6 +273,7 @@ class BaseMessageSerializer(serializers.ModelSerializer):
             return Message.objects.create(project=project, **validated_data)
         return Message.objects.create(project=self.context['project'], **validated_data)
 
+
 # a message_id is *not* unique, so we can only list
 class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = BaseMessageSerializer
@@ -260,6 +281,7 @@ class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = (ImportPermission,)
     lookup_field = 'message_id'
     lookup_value_regex = '[^/]+'
+
 
 # a (project, message_id) tuple is unique, so we can always retrieve an object
 class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
@@ -272,7 +294,7 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
             return self.__project
         try:
             self.__project = Project.objects.get(id=self.kwargs['projects_pk'])
-        except:
+        except Exception:
             self.__project = None
         return self.__project
 
@@ -283,25 +305,30 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
         context['project'] = self.project
         return context
 
-# Series
 
+# Series
 class ReplySerializer(BaseMessageSerializer):
     class Meta:
         model = Message
         fields = BaseMessageSerializer.Meta.fields + ('in_reply_to', )
 
+
 class PatchSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
-        fields = BaseMessageSerializer.Meta.fields + ('stripped_subject',
-            'last_comment_date', 'patch_num')
+        fields = BaseMessageSerializer.Meta.fields + (
+            'stripped_subject',
+            'last_comment_date',
+            'patch_num',
+        )
+
 
 class SeriesSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
         fields = ('resource_uri',) + BaseMessageSerializer.Meta.fields + (
-             'message', 'stripped_subject', 'last_comment_date', 'last_reply_date',
-             'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results')
+            'message', 'stripped_subject', 'last_comment_date', 'last_reply_date',
+            'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results')
 
     resource_uri = HyperlinkedMessageField(view_name='series-detail')
     message = HyperlinkedMessageField(view_name='messages-detail')
@@ -322,6 +349,7 @@ class SeriesSerializer(BaseMessageSerializer):
     def get_total_patches(self, obj):
         return obj.get_total_patches()
 
+
 class SeriesSerializerFull(SeriesSerializer):
     class Meta:
         model = Message
@@ -331,9 +359,10 @@ class SeriesSerializerFull(SeriesSerializer):
     replies = ReplySerializer(many=True)
 
     def __init__(self, *args, **kwargs):
-        if not 'detailed' in kwargs:
+        if 'detailed' not in kwargs:
             kwargs['detailed'] = True
         super(SeriesSerializerFull, self).__init__(*args, **kwargs)
+
 
 class PatchewSearchFilter(filters.BaseFilterBackend):
     search_param = SEARCH_PARAM
@@ -360,11 +389,13 @@ class PatchewSearchFilter(filters.BaseFilterBackend):
         template = loader.get_template(self.template)
         return template.render(context)
 
+
 class SeriesViewSet(BaseMessageViewSet):
     serializer_class = SeriesSerializer
     queryset = Message.objects.filter(is_series_head=True).order_by('-last_reply_date')
     filter_backends = (PatchewSearchFilter,)
     search_fields = (SEARCH_PARAM,)
+
 
 class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
                            SeriesViewSet, mixins.DestroyModelMixin):
@@ -404,6 +435,7 @@ class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
     def perform_destroy(self, instance):
         Message.objects.delete_subthread(instance)
 
+
 # Messages
 
 # TODO: add POST endpoint connected to email plugin?
@@ -425,6 +457,7 @@ class MessageSerializer(BaseMessageSerializer):
                              fields=fields)
         return fields
 
+
 class StaticTextRenderer(renderers.BaseRenderer):
     media_type = 'text/plain'
     format = 'mbox'
@@ -437,16 +470,17 @@ class StaticTextRenderer(renderers.BaseRenderer):
         else:
             return data
 
+
 class MessagePlainTextParser(BaseParser):
     media_type = 'message/rfc822'
 
     def parse(self, stream, media_type=None, parser_context=None):
-       
         data = stream.read().decode("utf-8")
         return MboxMessage(data).get_json()
 
+
 class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
-                      BaseMessageViewSet, mixins.CreateModelMixin):
+                             BaseMessageViewSet, mixins.CreateModelMixin):
     serializer_class = MessageSerializer
     parser_classes = (JSONParser, MessagePlainTextParser, )
 
@@ -465,11 +499,12 @@ class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
                                            context=self.get_serializer_context())
         return self.get_paginated_response(serializer.data)
 
+
 class MessagesViewSet(BaseMessageViewSet):
     serializer_class = MessageSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     parser_classes = (JSONParser, MessagePlainTextParser, )
-    
+
     def create(self, request, *args, **kwargs):
         m = MboxMessage(request.data['mbox'])
         projects = [p for p in Project.objects.all() if p.recognizes(m)]
@@ -488,8 +523,8 @@ class MessagesViewSet(BaseMessageViewSet):
                                      ('results', results)]),
                         status=status.HTTP_201_CREATED)
 
-# Results
 
+# Results
 class HyperlinkedResultField(HyperlinkedIdentityField):
     def get_url(self, result, view_name, request, format):
         obj = result.obj
@@ -500,6 +535,7 @@ class HyperlinkedResultField(HyperlinkedIdentityField):
         else:
             kwargs['projects_pk'] = obj.id
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
+
 
 class ResultSerializer(serializers.ModelSerializer):
     class Meta:
@@ -521,6 +557,7 @@ class ResultSerializer(serializers.ModelSerializer):
                               context=self.context).is_valid(raise_exception=True)
         return data
 
+
 class ResultSerializerFull(ResultSerializer):
     class Meta:
         model = Result
@@ -529,6 +566,7 @@ class ResultSerializerFull(ResultSerializer):
 
     # The database field is log_xz, so this is needed here
     log = CharField(required=False)
+
 
 class ResultsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
                      mixins.UpdateModelMixin, viewsets.GenericViewSet):
@@ -546,7 +584,7 @@ class ResultsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
             return self.__project
         try:
             self.__project = Project.objects.get(id=self.kwargs['projects_pk'])
-        except:
+        except Exception:
             self.__project = None
         return self.__project
 
@@ -567,9 +605,11 @@ class ResultsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
             return ResultSerializerFull
         return ResultSerializer
 
+
 class ProjectResultsViewSet(ResultsViewSet):
     def get_queryset(self):
         return ProjectResult.objects.filter(project=self.kwargs['projects_pk'])
+
 
 class SeriesResultsViewSet(ResultsViewSet):
     def get_queryset(self):
