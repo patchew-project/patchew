@@ -7,8 +7,8 @@
 #
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
+import urllib
 
-import urllib.request, urllib.parse, urllib.error
 from django.shortcuts import render
 from django.http import HttpResponse, Http404
 from django.db.models import Exists, OuterRef
@@ -25,17 +25,20 @@ import subprocess
 
 PAGE_SIZE = 50
 
+
 def try_get_git_head():
     try:
         return "-" + subprocess.check_output(["git", "rev-parse",
                                               "--short", "HEAD"]).decode()
-    except:
+    except Exception:
         return ""
+
 
 def render_page(request, template_name, **data):
     data["patchew_version"] = settings.VERSION + try_get_git_head()
     dispatch_module_hook("render_page_hook", context_data=data)
     return render(request, template_name, context=data)
+
 
 def prepare_message(request, project, m, detailed):
     name, addr = m.sender
@@ -51,11 +54,11 @@ def prepare_message(request, project, m, detailed):
         if m.num_patches < m.total_patches:
             missing = m.total_patches - m.num_patches
             m.status_tags.append({
-                "title": "Series not complete (%d %s not received)" % \
-                        (missing, "patches" if missing > 1 else "patch"),
+                "title": "Series not complete (%d %s not received)" %
+                         (missing, "patches" if missing > 1 else "patch"),
                 "type": "warning",
                 "char": "?",
-                })
+            })
 
     # hook points for plugins
     m.has_other_revisions = False
@@ -68,8 +71,9 @@ def prepare_message(request, project, m, detailed):
             "title": "Series merged",
             "type": "success",
             "char": "Merged",
-            }]
+        }]
     return m
+
 
 def prepare_patches(request, m, max_depth=None):
     if m.total_patches == 1:
@@ -81,9 +85,11 @@ def prepare_patches(request, m, max_depth=None):
     return [prepare_message(request, project, x, True)
             for x in replies]
 
+
 def prepare_series(request, s, skip_patches=False):
     r = []
     project = s.project
+
     def add_msg_recurse(m, skip_patches, depth=0):
         a = prepare_message(request, project, m, True)
         a.indent_level = min(depth, 4)
@@ -94,9 +100,10 @@ def prepare_series(request, s, skip_patches=False):
         if not skip_patches:
             patches = [x for x in replies if x.is_patch]
         for x in non_patches + patches:
-            add_msg_recurse(x, False, depth+1)
+            add_msg_recurse(x, False, depth + 1)
     add_msg_recurse(s, skip_patches)
     return r
+
 
 def prepare_results(request, obj):
     rendered_results = []
@@ -108,14 +115,18 @@ def prepare_results(request, obj):
         rendered_results.append(result)
     return rendered_results
 
+
 def prepare_series_list(request, sl):
     return [prepare_message(request, s.project, s, False) for s in sl]
+
 
 def prepare_projects():
     return api.models.Project.objects.filter(parent_project=None).order_by('-display_order', 'name')
 
+
 def view_project_list(request):
     return render_page(request, "project-list.html", projects=prepare_projects())
+
 
 def gen_page_links(total, cur_page, pagesize, extra_params):
     max_page = int((total + pagesize - 1) / pagesize)
@@ -127,14 +138,13 @@ def gen_page_links(total, cur_page, pagesize, extra_params):
                 "title": str(i),
                 "url": "?page=" + str(i) + extra_params,
                 "class": "active",
-                "url": "#"
-                })
+            })
             ddd = False
         elif i < 10 or abs(i - cur_page) < 3 or max_page - i < 3:
             ret.append({
                 "title": str(i),
                 "url": "?page=" + str(i) + extra_params,
-                })
+            })
             ddd = False
         else:
             if not ddd:
@@ -142,16 +152,18 @@ def gen_page_links(total, cur_page, pagesize, extra_params):
                     "title": '...',
                     "class": "disabled",
                     "url": "#"
-                    })
+                })
                 ddd = True
 
     return ret
 
+
 def get_page_from_request(request):
     try:
         return int(request.GET["page"])
-    except:
+    except Exception:
         return 1
+
 
 def prepare_navigate_list(cur, *path):
     """ each path is (view_name, kwargs, title) """
@@ -162,6 +174,7 @@ def prepare_navigate_list(cur, *path):
                   "title": it[2]})
     r.append({"title": cur, "url": "", "class": "active"})
     return r
+
 
 def render_series_list_page(request, query, search=None, project=None, keywords=[]):
     sort = request.GET.get("sort")
@@ -203,6 +216,7 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
                        order_by_reply=order_by_reply,
                        navigate_links=nav_path)
 
+
 def view_search_help(request):
     from markdown import markdown
     nav_path = prepare_navigate_list("Search help")
@@ -210,12 +224,14 @@ def view_search_help(request):
                        navigate_links=nav_path,
                        search_help_doc=markdown(api.search.SearchEngine.__doc__))
 
+
 def view_project_detail(request, project):
     po = api.models.Project.objects.filter(name=project).first()
     if not po:
         raise Http404("Project not found")
-    nav_path = prepare_navigate_list("Information",
-                        ("series_list", {"project": project}, project))
+    nav_path = prepare_navigate_list(
+        "Information", ("series_list", {"project": project}, project)
+    )
     po.extra_info = []
     po.extra_status = []
     po.extra_ops = []
@@ -225,6 +241,7 @@ def view_project_detail(request, project):
                        project=po,
                        navigate_links=nav_path,
                        search="")
+
 
 def view_search(request):
     from api.search import SearchEngine
@@ -236,12 +253,14 @@ def view_search(request):
                                    project=se.project(),
                                    keywords=se.last_keywords())
 
+
 def view_series_list(request, project):
     prj = api.models.Project.objects.filter(name=project).first()
     if not prj:
         raise Http404("Project not found")
     query = api.models.Message.objects.series_heads(prj.id)
     return render_series_list_page(request, query, project=project)
+
 
 def view_mbox(request, project, message_id):
     def mbox_with_tags_iter(mbox, tags):
@@ -259,7 +278,7 @@ def view_mbox(request, project, message_id):
 
         # If no --- line, tags go at the end as there's no better place
         for tag in tags:
-            if not tag in old_tags:
+            if tag not in old_tags:
                 yield tag
         if need_minusminusminus:
             yield line
@@ -269,7 +288,7 @@ def view_mbox(request, project, message_id):
         mbox = m.get_mbox()
         try:
             msg = email.message_from_string(mbox)
-        except:
+        except Exception:
             return mbox
         container = msg.get_payload(0) if msg.is_multipart() else msg
         if container.get_content_type() != "text/plain":
@@ -288,18 +307,29 @@ def view_mbox(request, project, message_id):
         messages = s.get_patches()
     else:
         messages = [s]
-    mbox = "\n".join(["From %s %s\n" % (x.get_sender_addr(), x.get_asctime()) + \
-                      get_mbox_with_tags(x) for x in messages])
+
+    mbox_list = []
+    for message in messages:
+        mbox_list.append(
+            "From %s %s\n%s" % (
+                message.get_sender_addr(),
+                message.get_asctime(),
+                get_mbox_with_tags(message)
+            )
+        )
+    mbox = "\n".join(mbox_list)
     return HttpResponse(mbox, content_type="text/plain")
+
 
 def view_series_detail(request, project, message_id):
     s = api.models.Message.objects.find_series(message_id, project)
     if not s:
         raise Http404("Series not found")
-    nav_path = prepare_navigate_list("View series",
-                    ("series_list", {"project": project}, project))
+    nav_path = prepare_navigate_list(
+        "View series", ("series_list", {"project": project}, project)
+    )
     search = "id:" + message_id
-    is_cover_letter=not s.is_patch
+    is_cover_letter = not s.is_patch
     messages = prepare_series(request, s, is_cover_letter)
     series = messages[0]
     if s.num_patches >= s.total_patches:
@@ -323,14 +353,17 @@ def view_series_detail(request, project, message_id):
                        patches=prepare_patches(request, s),
                        messages=messages)
 
+
 def view_series_message(request, project, thread_id, message_id):
     s = api.models.Message.objects.find_series(thread_id, project)
     if not s:
         raise Http404("Series not found")
     m = api.models.Message.objects.filter(message_id=message_id, in_reply_to=thread_id).first()
-    nav_path = prepare_navigate_list("View patch",
-                    ("series_list", {"project": project}, project),
-                    ("series_detail", {"project": project, "message_id": thread_id}, s.subject ))
+    nav_path = prepare_navigate_list(
+        "View patch",
+        ("series_list", {"project": project}, project),
+        ("series_detail", {"project": project, "message_id": thread_id}, s.subject)
+    )
     search = "id:" + thread_id
     series = prepare_message(request, s.project, s, True)
     messages = prepare_series(request, m)
