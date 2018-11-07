@@ -678,7 +678,7 @@ class Message(models.Model):
                     match = True
                     break
             if match:
-                cur.append(l)
+                cur.append(line)
             else:
                 if cur:
                     ret = cur
