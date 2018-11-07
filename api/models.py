@@ -136,36 +136,35 @@ class Result(models.Model):
 
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
-                            help_text="""The name of the project""")
+                            help_text="The name of the project")
     mailing_list = models.CharField(max_length=4096, blank=True,
-                                    help_text="""The mailing list of the project.
-                                    Will be used to verify if a message belongs
-                                    to this project""")
+                                    help_text=("The mailing list of the project. "
+                                               "Will be used to verify if a message belongs "
+                                               "to this project"))
     prefix_tags = models.CharField(max_length=1024, blank=True,
-                                   help_text="""Whitespace separated tags that
-                                   are required to be present messages' prefix.
-                                   Tags led by '/' are treated with python regex match.
-                                   Tags led by "!" mean these mustn't exist.
-                                   """)
+                                   help_text=("Whitespace separated tags that "
+                                              "are required to be present messages' prefix. "
+                                              "Tags led by '/' are treated with python regex match. "
+                                              "Tags led by '!' mean these mustn't exist."))
     url = models.CharField(max_length=4096, blank=True,
-                           help_text="""The URL of the project page""")
+                           help_text="The URL of the project page")
     git = models.CharField(max_length=4096, blank=True,
-                           help_text="""The git repo of the project. If a
-                           branch other than "master" is desired, add it to the
-                           end after a whitespace""")
+                           help_text=("The git repo of the project. If a "
+                                      "branch other than 'master' is desired, add it to the "
+                                      "end after a whitespace"))
     description = models.TextField(blank=True,
-                                   help_text="""Description of the project""")
+                                   help_text="Description of the project")
     logo = models.ImageField(blank=True, upload_to="logo",
-                             help_text="""Project logo""")
+                             help_text="Project logo")
     display_order = models.IntegerField(default=0,
-                                        help_text="""Order number of the project
-                                        to display, higher number first""")
+                                        help_text=("Order number of the project "
+                                                   "to display, higher number first"))
     parent_project = models.ForeignKey('Project', on_delete=models.CASCADE,
                                        blank=True, null=True,
-                                       help_text="""Parent project which this
-                                       project belongs to. The parent must be a
-                                       top project which has
-                                       parent_project=NULL""")
+                                       help_text=("Parent project which this "
+                                                  "project belongs to. The parent must be a "
+                                                  "top project which has "
+                                                  "parent_project=NULL"))
     maintainers = models.ManyToManyField(User, blank=True)
 
     def __str__(self):
