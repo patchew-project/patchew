@@ -7,9 +7,6 @@
 #
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
-
-
-from collections import namedtuple
 import datetime
 import re
 
@@ -24,7 +21,7 @@ from mbox import MboxMessage
 from event import emit_event, declare_event
 from .blobs import save_blob, load_blob
 import mod
-import lzma
+
 
 class LogEntry(models.Model):
     data_xz = models.BinaryField()
@@ -39,6 +36,7 @@ class LogEntry(models.Model):
     def data(self, value):
         self._data = value
         self.data_xz = lzma.compress(value.encode("utf-8"))
+
 
 class Result(models.Model):
     PENDING = 'pending'
@@ -80,7 +78,7 @@ class Result(models.Model):
         self.last_update = datetime.datetime.utcnow()
         old_result = Result.objects.filter(pk=self.pk).first()
         old_status = old_result.status if old_result else None
-        r = super(Result, self).save()
+        super(Result, self).save()
         emit_event("ResultUpdate", obj=self.obj,
                    old_status=old_status, result=self)
 
@@ -135,13 +133,14 @@ class Result(models.Model):
     def __str__(self):
         return '%s (%s)' % (self.name, self.status)
 
+
 class Project(models.Model):
     name = models.CharField(max_length=1024, db_index=True, unique=True,
                             help_text="""The name of the project""")
     mailing_list = models.CharField(max_length=4096, blank=True,
-                                   help_text="""The mailing list of the project.
-                                   Will be used to verify if a message belongs
-                                   to this project""")
+                                    help_text="""The mailing list of the project.
+                                    Will be used to verify if a message belongs
+                                    to this project""")
     prefix_tags = models.CharField(max_length=1024, blank=True,
                                    help_text="""Whitespace separated tags that
                                    are required to be present messages' prefix.
@@ -190,7 +189,7 @@ class Project(models.Model):
         return r
 
     def _do_set_property(self, prop, value):
-        if value == None:
+        if value is None:
             ProjectProperty.objects.filter(project=self, name=prop).delete()
             return
         pp, created = ProjectProperty.objects.get_or_create(project=self,
@@ -262,7 +261,7 @@ class Project(models.Model):
             if msgid.startswith("<") and msgid.endswith(">"):
                 msgid = msgid[1:-1]
             mo = Message.objects.filter(project=self, message_id=msgid,
-                                            is_merged=False).first()
+                                        is_merged=False).first()
             if not mo:
                 continue
             mo.is_merged = True
@@ -282,12 +281,14 @@ class Project(models.Model):
     def create_result(self, **kwargs):
         return ProjectResult(project=self, **kwargs)
 
+
 class ProjectResult(Result):
     project = models.ForeignKey(Project, related_name='results')
 
     @property
     def obj(self):
         return self.project
+
 
 class ProjectProperty(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
@@ -298,19 +299,24 @@ class ProjectProperty(models.Model):
         unique_together = ('project', 'name',)
         verbose_name_plural = "Project Properties"
 
+
 declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
 
+
 declare_event("MessageAdded", message="message object that is added")
+
 
 declare_event("SetProperty", obj="object to set the property",
               name="name of the property",
               value="value of the property",
               old_value="old value if any")
 
+
 declare_event("ResultUpdate", obj="the updated object",
               old_status='the old result status',
               result="the new result object")
+
 
 class MessageManager(models.Manager):
 
@@ -340,8 +346,7 @@ class MessageManager(models.Manager):
         return self.project_messages(project_name).filter(message_id=message_id).first()
 
     def patches(self):
-        return super(MessageManager, self).get_queryset().\
-                filter(is_patch=True)
+        return super(MessageManager, self).get_queryset().filter(is_patch=True)
 
     def update_series(self, msg):
         """Update the series' record to which @msg is replying"""
@@ -427,13 +432,16 @@ class MessageManager(models.Manager):
             self.update_series(msg)
         return projects
 
+
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
+
 
 class Review(models.Model):
     user = models.ForeignKey(User)
     message = models.ForeignKey('Message')
     accept = models.BooleanField()
+
 
 class Message(models.Model):
     """ Patch email message """
@@ -489,7 +497,7 @@ class Message(models.Model):
         self.mbox_blob = load_blob(self.message_id)
         self._mbox_obj = MboxMessage(self.mbox_blob)
         return self.mbox_blob
-    
+
     mbox = property(get_mbox)
 
     def get_num(self):
@@ -501,7 +509,7 @@ class Message(models.Model):
                 try:
                     cur, total = int(n), int(m)
                     break
-                except:
+                except Exception:
                     pass
         return cur, total
 
@@ -511,9 +519,10 @@ class Message(models.Model):
         return r
 
     def get_replies(self):
-        return Message.objects.filter(project=self.project,
-                                      in_reply_to=self.message_id).\
-                                      order_by('patch_num')
+        return Message.objects.filter(
+            project=self.project,
+            in_reply_to=self.message_id
+        ).order_by('patch_num')
 
     def get_in_reply_to_message(self):
         if not self.in_reply_to:
@@ -535,23 +544,24 @@ class Message(models.Model):
         c, n = self.get_num()
         if c == n and self.is_patch:
             return [self]
-        return Message.objects.patches().filter(project=self.project,
-                                                in_reply_to=self.message_id)\
-                             .order_by('patch_num')
+        return Message.objects.patches().filter(
+            project=self.project,
+            in_reply_to=self.message_id
+        ).order_by('patch_num')
 
     def refresh_num_patches(self):
         c, n = self.get_num()
         if c == n and self.is_patch:
             self.num_patches = 1
         else:
-            self.num_patches = \
-                Message.objects.patches().filter(project=self.project,
-                                                 in_reply_to=self.message_id)\
-                                .count()
+            self.num_patches = Message.objects.patches().filter(
+                project=self.project,
+                in_reply_to=self.message_id
+            ).count()
         self.save()
 
     def get_total_patches(self):
-        num = self.get_num() or (1,1)
+        num = self.get_num() or (1, 1)
         return num[1] or 1
 
     def get_num_patches(self):
@@ -580,7 +590,7 @@ class Message(models.Model):
         return r
 
     def _do_set_property(self, prop, value):
-        if value == None:
+        if value is None:
             MessageProperty.objects.filter(message=self, name=prop).delete()
             return
         mp, created = MessageProperty.objects.get_or_create(message=self,
@@ -631,11 +641,11 @@ class Message(models.Model):
 
     def get_asctime(self):
         d = self.date
-        wday = d.weekday()+1;
+        wday = d.weekday() + 1
         return '%s %s %d %d:%02d:%02d %s' % (
-                "MonTueWedThuFriSatSun"[wday*3-3:wday*3],
-                "JanFebMarAprMayJunJulAugSepOctNovDec"[d.month*3-3:d.month*3],
-                d.day, d.hour, d.minute, d.second, d.year)
+            "MonTueWedThuFriSatSun"[wday * 3 - 3: wday * 3],
+            "JanFebMarAprMayJunJulAugSepOctNovDec"[d.month * 3 - 3:d.month * 3],
+            d.day, d.hour, d.minute, d.second, d.year)
 
     def get_last_reply_age(self):
         return self._get_age(self.last_reply_date)
@@ -647,29 +657,28 @@ class Message(models.Model):
         return self.get_mbox_obj().get_preview()
 
     def get_diff_stat(self):
-        body = self.get_body()
         if not self.is_series_head:
             return None
-        state = ""
         cur = []
-        patterns = [r"\S*\s*\|\s*[0-9]*( \+*-*)?$",
-                    r"\S* => \S*\s*|\s*[0-9]* \+*-*$",
-                    r"[0-9]* files changed",
-                    r"1 file changed",
-                    r"(create|delete) mode [0-7]+",
-                    r"mode change [0-7]+",
-                    r"rename ",
-                   ]
+        patterns = [
+            r"\S*\s*\|\s*[0-9]*( \+*-*)?$",
+            r"\S* => \S*\s*|\s*[0-9]* \+*-*$",
+            r"[0-9]* files changed",
+            r"1 file changed",
+            r"(create|delete) mode [0-7]+",
+            r"mode change [0-7]+",
+            r"rename ",
+        ]
         ret = []
         for l in self.get_body().splitlines():
-            l = l.strip()
+            line = l.strip()
             match = False
             for p in patterns:
-                if re.match(p, l):
+                if re.match(p, line):
                     match = True
                     break
             if match:
-                cur.append(l)
+                cur.append(line)
             else:
                 if cur:
                     ret = cur
@@ -719,12 +728,14 @@ class Message(models.Model):
                           ('is_series_head', 'last_reply_date'),
                           ('is_series_head', 'date')]
 
+
 class MessageResult(Result):
     message = models.ForeignKey(Message, related_name='results')
 
     @property
     def obj(self):
         return self.message
+
 
 class MessageProperty(models.Model):
     message = models.ForeignKey('Message', on_delete=models.CASCADE,
@@ -742,6 +753,7 @@ class MessageProperty(models.Model):
     class Meta:
         unique_together = ('message', 'name',)
         verbose_name_plural = "Message Properties"
+
 
 class Module(models.Model):
     """ Module information """

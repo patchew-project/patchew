@@ -18,7 +18,7 @@ import json
 from .search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from mod import dispatch_module_hook
+
 
 class APIView(View):
     name = None
@@ -49,6 +49,7 @@ class APIView(View):
         else:
             return HttpResponse()
 
+
 class APILoginRequiredView(APIView):
 
     allowed_groups = []
@@ -67,11 +68,13 @@ class APILoginRequiredView(APIView):
                 return
         raise PermissionDenied()
 
+
 class VersionView(APIView):
     name = "version"
 
     def handle(self, request):
         return settings.VERSION
+
 
 def prepare_project(p):
     ret = {
@@ -84,13 +87,15 @@ def prepare_project(p):
     }
     return ret
 
+
 class ListProjectView(APIView):
     name = "get-projects"
 
     def handle(self, request, name=None):
-        r = [prepare_project(x) for x in Project.objects.all() \
-                if name == None or name == x.name]
+        r = [prepare_project(x) for x in Project.objects.all()
+             if name is None or name == x.name]
         return r
+
 
 class AddProjectView(APILoginRequiredView):
     name = "add-project"
@@ -105,6 +110,7 @@ class AddProjectView(APILoginRequiredView):
                     description=description)
         p.save()
 
+
 class GetProjectPropertiesView(APILoginRequiredView):
     name = "get-project-properties"
 
@@ -113,6 +119,7 @@ class GetProjectPropertiesView(APILoginRequiredView):
         if not po.maintained_by(request.user):
             raise PermissionDenied("Access denied to this project")
         return po.get_properties()
+
 
 class UpdateProjectHeadView(APILoginRequiredView):
     name = "update-project-head"
@@ -127,18 +134,19 @@ class UpdateProjectHeadView(APILoginRequiredView):
         po.project_head = new_head
         return ret
 
+
 class SetPropertyView(APILoginRequiredView):
     name = "set-properties"
     allowed_groups = ["importers"]
 
     def handle(self, request, project, message_id, properties):
-        po = Project.objects.get(name=project)
         mo = Message.objects.filter(project__name=project,
                                     message_id=message_id).first()
         if not mo:
             raise Http404("Message not found")
         for k, v in properties.items():
             mo.set_property(k, v)
+
 
 class SetProjectPropertiesView(APILoginRequiredView):
     name = "set-project-properties"
@@ -151,12 +159,14 @@ class SetProjectPropertiesView(APILoginRequiredView):
         for k, v in properties.items():
             po.set_property(k, v)
 
+
 def get_properties(m):
     r = m.get_properties()
     # for compatibility with patchew-cli's applier mode
     if m.tags:
         r['tags'] = m.tags
     return r
+
 
 class DeleteProjectPropertiesByPrefixView(APILoginRequiredView):
     name = "delete-project-properties-by-prefix"
@@ -169,6 +179,7 @@ class DeleteProjectPropertiesByPrefixView(APILoginRequiredView):
         for k in [x for x in po.get_properties().keys() if x.startswith(prefix)]:
             po.set_property(k, None)
 
+
 def prepare_patch(p):
     r = {"subject": p.subject,
          "message-id": p.message_id,
@@ -177,8 +188,10 @@ def prepare_patch(p):
          }
     return r
 
+
 def prepare_series(request, s, fields=None):
     r = {}
+
     def want_field(f):
         return not fields or f in fields
 
@@ -200,6 +213,7 @@ def prepare_series(request, s, fields=None):
         r = dict([(k, v) for k, v in r.items() if k in fields])
     return r
 
+
 class SearchView(APIView):
     name = "search"
 
@@ -207,6 +221,7 @@ class SearchView(APIView):
         se = SearchEngine()
         r = se.search_series(user=request.user, *terms)
         return [prepare_series(request, x, fields) for x in r]
+
 
 class ImportView(APILoginRequiredView):
     name = "import"
@@ -216,11 +231,14 @@ class ImportView(APILoginRequiredView):
         projects = set()
         for mbox in mboxes:
             try:
-                projects = projects.union([x.name for x in
-                    Message.objects.add_message_from_mbox(mbox, request.user)])
+                projects = projects.union([
+                    x.name for x in
+                    Message.objects.add_message_from_mbox(mbox, request.user)
+                ])
             except Message.objects.DuplicateMessageError:
                 pass
         return list(projects)
+
 
 class DeleteView(APILoginRequiredView):
     """ Delete messages """
@@ -234,11 +252,13 @@ class DeleteView(APILoginRequiredView):
             for r in se.search_series(user=request.user, *terms):
                 Message.objects.delete_subthread(r)
 
+
 class Logout(APIView):
     name = "logout"
 
     def handle(self, request):
         logout(request)
+
 
 class LoginCommand(APIView):
     name = "login"
@@ -254,4 +274,3 @@ class LoginCommand(APIView):
                 raise Exception("User is disabled")
         else:
                 raise PermissionDenied("Wrong user name or password")
-

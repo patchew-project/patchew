@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.db.models import Lookup
 from django.db.models.fields import Field
 
+
 @Field.register_lookup
 class NotEqual(Lookup):
     lookup_name = 'ne'
@@ -25,8 +26,10 @@ class NotEqual(Lookup):
         params = lhs_params + rhs_params
         return '%s <> %s' % (lhs, rhs), params
 
+
 class InvalidSearchTerm(Exception):
     pass
+
 
 class SearchEngine(object):
     """
@@ -176,11 +179,12 @@ Search text keyword in the email message. Example:
         return Q(id__in=message_ids)
 
     def _make_filter_result(self, term, **kwargs):
-        q = Q(name=term, **kwargs) | Q(name__startswith=term+'.', **kwargs)
+        q = Q(name=term, **kwargs) | Q(name__startswith=term + '.', **kwargs)
         return self._make_filter_subquery(MessageResult, q)
 
     def _make_filter_age(self, cond):
         import datetime
+
         def human_to_seconds(n, unit):
             if unit == "d":
                 return n * 86400
@@ -201,7 +205,7 @@ Search text keyword in the email message. Example:
         else:
             less = False
         num, unit = cond[:-1], cond[-1].lower()
-        if not num.isdigit() or not unit in "dwmy":
+        if not num.isdigit() or unit not in "dwmy":
             raise InvalidSearchTerm("Invalid age string: %s" % cond)
         sec = human_to_seconds(int(num), unit)
         p = datetime.datetime.now() - datetime.timedelta(0, sec)
@@ -223,9 +227,10 @@ Search text keyword in the email message. Example:
         elif cond == "reviewed":
             return self._make_filter_subquery(MessageProperty, Q(name="reviewed", value=True))
         elif cond in ("obsoleted", "old"):
-            return self._make_filter_subquery(MessageProperty,
-                                              Q(name="obsoleted-by", value__isnull=False) &
-                                              ~Q(name="obsoleted-by", value__iexact=''))
+            return self._make_filter_subquery(
+                MessageProperty,
+                Q(name="obsoleted-by", value__isnull=False) & ~Q(name="obsoleted-by", value__iexact='')
+            )
         elif cond == "applied":
             return self._make_filter_subquery(MessageResult, Q(name="git", status=Result.SUCCESS))
         elif cond == "tested":
@@ -328,9 +333,11 @@ Search text keyword in the email message. Example:
     def search_series(self, *terms, user=None, queryset=None):
         self._last_keywords = []
         self._projects = set()
-        q = reduce(lambda x, y: x & y,
-                map(lambda t: self._process_term(t, user), terms),
-                Q())
+        q = reduce(
+            lambda x, y: x & y,
+            map(lambda t: self._process_term(t, user), terms),
+            Q()
+        )
         if queryset is None:
             queryset = Message.objects.series_heads()
         return queryset.filter(q)

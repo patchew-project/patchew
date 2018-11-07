@@ -11,12 +11,11 @@
 
 
 import os
-import json
 import uuid
-import logging
 
 from django.conf import settings
 import lzma
+
 
 def save_blob(data, name=None):
     if not name:
@@ -25,9 +24,11 @@ def save_blob(data, name=None):
     lzma.open(fn, 'w').write(data.encode("utf-8"))
     return name
 
+
 def load_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
     return lzma.open(fn, 'r').read().decode("utf-8")
+
 
 def delete_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
@@ -35,4 +36,3 @@ def delete_blob(name):
         os.remove(fn)
     except FileNotFoundError:
         pass
-

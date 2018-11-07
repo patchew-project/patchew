@@ -9,37 +9,36 @@
 # http://opensource.org/licenses/MIT.
 
 from django.contrib import admin
-from .models import *
+from .models import Message, MessageProperty, Module, Project, ProjectProperty
 from mod import get_module
+
 
 class ProjectPropertyInline(admin.TabularInline):
     model = ProjectProperty
     extra = 0
 
+
 class ProjectAdmin(admin.ModelAdmin):
     filter_horizontal = ('maintainers',)
-    inlines = [
-            ProjectPropertyInline
-        ]
+    inlines = [ProjectPropertyInline]
+
 
 class MessagePropertyInline(admin.TabularInline):
     model = MessageProperty
     extra = 0
 
+
 class MessageAdmin(admin.ModelAdmin):
-    inlines = [
-            MessagePropertyInline
-        ]
+    inlines = [MessagePropertyInline]
     list_filter = [('is_series_head')]
     search_fields = [
-            'message_id',
-            'subject',
-            'sender',
-        ]
+        'message_id',
+        'subject',
+        'sender',
+    ]
+
 
 class ModuleAdmin(admin.ModelAdmin):
-    inlines = [
-        ]
 
     def get_fieldsets(self, request, obj=None):
         fs = super(ModuleAdmin, self).get_fieldsets(request, obj)
@@ -65,6 +64,7 @@ class ModuleAdmin(admin.ModelAdmin):
         return super(ModuleAdmin, self).change_view(
             request, object_id, form_url, extra_context=extra_context,
         )
+
 
 admin_site = admin.site
 
