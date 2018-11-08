@@ -16,7 +16,7 @@
     base_dir: "/data/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
-    docker_run_args: "--link {{ instance_name }}-db"
+    docker_run_args: "--link {{ instance_name }}-db:patchew-db"
   tasks:
     - name: Create data dir
       file:
