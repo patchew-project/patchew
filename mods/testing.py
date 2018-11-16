@@ -119,18 +119,15 @@ class TestingModule(PatchewModule):
         register_handler("ResultUpdate", self.on_result_update)
 
     def on_set_property(self, evt, obj, name, value, old_value):
-        if ((isinstance(obj, Message) and obj.is_series_head) \
-            or isinstance(obj, Project)) \
-            and name in ("git.tag", "git.repo") \
-            and old_value is None \
-            and obj.get_property("git.tag") and obj.get_property("git.repo"):
-                self.clear_and_start_testing(obj)
-        elif isinstance(obj, Project) and name == "git.head" \
+        if isinstance(obj, Project) and name == "git.head" \
             and old_value != value:
             self.clear_and_start_testing(obj)
         elif isinstance(obj, Project) and name.startswith("testing.tests.") \
             and old_value != value:
             self.project_recalc_pending_tests(obj)
+
+    def get_msg_base_tags(self, msg):
+        return [t for t in msg.tags if t.lower().startswith("based-on:")]
 
     def on_result_update(self, evt, obj, old_status, result):
         if result.name.startswith("testing.") and result.status != old_status:
@@ -141,14 +138,18 @@ class TestingModule(PatchewModule):
                            status__in=(Result.PENDING, Result.RUNNING)).exists():
                 obj.set_property("testing.done", True)
                 obj.set_property("testing.tested-head", result.data["head"])
+                if isinstance(obj, Message):
+                    obj.set_property("testing.tested-base",
+                                     self.get_msg_base_tags(obj))
 
         if result.name != "git":
             return
         if isinstance(obj, Message) \
             and obj.is_series_head \
-            and old_status != Result.SUCCESS \
             and result.status == result.SUCCESS \
             and result.data.get("tag") and result.data.get("repo"):
+            tested_base = obj.get_property("testing.tested-base")
+            if tested_base is None or tested_base != self.get_msg_base_tags(obj):
                 self.clear_and_start_testing(obj)
 
     def filter_testing_results(self, queryset, *args, **kwargs):

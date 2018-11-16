@@ -101,7 +101,10 @@ class PatchewTestCase(django.test.LiveServerTestCase):
         self.check_cli(["import", self.get_data_path(mbox)], rc)
 
     def do_apply(self):
-        self.cli(["apply", "--applier-mode"])
+        while True:
+            r, out, err = self.cli(["apply", "--applier-mode"])
+            if r != 0:
+                break
         for s in Message.objects.series_heads():
             self.assertNotEqual(s.git_result.status, Result.PENDING)
 

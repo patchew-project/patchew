@@ -260,20 +260,36 @@ class TesterTest(PatchewTestCase):
         self.assertNotIn("Project: DENY\n", out)
         self.cli_logout()
 
-    def test_tester_single(self):
-        self.cli_login()
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
-                                   "--no-wait", "-N", "1"])
-        self.assertIn("Project: QEMU\n", out)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
-                                   "--no-wait", "-N", "1"])
-        self.assertIn("Project: UMEQ\n", out)
-        out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
-                                   "--no-wait", "-N", "1"])
-        self.assertIn("Project: ALLOW\n", out)
+    def verify_tests(self, projects):
+        if projects:
+            out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
+                                       "--no-wait", "-N", str(len(projects))])
+            for p in projects:
+                self.assertIn("Project: %s" % p, out)
         out, err = self.check_cli(["tester", "-p", "QEMU,UMEQ,ALLOW,DENY",
                                    "--no-wait", "-N", "1"])
         self.assertIn("Nothing to test", out)
+
+    def test_tester_single(self):
+        self.cli_login()
+
+        self.verify_tests(["QEMU", "UMEQ", "ALLOW"])
+        self.do_apply()
+        self.verify_tests(["QEMU", "UMEQ", "ALLOW"])
+        # Getting a new reviewed-by shouldn't trigger re-test
+        self.cli_import('0025-foo-patch-review.mbox.gz')
+        self.do_apply()
+        self.verify_tests([])
+
+        # Import a new series to rebase onto
+        self.cli_import('0026-bar-patch-standalone.mbox.gz')
+        self.do_apply()
+        self.verify_tests(["QEMU", "UMEQ", "ALLOW"])
+
+        self.cli_import('0027-foo-patch-based-on.mbox.gz')
+        self.do_apply()
+        self.verify_tests(["QEMU", "UMEQ", "ALLOW"])
+
         self.cli_logout()
 
     def test_tester_project(self):
