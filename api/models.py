@@ -718,7 +718,7 @@ class Message(models.Model):
         return MessageResult(message=self, **kwargs)
 
     def __str__(self):
-        return self.subject
+        return self.project.name + "/" + self.subject
 
     class Meta:
         unique_together = ('project', 'message_id',)
