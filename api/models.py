@@ -757,7 +757,6 @@ class MessageProperty(models.Model):
 class Module(models.Model):
     """ Module information """
     name = models.CharField(max_length=128, unique=True)
-    enabled = models.BooleanField(default=True)
     config = models.TextField(blank=True)
 
     def __str__(self):

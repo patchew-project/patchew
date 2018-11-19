@@ -25,16 +25,7 @@ class PatchewModule(object):
 
     def get_model(self):
         # ALways read from DB to accept configuration update in-flight
-        from api.models import Module as PC
-        _module_init_config(self.__class__)
-        return PC.objects.get(name=self.name)
-
-    def enabled(self):
-        try:
-            m = self.get_model()
-            return m.enabled
-        except:
-            return True
+        return _module_init_config(self.__class__)
 
     def get_config_raw(self):
         return self.get_model().config or ""
@@ -187,7 +178,7 @@ def load_modules():
             print("Loaded module:", cls.name)
 
 def dispatch_module_hook(hook_name, **params):
-    for i in [x for x in list(_loaded_modules.values()) if x.enabled()]:
+    for i in _loaded_modules.values():
         if hasattr(i, hook_name):
             try:
                 getattr(i, hook_name)(**params)
