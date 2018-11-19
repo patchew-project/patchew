@@ -14,7 +14,7 @@ from functools import reduce
 from django.db import connection
 from django.db.models import Q
 
-from django.contrib.postgres.search import SearchQuery, SearchVector
+from django.contrib.postgres.search import SearchQuery, SearchVector, SearchVectorField
 from django.db.models import Lookup
 from django.db.models.fields import Field
 
@@ -32,6 +32,20 @@ class NotEqual(Lookup):
 
 class InvalidSearchTerm(Exception):
     pass
+
+# Hack alert: Django wraps each argument to to_tsvector with a COALESCE function,
+# and that causes postgres not to use the index.  Monkeypatch the constructor
+# to skip that step, which we do not need since the subject field is not nullable.
+class NonNullSearchVector(SearchVector):
+    function = 'to_tsvector'
+    arg_joiner = " || ' ' || "
+    _output_field = SearchVectorField()
+    config = None
+
+    def __init__(self, *expressions, **extra):
+        super(SearchVector, self).__init__(*expressions, **extra)
+        self.config = self.extra.get('config', self.config)
+        self.weight = None
 
 
 class SearchEngine(object):
@@ -346,7 +360,7 @@ Search text keyword in the email message. Example:
             queryset = Message.objects.series_heads()
         if self._last_keywords:
             if connection.vendor == 'postgresql':
-                queryset = queryset.annotate(subjsearch=SearchVector('subject', config='english'))
+                queryset = queryset.annotate(subjsearch=NonNullSearchVector('subject', config='english'))
                 searchq = reduce(lambda x, y: x & y,
                                  map(lambda x: SearchQuery(x, config='english'), self._last_keywords))
                 q = q & Q(subjsearch=searchq)
