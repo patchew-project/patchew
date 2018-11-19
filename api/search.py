@@ -10,8 +10,11 @@
 
 from .models import Message, MessageProperty, MessageResult, Result, Review
 from functools import reduce
+
+from django.db import connection
 from django.db.models import Q
 
+from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db.models import Lookup
 from django.db.models.fields import Field
 
@@ -215,14 +218,15 @@ Search text keyword in the email message. Example:
             q = Q(date__lte=p)
         return q
 
-    def _make_filter_keywords(self, t):
+    def _add_to_keywords(self, t):
         self._last_keywords.append(t)
-        return Q(subject__icontains=t)
+        return Q()
 
     def _make_filter_is(self, cond):
         if cond == "complete":
             return Q(is_complete=True)
         elif cond == "pull":
+            self._add_to_keywords('PULL')
             return Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
         elif cond == "reviewed":
             return self._make_filter_subquery(MessageProperty, Q(name="reviewed", value=True))
@@ -263,16 +267,16 @@ Search text keyword in the email message. Example:
             return Q(recipients__icontains=cond)
         elif term.startswith("subject:"):
             cond = term[term.find(":") + 1:]
-            return Q(subject__icontains=cond)
+            return self._add_to_keywords(cond)
         elif term.startswith("id:"):
             cond = term[term.find(":") + 1:]
             if cond[0] == "<" and cond[-1] == ">":
                 cond = cond[1:-1]
             return Q(message_id=cond)
         elif term.startswith("is:"):
-            return self._make_filter_is(term[3:]) or self._make_filter_keywords(term)
+            return self._make_filter_is(term[3:]) or self._add_to_keywords(term)
         elif term.startswith("not:"):
-            return ~self._make_filter_is(term[4:]) or self._make_filter_keywords(term)
+            return ~self._make_filter_is(term[4:]) or self._add_to_keywords(term)
         elif term.startswith("has:"):
             cond = term[term.find(":") + 1:]
             if cond == "replies":
@@ -305,7 +309,7 @@ Search text keyword in the email message. Example:
             return Q(project__name=cond) | Q(project__parent_project__name=cond)
 
         # Keyword in subject is the default
-        return self._make_filter_keywords(term)
+        return self._add_to_keywords(term)
 
     def _process_term(self, term, user):
         """ Return a Q object that will be applied to the query """
@@ -316,7 +320,7 @@ Search text keyword in the email message. Example:
             term = term[1:]
 
         if is_plusminus and ":" not in term:
-            q = self._make_filter_is(term) or self._make_filter_keywords(term)
+            q = self._make_filter_is(term) or self._add_to_keywords(term)
         else:
             q = self._make_filter(term, user)
         if neg:
@@ -340,4 +344,14 @@ Search text keyword in the email message. Example:
         )
         if queryset is None:
             queryset = Message.objects.series_heads()
+        if self._last_keywords:
+            if connection.vendor == 'postgresql':
+                queryset = queryset.annotate(subjsearch=SearchVector('subject', config='english'))
+                searchq = reduce(lambda x, y: x & y,
+                                 map(lambda x: SearchQuery(x, config='english'), self._last_keywords))
+                q = q & Q(subjsearch=searchq)
+            else:
+                q = reduce(lambda x, y: x & Q(subject__icontains=y),
+                           self._last_keywords, q)
+
         return queryset.filter(q)

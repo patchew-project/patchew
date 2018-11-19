@@ -8,6 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+from django.db import migrations
 
 import json
 from api import blobs
@@ -48,3 +49,17 @@ def set_property(model, name, value, **kwargs):
     if hasattr(mp, 'blob'):
         mp.blob = False
     mp.save()
+
+
+class PostgresOnlyMigration(migrations.Migration):
+    def apply(self, project_state, schema_editor, collect_sql=False):
+        if schema_editor.connection.vendor == "postgresql":
+            return super().apply(project_state, schema_editor, collect_sql=collect_sql)
+        else:
+            return project_state
+
+    def unapply(self, project_state, schema_editor, collect_sql=False):
+        if schema_editor.connection.vendor == "postgresql":
+            return super().unapply(project_state, schema_editor, collect_sql=collect_sql)
+        else:
+            return project_state

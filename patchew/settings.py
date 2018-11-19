@@ -128,6 +128,9 @@ def env_detect():
 
 DEBUG, DATA_DIR, DATABASES = env_detect()
 
+if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+    INSTALLED_APPS += ['django.contrib.postgres']
+
 # In production environments, we run in a container, behind nginx, which should
 # filter the allowed host names. So be a little flexible here
 ALLOWED_HOSTS = ["*"]
