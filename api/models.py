@@ -436,11 +436,17 @@ def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
 
 
-class Review(models.Model):
+class QueuedSeries(models.Model):
     user = models.ForeignKey(User)
     message = models.ForeignKey('Message')
-    accept = models.BooleanField()
+    # Special purposed queues:
+    # accept: When user marked series as "accepted"
+    # reject: When user marked series as "rejected"
+    name = models.CharField(max_length=1024, help_text="Name of the queue")
 
+    class Meta:
+        unique_together = ('user', 'message', 'name')
+        index_together = [('user', 'message')]
 
 class Message(models.Model):
     """ Patch email message """
@@ -479,7 +485,7 @@ class Message(models.Model):
     # number of patches we've got if is_series_head
     num_patches = models.IntegerField(null=False, default=-1, blank=True)
 
-    reviews = models.ManyToManyField(User, blank=True, through=Review)
+    queues = models.ManyToManyField(User, blank=True, through=QueuedSeries)
 
     objects = MessageManager()
 

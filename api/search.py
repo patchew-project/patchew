@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from .models import Message, MessageProperty, MessageResult, Result, Review
+from .models import Message, MessageProperty, MessageResult, Result, QueuedSeries
 from functools import reduce
 
 from django.db import connection
@@ -265,7 +265,7 @@ Search text keyword in the email message. Example:
             q = Q(user=user, **kwargs)
         else:
             q = Q(user__username=username, **kwargs)
-        return self._make_filter_subquery(Review, q)
+        return self._make_filter_subquery(QueuedSeries, q)
 
     def _make_filter(self, term, user):
         if term.startswith("age:"):
@@ -310,13 +310,13 @@ Search text keyword in the email message. Example:
             return self._make_filter_result(term[8:], status=Result.RUNNING)
         elif term.startswith("ack:") or term.startswith("accept:") or term.startswith("accepted:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user, accept=True)
+            return self._make_filter_review(username, user, name="accept")
         elif term.startswith("nack:") or term.startswith("reject:") or term.startswith("rejected:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user, accept=False)
+            return self._make_filter_review(username, user, name="reject")
         elif term.startswith("review:") or term.startswith("reviewed:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user)
+            return self._make_filter_review(username, user, name="accept")
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)

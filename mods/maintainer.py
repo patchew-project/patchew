@@ -12,7 +12,7 @@ from django.conf.urls import url
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from mod import PatchewModule
-from api.models import Message, Review
+from api.models import Message, QueuedSeries
 
 class MaintainerModule(PatchewModule):
     """ Project maintainer related tasks """
@@ -25,8 +25,12 @@ class MaintainerModule(PatchewModule):
         msg = Message.objects.find_series(message_id)
         if not msg:
             raise Http404("Series not found")
-        Review.objects.update_or_create(user=request.user, message=msg,
-                                        defaults = { 'accept': accept })
+        if accept:
+            to_create, to_delete = 'accept', 'reject'
+        else:
+            to_create, to_delete = 'reject', 'accept'
+        QueuedSeries.objects.filter(user=request.user, message=msg, name=to_delete).delete()
+        QueuedSeries.objects.get_or_create(user=request.user, message=msg, name=to_create)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     def _delete_review(self, request, message_id):
@@ -35,7 +39,8 @@ class MaintainerModule(PatchewModule):
         msg = Message.objects.find_series(message_id)
         if not msg:
             raise Http404("Series not found")
-        r = Review.objects.filter(user=request.user, message=msg)
+        r = QueuedSeries.objects.filter(user=request.user, message=msg,
+                                 name__in=['accept', 'reject'])
         r.delete()
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
@@ -96,11 +101,9 @@ class MaintainerModule(PatchewModule):
                                           "icon": "check",
                                           "title": "Mark series as merged"})
 
-        try:
-            r = Review.objects.get(user=request.user, message=message)
-        except Review.DoesNotExist:
-            r = None
-        if r and r.accept:
+        r = QueuedSeries.objects.filter(user=request.user, message=message,
+                                 name__in=['accept', 'reject']).first()
+        if r and r.name == 'accept':
             message.extra_status.append({
                 "icon": "fa-check",
                 "html": 'The series is marked for merging'
@@ -112,7 +115,7 @@ class MaintainerModule(PatchewModule):
                                           "icon": "check",
                                           "title": "Mark series as accepted"})
 
-        if r and not r.accept:
+        if r and r.name == 'reject':
             message.extra_status.append({
                 "icon": "fa-times",
                 "html": 'The series is marked as rejected'
