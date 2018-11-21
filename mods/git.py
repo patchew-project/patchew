@@ -106,36 +106,6 @@ class GitModule(PatchewModule):
             return False
         return True
 
-    def _update_cache_repo(self, project_name, repo, branch, logf=None):
-        cache_repo = "/var/tmp/patchew-git-cache-%s" % project_name
-        if not self._is_repo(cache_repo):
-            # Clone upstream to local cache
-            subprocess.call(["rm", "-rf", cache_repo],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            subprocess.check_output(["git", "init", "--bare",
-                                     cache_repo])
-        remote_name = hashlib.sha1(repo).hexdigest()
-        subprocess.call(["git", "remote", "remove", remote_name],
-                        cwd=cache_repo,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-        subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
-                              remote_name, repo], cwd=cache_repo,
-                              stdout=logf, stderr=logf)
-        return cache_repo
-
-    def _get_project_repo_and_branch(self, project):
-        project_git = project.git
-        if not project_git:
-            raise Exception("Project git repo not set")
-        if len(project_git.split()) != 2:
-            # Use master as the default branch
-            project_git += " master"
-        upstream, branch = project_git.split()[0:2]
-        if not upstream or not branch:
-            raise Exception("Project git repo invalid: %s" % project_git)
-        return upstream, branch
-
     def get_based_on(self, message, request, format):
         git_base = self.get_base(message)
         return git_base.data if git_base else None
@@ -240,18 +210,6 @@ class GitModule(PatchewModule):
                 return None
             r = base.git_result
             return r if r and r.data.get("repo") else None
-
-    def _poll_project(self, po):
-        repo, branch = self._get_project_repo_and_branch(po)
-        cache_repo = self._update_cache_repo(po.name, repo, branch)
-        head = subprocess.check_output(["git", "rev-parse", branch],
-                                       cwd=cache_repo).decode('utf-8').strip()
-        old_head = po.get_property("git.head")
-        if old_head != head:
-            po.set_property("git.head", head)
-            po.set_property("git.repo", repo)
-            emit_event("ProjectGitUpdate", project=po.name)
-        return cache_repo
 
     def www_view_git_reset(self, request, series):
         if not request.user.is_authenticated:
