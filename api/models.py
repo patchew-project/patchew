@@ -490,6 +490,8 @@ class Message(models.Model):
 
     objects = MessageManager()
 
+    maintainers = jsonfield.JSONField(blank=True, default=[])
+
     def save_mbox(self, mbox_blob):
         save_blob(mbox_blob, self.message_id)
 

@@ -665,6 +665,20 @@ class ApplyCommand(SubCommand):
                             patch there. Implies --any, conflicts with -C, -b,
                             -B and -t.""")
 
+    def _get_maintainers(self, repo, fname):
+        script = os.path.join(repo, "scripts/get_maintainer.pl")
+        if not os.access(script, os.X_OK):
+            return []
+        try:
+            lines = subprocess.check_output([script, "--noroles", "--norolestats",
+                                           "--nogit", "--nogit-fallback", fname],
+                    cwd=repo).decode('utf-8').splitlines()
+            # Only return entries in the form of "First Last <email@address.com>",
+            # excluding list addresses
+            return [x for x in lines if '<' in x and '>' in x]
+        except:
+            return []
+
     def _apply(self, repo, s, branch, force_branch, tag, logf=None,
                signoff=False):
         msgid = s["message-id"]
@@ -679,15 +693,21 @@ class ApplyCommand(SubCommand):
             bn = bn.replace("%m", msgid)
             subprocess.check_call(["git", "checkout", bo, bn], cwd=repo,
                                   stdout=logf, stderr=logf)
+        maintainers = set()
+        apply_failed = False
         for p in s["patches"]:
             patchf = tempfile.NamedTemporaryFile()
             patchf.write(p["mbox"].encode('utf-8'))
             patchf.flush()
+            maintainers = maintainers.union(self._get_maintainers(repo, patchf.name))
+            if apply_failed:
+                continue
             if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name],
                                     cwd=repo, stdout=logf, stderr=logf):
                 logf.flush()
                 logf.write("Failed to apply patch:\n%s" % p["subject"])
-                raise ApplyFailedException()
+                apply_failed = True
+                continue
             filter_cmd = ""
             commit_message_lines = \
                     subprocess.check_output(["git", "log", "-n", "1",
@@ -711,10 +731,13 @@ class ApplyCommand(SubCommand):
                 subprocess.check_output(["git", "filter-branch", "-f",
                                          "--msg-filter", "cat; " + filter_cmd,
                                          "HEAD~1.."], cwd=repo)
-        if tag:
+        if apply_failed:
+            raise ApplyFailedException()
+        elif tag:
             subprocess.check_call(["git", "tag", "-f",
                                   tag.replace("%m", msgid)], cwd=repo,
                                   stdout=logf, stderr=logf)
+        return list(maintainers)
 
     def _push(self, repo, remote, tag, logf):
         subprocess.check_call(["git", "remote", "add", "push_to", remote],
@@ -749,7 +772,7 @@ class ApplyCommand(SubCommand):
             base = subprocess.check_output(["git", "rev-parse", "HEAD"],
                                            cwd=wd).decode('utf-8') \
                     .strip()
-            self._apply(wd, toapply, branch, force_branch, tag, logf)
+            maintainers = self._apply(wd, toapply, branch, force_branch, tag, logf)
             if push_repo:
                 self._push(wd, push_repo, tag, logf)
             url = toapply.get("git.url_template", "").replace("%t", tag)
@@ -777,7 +800,7 @@ class ApplyCommand(SubCommand):
                     project=toapply["project"],
                     message_id=toapply["message-id"],
                     tag=tag, url=url, base=base, repo=public_repo,
-                    failed=False, log=log)
+                    failed=False, log=log, maintainers=maintainers)
         return 0
 
     def do(self, args, argv):

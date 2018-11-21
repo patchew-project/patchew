@@ -258,11 +258,13 @@ class ApplierReportView(APILoginRequiredView):
     allowed_groups = ["importers"]
 
     def handle(self, request, project, message_id, tag, url, base, repo,
-               failed, log):
+               failed, log, maintainers=[]):
         p = Project.objects.get(name=project)
         r = Message.objects.series_heads().get(project=p,
                                                message_id=message_id).git_result
         r.log = log
+        r.message.maintainers = maintainers
+        r.message.save()
         data = {}
         if failed:
             r.status = Result.FAILURE
