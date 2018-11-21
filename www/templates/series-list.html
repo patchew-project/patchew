@@ -74,6 +74,14 @@
     </div>
 {% endif %}
 
+{% if is_search %}
+    {% if is_watched_query %}
+        <p>Saved as my watched query</p>
+    {% else %}
+        <button><a href="/watch-query/?q={{ search }}">Watch query</a></button>
+    {% endif %}
+{% endif %}
+
 <nav>
     <ul class="pagination pagination-sm">
         {% for i in page_links %}

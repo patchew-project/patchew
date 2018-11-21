@@ -100,6 +100,22 @@ class MaintainerModule(PatchewModule):
         self._drop_from_queue(request.user, m, queue)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+    def render_page_hook(self, request, context_data):
+        if request.user.is_authenticated and context_data.get("is_search"):
+            q = WatchedQuery.objects.filter(user=request.user).first()
+            if q and q.query == context_data.get("search"):
+                context_data["is_watched_query"] = True
+
+    def www_view_watch_query(self, request):
+        if not request.user.is_authenticated:
+            raise PermissionDenied()
+        query = request.GET.get("q")
+        if not query:
+            return HttpResponseBadRequest("Invalid query")
+        WatchedQuery.objects.update_or_create(defaults={"query": query},
+                                              user=request.user)
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^mark-as-merged/(?P<message_id>.*)/",
                                self.www_view_mark_as_merged,
@@ -122,6 +138,7 @@ class MaintainerModule(PatchewModule):
         urlpatterns.append(url(r"^drop-from-queue/(?P<queue>[^/]*)/(?P<message_id>.*)/",
                                self.www_view_drop_from_queue,
                                name="drop-from-queue"))
+        urlpatterns.append(url(r"^watch-query/", self.www_view_watch_query))
 
     def prepare_message_hook(self, request, message, detailed):
         if not detailed or not request.user.is_authenticated:
