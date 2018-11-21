@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/series-detail.css">
+<link rel="stylesheet" href="/static/highlight/default.css">
+<script src="/static/highlight/highlight.pack.js"></script>
+<link rel="stylesheet" href="/static/css/colorbox.css">
+<script src="/static/js/jquery.colorbox-min.js"></script>
+{% endblock %}
+
+{% block title %}My queues{% endblock %}
+
+{% block content %}
+
+<div class="series-detail" id="top"></div>
+
+<div class="col-lg-12">
+
+<div id="pre-fixed"></div>
+<div class="col-lg-2">
+    <div id="fixed" class="list-group">
+        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+    </div>
+</div>
+
+{% if projects %}
+{% for p, queues in projects.items %}
+
+    <div class="col-lg-10">
+        {% for qn, msgs in queues.items %}
+            <h3>Queue: {{ qn }} [{{ p }}]</h3>
+            <ul class="panel" id="patches">
+            {% for patch in msgs %}
+                <li><a href="/{{ p }}/{{ patch.get_series_head.message_id }}/">
+                  <span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span>
+                  {{ patch.subject }}
+                  </a></li>
+            {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+
+{% endfor %}
+{% else %}
+<p>You haven't created any queue</p>
+{% endif %}
+
+<script type="text/javascript">
+
+function main() {
+    $(".timestamp").each(function (i, o) {
+        $(o).attr("title", new Date(1000 * $(o).attr("title")));
+    });
+    $("#btn-expand-all").click(function () {
+        $(".panel-collapse").collapse("show");
+    });
+    $("#btn-fold-all").click(function () {
+        $(".panel-collapse").collapse("hide");
+    });
+    $(document).ready(function() {
+        $('pre code').each(function(i, block) {
+            hljs.highlightBlock(block);
+        });
+        $(".cbox-log").colorbox({width:"90%", height: "80%", iframe: true,
+                                 href: function() {
+                                     link = $(this).data('link');
+                                     return link ? link : $(this).attr('href');
+                                 }, onComplete: function() {
+                                     setTimeout(function() {
+                                         $('.cboxIframe')[0].contentWindow.focus();
+                                      }, 400);
+                                 }});
+    });
+    add_fixed_scroll_events();
+}
+
+$(main);
+
+</script>
+
+{% endblock %}

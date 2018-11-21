@@ -14,6 +14,7 @@ from django.http import Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
 from mod import PatchewModule
 from api.models import Message, QueuedSeries, WatchedQuery
+from django.shortcuts import render
 from api.search import SearchEngine
 from event import register_handler
 
@@ -119,6 +120,21 @@ class MaintainerModule(PatchewModule):
         self._drop_from_queue(request.user, m, queue)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+    def www_view_my_queues(self, request):
+        if not request.user.is_authenticated:
+            raise PermissionDenied()
+        data = {}
+        for i in QueuedSeries.objects.filter(message__is_patch=True,
+                                      user=request.user).\
+                order_by("message__project", "name", "message__date"):
+            pn = i.message.project.name
+            qn = i.name
+            data.setdefault(pn, {})
+            data[pn].setdefault(qn, [])
+            data[pn][qn].append(i.message)
+
+        return render(request, "my-queues.html", context={"projects": data})
+
     def render_page_hook(self, request, context_data):
         if request.user.is_authenticated and context_data.get("is_search"):
             q = WatchedQuery.objects.filter(user=request.user).first()
@@ -157,6 +173,7 @@ class MaintainerModule(PatchewModule):
         urlpatterns.append(url(r"^drop-from-queue/(?P<queue>[^/]*)/(?P<message_id>.*)/",
                                self.www_view_drop_from_queue,
                                name="drop-from-queue"))
+        urlpatterns.append(url(r"^my-queues/", self.www_view_my_queues))
         urlpatterns.append(url(r"^watch-query/", self.www_view_watch_query))
 
     def prepare_message_hook(self, request, message, detailed):
