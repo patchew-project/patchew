@@ -127,6 +127,16 @@ Compare the address info of message. Example:
 
 ---
 
+### Search by maintainer associated with the changeset
+
+ - Syntax: maintained-by:NAME
+ - Syntax: maint:NAME
+
+NAME can be the name, email or a substring of MAINTAINERS file entries of the
+maintainer.
+
+---
+
 ### Search by result
 
 Syntax:
@@ -321,6 +331,11 @@ Search text keyword in the email message. Example:
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)
             return Q(project__name=cond) | Q(project__parent_project__name=cond)
+        elif term.startswith("maintained-by:") or term.startswith("maint:"):
+            cond = term[term.find(":") + 1:]
+            if cond == "me" and user:
+                cond = user.email
+            return Q(maintainers__icontains=cond)
 
         # Keyword in subject is the default
         return self._add_to_keywords(term)
