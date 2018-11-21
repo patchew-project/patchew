@@ -40,7 +40,7 @@
   <ul>
     {% for op in series.extra_ops %}
     <li>
-      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span><a
+      <span class="fa fa-{{ op.icon | default:"question" }}"></span><a
         href="{{ op.url }}">{{ op.title }}</a></li>
     {% endfor %}
   </ul>
