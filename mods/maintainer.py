@@ -16,7 +16,7 @@ from mod import PatchewModule
 from api.models import Message, QueuedSeries, WatchedQuery
 from django.shortcuts import render
 from api.search import SearchEngine
-from event import register_handler
+from event import declare_event, register_handler, emit_event
 
 class MaintainerModule(PatchewModule):
     """ Project maintainer related tasks """
@@ -25,14 +25,25 @@ class MaintainerModule(PatchewModule):
 
     def __init__(self):
         register_handler("ResultUpdate", self.on_result_update)
+        declare_event("MessageQueued",
+                      message="Message added",
+                      name="Name of the updated queue",
+                      user="Owner of the queue")
+        declare_event("MessageDropping",
+                      message="Message to be dropped",
+                      queue="Message is about to be dropping from a queue")
 
     def _add_to_queue(self, user, m, queue):
         for x in [m] + list(m.get_patches()):
-            QueuedSeries.objects.get_or_create(user=user, message=x, name=queue)
+            q, created = QueuedSeries.objects.get_or_create(user=user, message=x, name=queue)
+            if created:
+                emit_event("MessageQueued", message=x, queue=q)
 
     def _drop_from_queue(self, user, m, queue):
         query = QueuedSeries.objects.filter(user=user, message__in=m.get_patches() + [m],
                                      name=queue)
+        for q in query:
+            emit_event("MessageDropping", message=q.message, queue=q)
         q.delete()
 
     def _update_watch_queue(self, series):
