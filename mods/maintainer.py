@@ -14,11 +14,16 @@ from django.http import Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
 from mod import PatchewModule
 from api.models import Message, QueuedSeries, WatchedQuery
+from api.search import SearchEngine
+from event import register_handler
 
 class MaintainerModule(PatchewModule):
     """ Project maintainer related tasks """
 
     name = "maintainer"
+
+    def __init__(self):
+        register_handler("ResultUpdate", self.on_result_update)
 
     def _add_to_queue(self, user, m, queue):
         for x in [m] + list(m.get_patches()):
@@ -28,6 +33,20 @@ class MaintainerModule(PatchewModule):
         query = QueuedSeries.objects.filter(user=user, message__in=m.get_patches() + [m],
                                      name=queue)
         q.delete()
+
+    def _update_watch_queue(self, series):
+        se = SearchEngine()
+        for wq in WatchedQuery.objects.all():
+            if se.query_test_message(wq.query, series):
+                self._add_to_queue(wq.user, series, "watched")
+
+    def on_result_update(self, evt, obj, old_status, result):
+        if not isinstance(obj, Message):
+            return
+        if result == obj.git_result and result.status != result.PENDING:
+            # By the time of git result update we should have calculated
+            # maintainers so redo the watched queue
+            self._update_watch_queue(obj)
 
     def _update_review_state(self, request, message_id, accept):
         if not request.user.is_authenticated:
