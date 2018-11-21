@@ -442,6 +442,7 @@ class QueuedSeries(models.Model):
     # Special purposed queues:
     # accept: When user marked series as "accepted"
     # reject: When user marked series as "rejected"
+    # watched: When a series matches user's watched query
     name = models.CharField(max_length=1024, help_text="Name of the queue")
 
     class Meta:
@@ -767,3 +768,8 @@ class Module(models.Model):
 
     def __str__(self):
         return self.name
+
+class WatchedQuery(models.Model):
+    """ User watched query """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='watched_queries')
+    query = models.TextField(blank=False, help_text="Watched query")
