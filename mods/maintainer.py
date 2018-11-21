@@ -202,6 +202,11 @@ class MaintainerModule(PatchewModule):
                                                      kwargs={"message_id": message.message_id}),
                                       "icon": "check",
                                       "title": "Mark series as merged"})
+        if message.maintainers:
+            message.extra_status.append({
+                "icon": "fa-user-o",
+                "html": 'Maintainers: %s' % ", ".join(message.maintainers),
+            })
 
         accepted = False
         rejected = False
