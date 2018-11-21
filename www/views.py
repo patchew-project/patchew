@@ -37,7 +37,7 @@ def try_get_git_head():
 
 def render_page(request, template_name, **data):
     data["patchew_version"] = settings.VERSION + try_get_git_head()
-    dispatch_module_hook("render_page_hook", context_data=data)
+    dispatch_module_hook("render_page_hook", request=request, context_data=data)
     return render(request, template_name, context=data)
 
 

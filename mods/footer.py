@@ -30,6 +30,6 @@ The config is the raw HTML code to inject.
     name = "footer"
     default_config = _default_config
 
-    def render_page_hook(self, context_data):
+    def render_page_hook(self, request, context_data):
         context_data.setdefault("footer", "")
         context_data["footer"] += self.get_config_raw()
