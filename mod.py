@@ -155,12 +155,10 @@ class PatchewModule(object):
 _loaded_modules = {}
 
 def _module_init_config(cls):
-    from api.models import Module as PC
-    pc, created = PC.objects.get_or_create(name=cls.name)
-    if created:
-        pc.config = cls.default_config.strip()
-        pc.save()
-    return pc
+    from api.models import Module
+    mod, _ = Module.objects.get_or_create(name=cls.name,
+                 defaults={ 'config': cls.default_config.strip() })
+    return mod
 
 def load_modules():
     _module_path = settings.MODULE_DIR
