@@ -20,3 +20,26 @@ function add_fixed_scroll_events()
                           $(window).scrollTop() + 10 >= pre_fixed.offset().top + pre_fixed.height());
     })
 }
+
+function copy_to_clipboard(input) {
+    if (input.value == '') {
+        return;
+    }
+
+    var origSelectionStart = input.selectionStart;
+    var origSelectionEnd = input.selectionEnd;
+    var origFocus = typeof document.activeElement.focus === "function" ? document.activeElement : null;
+
+    // copy the selection.  Note that the old selection is not restored unless
+    // an error happens, to give the user feedback that the copy has happened.
+    input.focus();
+    input.setSelectionRange(0, input.value.length);
+    try {
+       document.execCommand("copy");
+    } catch(e) {
+        input.setSelectionRange(origSelectionStart, origSelectionEnd);
+        if (origFocus) {
+            origFocus.focus();
+        }
+    }
+}

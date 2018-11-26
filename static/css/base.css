@@ -65,12 +65,20 @@ h1, h2, h3, .h1, .h2, .h3 {
     color: #666;
 }
 
-.search-help {
+.form-glyph-action {
     color: #ccc;
+    border: 0;
+    background: none;
+    padding: 0px 3px;
 }
 
-.search-help:hover {
+.form-glyph-action:hover {
     color: #aaa;
+}
+
+.form-glyph-action:active {
+    color: #23527c;
+    padding: 0px 3px;
 }
 
 .search-form .form-group {

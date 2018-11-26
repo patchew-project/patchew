@@ -63,9 +63,12 @@ crossorigin="anonymous"/>
         <ul class="nav navbar-nav navbar-right">
             <form class="navbar-form navbar-left search-form" role="search" method="GET" action="{% url 'search' %}">
                 <div class="form-group">
-                    <input type="text" class="form-control" name="q" placeholder="Search" value="{{ search }}">
+                    <input type="text" class="form-control" id="q" name="q" placeholder="Search" value="{{ search }}">
                 </div>
-                <a href="{% url "search_help" %}"><span class="glyphicon glyphicon-question-sign search-help"></span></a>
+                <button type="button" class="form-glyph-action" aria-label="Copy to clipboard"
+				onclick="copy_to_clipboard(document.getElementById('q')); return 0"><span
+				class="fa fa-paste"></span></button>
+                <a href="{% url "search_help" %}" class="form-glyph-action"><span class="glyphicon glyphicon-question-sign"></span></a>
             </form>
             <div class="btn-group user-button">
                 {% if request.user.is_authenticated %}
