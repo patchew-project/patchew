@@ -17,6 +17,7 @@ from django.utils.html import format_html
 from django.conf import settings
 import api
 import email
+import quopri
 from mbox import decode_payload
 import re
 from mod import dispatch_module_hook
@@ -292,7 +293,15 @@ def view_mbox(request, project, message_id):
             return msg.as_bytes(unixfrom=True)
 
         payload = decode_payload(container)
-        container.set_payload('\n'.join(mbox_with_tags_iter(payload, m.tags)))
+        # We might be adding 8-bit trailers to a message with 7bit CTE.  For
+        # patches, quoted-printable is safe and mostly human-readable.
+        try:
+            container.replace_header('Content-Transfer-Encoding', 'quoted-printable')
+        except:
+            msg.add_header('Content-Transfer-Encoding', 'quoted-printable')
+        payload = '\n'.join(mbox_with_tags_iter(payload, m.tags))
+        payload = quopri.encodestring(payload.encode('utf-8'))
+        container.set_payload(payload, charset='utf-8')
         return msg.as_bytes(unixfrom=True)
 
     s = api.models.Message.objects.find_message(message_id, project)

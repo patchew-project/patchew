@@ -12,6 +12,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
+import email
+from mbox import decode_payload
 
 class ImportTest(PatchewTestCase):
 
@@ -47,6 +49,17 @@ class ImportTest(PatchewTestCase):
             uri = patch['resource_uri']
             message = self.api_client.get(uri)
             self.assertEquals(message.data['tags'], [])
+
+    def test_mbox_with_8bit_tags(self):
+        self.cli_login()
+        self.cli_import("0028-tags-need-8bit-encoding.mbox.gz")
+        self.cli_logout()
+        mbox = self.client.get('/QEMU/20181126152836.25379-1-rkagan@virtuozzo.com/mbox')
+        parser = email.parser.BytesParser(policy=email.policy.SMTP)
+        msg = parser.parsebytes(mbox.content)
+        payload = decode_payload(msg)
+        self.assertIn('SynICState *synic = get_synic(cs);', payload)
+        self.assertIn('Reviewed-by: Philippe Mathieu-Daudé <philmd@redhat.com>', payload)
 
 if __name__ == '__main__':
     main()
