@@ -286,17 +286,14 @@ def view_mbox(request, project, message_id):
 
     def get_mbox_with_tags(m):
         mbox = m.get_mbox()
-        try:
-            msg = email.message_from_string(mbox)
-        except Exception:
-            return mbox
+        msg = email.message_from_string(mbox)
         container = msg.get_payload(0) if msg.is_multipart() else msg
         if container.get_content_type() != "text/plain":
-            return mbox
+            return msg.as_bytes(unixfrom=True)
 
         payload = decode_payload(container)
         container.set_payload('\n'.join(mbox_with_tags_iter(payload, m.tags)))
-        return msg.as_string()
+        return msg.as_bytes(unixfrom=True)
 
     s = api.models.Message.objects.find_message(message_id, project)
     if not s:
@@ -310,14 +307,8 @@ def view_mbox(request, project, message_id):
 
     mbox_list = []
     for message in messages:
-        mbox_list.append(
-            "From %s %s\n%s" % (
-                message.get_sender_addr(),
-                message.get_asctime(),
-                get_mbox_with_tags(message)
-            )
-        )
-    mbox = "\n".join(mbox_list)
+        mbox_list.append(get_mbox_with_tags(message))
+    mbox = b"\n".join(mbox_list)
     return HttpResponse(mbox, content_type="text/plain")
 
 
