@@ -13,6 +13,8 @@ import os
 sys.path.append(os.path.dirname(__file__))
 from tests.patchewtest import PatchewTestCase, main
 import email
+import email.parser
+import email.policy
 from mbox import decode_payload
 
 class ImportTest(PatchewTestCase):
