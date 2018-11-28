@@ -74,11 +74,19 @@ class Result(models.Model):
     def is_running(self):
         return self.status == self.RUNNING
 
-    def save(self):
+    def save(self, *args, **kwargs):
         self.last_update = datetime.datetime.utcnow()
         old_result = Result.objects.filter(pk=self.pk).first()
         old_status = old_result.status if old_result else None
-        super(Result, self).save()
+        old_entry = old_result.log_entry if old_result else None
+        super(Result, self).save(*args, **kwargs)
+
+        if self.log_entry is None and old_entry is not None:
+            # Quick way to check if the field was actually saved to the database
+            new_result = Result.objects.filter(pk=self.pk).first()
+            if new_result.log_entry is None:
+                old_entry.delete()
+
         emit_event("ResultUpdate", obj=self.obj,
                    old_status=old_status, result=self)
 
@@ -109,18 +117,15 @@ class Result(models.Model):
 
     @log.setter
     def log(self, value):
-        entry = self.log_entry
         if value is None:
-            if entry is not None:
-                self.log_entry = None
-                entry.delete()
-        else:
-            if entry is None:
-                entry = LogEntry()
-            entry.data = value
-            entry.save()
-            if self.log_entry is None:
-                self.log_entry = entry
+            self.log_entry = None
+            return
+
+        entry = self.log_entry or LogEntry()
+        entry.data = value
+        entry.save()
+        if self.log_entry is None:
+            self.log_entry = entry
 
     def get_log_url(self, request=None):
         if not self.is_completed() or self.renderer is None:
