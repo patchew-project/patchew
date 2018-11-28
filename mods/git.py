@@ -45,7 +45,8 @@ class GitLogViewer(LogView):
         return obj.git_result
 
 class ResultDataSerializer(serializers.Serializer):
-    base = CharField()
+    # TODO: should be present iff the result is success or failure
+    base = CharField(required=False)
 
     # TODO: should be present iff the result is a success
     repo = CharField(required=False)

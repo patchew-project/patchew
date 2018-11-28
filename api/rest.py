@@ -565,7 +565,7 @@ class ResultSerializerFull(ResultSerializer):
         read_only_fields = ResultSerializer.Meta.read_only_fields
 
     # The database field is log_xz, so this is needed here
-    log = CharField(required=False)
+    log = CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class ResultsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
