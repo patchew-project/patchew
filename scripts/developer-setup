@@ -13,7 +13,7 @@ run() {
 
 if ! test -f patchew-db-small.tar.xz; then
   echo Downloading sample database...
-  wget http://people.redhat.com/pbonzini/patchew-db-small.tar.xz
+  wget http://download.patchew.org/patchew-db-small.tar.xz
 fi
 
 if test -d venv; then
