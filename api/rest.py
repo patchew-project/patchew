@@ -552,9 +552,10 @@ class ResultSerializer(serializers.ModelSerializer):
         return obj.get_log_url(request)
 
     def validate(self, data):
-        data_serializer_class = self.context['renderer'].result_data_serializer_class
-        data_serializer_class(data=data['data'],
-                              context=self.context).is_valid(raise_exception=True)
+        if 'data' in data:
+            data_serializer_class = self.context['renderer'].result_data_serializer_class
+            data_serializer_class(data=data['data'],
+                                  context=self.context).is_valid(raise_exception=True)
         return data
 
 
