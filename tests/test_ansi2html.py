@@ -8,6 +8,7 @@ import unittest
 
 from patchew.logviewer import ansi2html, ansi2text, ANSI2TextConverter
 
+
 class ANSI2HTMLTest(unittest.TestCase):
     def assertAnsi(self, test, expected, **kwargs):
         self.assertEqual(''.join(ansi2html(test, **kwargs)),

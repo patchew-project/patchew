@@ -8,11 +8,10 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import os
-import sys
 import mbox
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
+
+from .patchewtest import PatchewTestCase, main
+
 
 class MboxTest(PatchewTestCase):
 
@@ -24,11 +23,11 @@ On 07/25/2017 10:57 AM, Jeff Cody wrote:
 >  redhat/build_configure.sh     | 3 +++
 >  redhat/qemu-kvm.spec.template | 7 +++++++
 >  2 files changed, 10 insertions(+)
-> 
+>
 
 ACK
 
--- 
+--
 Eric Blake, Principal Software Engineer
 Red Hat, Inc.           +1-919-301-3266
 Virtualization:  qemu.org | libvirt.org
@@ -66,10 +65,11 @@ Virtualization:  qemu.org | libvirt.org
                                        {'name': 'Alberto Garcia', 'address': 'berto@igalia.com'},
                                        {'address': 'qemu-block@nongnu.org'},
                                        {'name': 'Max Reitz', 'address': 'mreitz@redhat.com'}],
-                        'mbox':content
+                        'mbox': content
                         }
             msg = mbox.MboxMessage(content).get_json()
         self.assertEqual(msg, expected)
+
 
 if __name__ == '__main__':
     main()

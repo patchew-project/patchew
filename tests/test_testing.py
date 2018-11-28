@@ -9,12 +9,12 @@
 # http://opensource.org/licenses/MIT.
 
 import abc
-import sys
-import os
 import subprocess
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
+
 from api.models import Message, Result
+
+from .patchewtest import PatchewTestCase, main
+
 
 def create_test(project, name, requirements="", script="#!/bin/bash\ntrue"):
     prefix = "testing.tests." + name + "."
@@ -22,6 +22,7 @@ def create_test(project, name, requirements="", script="#!/bin/bash\ntrue"):
     project.set_property(prefix + "enabled", True)
     project.set_property(prefix + "script", script)
     project.set_property(prefix + "requirements", requirements)
+
 
 class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
@@ -36,7 +37,7 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
     def modify_test_result(self, obj, **kwargs):
         try:
             r = obj.results.get(name='testing.a')
-        except:
+        except Exception:
             r = obj.create_result(name='testing.a')
             if 'status' not in kwargs:
                 kwargs['status'] = Result.PENDING
@@ -52,28 +53,30 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
             r.save()
 
     def _do_testing_done(self, obj, **kwargs):
-        if not 'status' in kwargs:
+        if 'status' not in kwargs:
             kwargs['status'] = Result.SUCCESS
         self.modify_test_result(obj, **kwargs)
         obj.set_property("testing.done", True)
 
     def do_testing_report(self, **report):
         self.api_login()
-        r = self.api_call("testing-get",
-                           project="QEMU",
-                           tester="dummy tester",
-                           capabilities=[])
+        r = self.api_call(
+            "testing-get",
+            project="QEMU",
+            tester="dummy tester",
+            capabilities=[],
+        )
         report['project'] = r["project"]
         report['identity'] = r["identity"]
         report['test'] = r["test"]["name"]
         report['tester'] = 'dummy_tester'
         report['head'] = r["head"]
         report['base'] = r["base"]
-        if not 'passed' in report:
+        if 'passed' not in report:
             report['passed'] = True
-        if not 'log' in report:
+        if 'log' not in report:
             report['log'] = None
-        if not 'is_timeout' in report:
+        if 'is_timeout' not in report:
             report['is_timeout'] = False
 
         self.api_call("testing-report", **report)
@@ -150,6 +153,7 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
         self.assertEquals(log.status_code, 200)
         self.assertEquals(log.content, b'sorry no good')
 
+
 class MessageTestingTest(TestingTestCase):
 
     def setUp(self):
@@ -170,15 +174,19 @@ class MessageTestingTest(TestingTestCase):
         return r
 
     def get_test_result(self, test_name):
-        return self.api_client.get('%sseries/%s/results/testing.%s/' % (
-                                       self.PROJECT_BASE, self.msg.message_id, test_name))
+        return self.api_client.get(
+            '%sseries/%s/results/testing.%s/' % (
+                self.PROJECT_BASE,
+                self.msg.message_id,
+                test_name
+            ))
 
     def test_testing_ready(self):
         self.assertEqual(self.msg.results.filter(name='testing.a').first().status,
                          Result.PENDING)
 
-class ProjectTestingTest(TestingTestCase):
 
+class ProjectTestingTest(TestingTestCase):
     def setUp(self):
         super(ProjectTestingTest, self).setUp()
         self.p.set_property("git.head", "5678")
@@ -193,11 +201,12 @@ class ProjectTestingTest(TestingTestCase):
         return r
 
     def get_test_result(self, test_name):
-        return self.api_client.get('%sresults/testing.%s/' % (
-                                       self.PROJECT_BASE, test_name))
+        return self.api_client.get(
+            '%sresults/testing.%s/' % (self.PROJECT_BASE, test_name)
+        )
+
 
 class TesterTest(PatchewTestCase):
-
     def setUp(self):
         self.create_superuser()
 
@@ -227,8 +236,9 @@ class TesterTest(PatchewTestCase):
         self.update_head(self.p2)
         self.update_head(self.p3)
         self.update_head(self.p4)
-        base = subprocess.check_output(["git", "rev-parse", "HEAD~1"],
-                                       cwd=self.repo).decode()
+        subprocess.check_output(
+            ["git", "rev-parse", "HEAD~1"],
+            cwd=self.repo).decode()
         subprocess.check_output(["git", "tag", "test"], cwd=self.repo)
 
     def add_file_and_commit(self, f):
@@ -314,8 +324,8 @@ class TesterTest(PatchewTestCase):
         self.assertIn("Nothing to test", out)
         self.cli_logout()
 
-class TestingResetTest(PatchewTestCase):
 
+class TestingResetTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
 
@@ -364,8 +374,8 @@ class TestingResetTest(PatchewTestCase):
                                   "testing.c": Result.PENDING})
         self.assertFalse(msg.get_property("testing.done"))
 
-class TestingDisableTest(PatchewTestCase):
 
+class TestingDisableTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
 
@@ -383,8 +393,10 @@ class TestingDisableTest(PatchewTestCase):
         self.assertNotIn("Project: QEMU\n", out)
         self.cli_logout()
 
+
 # do not run tests on the abstract class
 del TestingTestCase
+
 
 if __name__ == '__main__':
     main()

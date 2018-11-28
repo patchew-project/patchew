@@ -10,7 +10,9 @@
 
 import time
 import datetime
-from tests.patchewtest import PatchewTestCase, main
+
+from .patchewtest import PatchewTestCase, main
+
 
 class ProjectTest(PatchewTestCase):
 
@@ -53,6 +55,7 @@ class ProjectTest(PatchewTestCase):
         message.date = dt
         asctime = message.get_asctime()
         self.assertEqual(asctime, "Sat Oct 22 9:06:04 2016")
+
 
 if __name__ == '__main__':
     main()

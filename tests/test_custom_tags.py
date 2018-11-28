@@ -12,6 +12,7 @@ from django.template import Context, Template
 from patchew.tags import tail_lines, grep_A, grep_B, grep_C, grep, lines_between
 import unittest
 
+
 class CustomTagsTest(unittest.TestCase):
     def assertTemplate(self, template, expected, **kwargs):
         context = Context(kwargs)
@@ -22,13 +23,13 @@ class CustomTagsTest(unittest.TestCase):
         self.assertTemplate('{{s|grep:"[0-9]"}}', '0\n9', s='0\na\n9')
         self.assertTemplate('{{s|grep_A:"b"}}',
                             'b\nc\nd\ne\n---\nb',
-                             s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
+                            s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
         self.assertTemplate('{{s|grep_B:"b"}}',
                             'a\nb\n---\nx\ny\nz\nb',
-                             s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
+                            s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
         self.assertTemplate('{{s|grep_C:"b"}}',
                             'a\nb\nc\nd\ne\n---\nx\ny\nz\nb',
-                             s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
+                            s='a\nb\nc\nd\ne\nf\nx\ny\nz\nb')
         self.assertTemplate('{{s|tail_lines:3}}', 'b\nc\nd', s='a\nb\nc\nd')
 
     def test_template_tags(self):
@@ -131,6 +132,7 @@ class CustomTagsTest(unittest.TestCase):
         self.assertEqual(lines_between('a\nb\ncb\nd', 'b', 'c'), 'b\ncb')
         self.assertEqual(lines_between('a\nb\ncb\nd', 'b', 'c', False), 'b\ncb\nd')
         self.assertEqual(lines_between('a\nb\n\n\na\nb', '.', '^$'), 'a\nb\n\na\nb')
+
 
 if __name__ == '__main__':
     unittest.main()

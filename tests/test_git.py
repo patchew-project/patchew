@@ -8,13 +8,12 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
 import shutil
-import subprocess
+
 from api.models import Message, Result
+
+from .patchewtest import PatchewTestCase, main
+
 
 class GitTest(PatchewTestCase):
 
@@ -99,7 +98,6 @@ class GitTest(PatchewTestCase):
     def test_rest_git_base(self):
         self.cli_import("0013-foo-patch.mbox.gz")
         self.do_apply()
-        s = Message.objects.series_heads()[0]
         self.cli_import("0014-bar-patch.mbox.gz")
         MESSAGE_ID = '20160628014747.20971-2-famz@redhat.com'
         resp = self.api_client.get('%sseries/%s/' % (self.PROJECT_BASE, MESSAGE_ID))
@@ -140,6 +138,7 @@ class GitTest(PatchewTestCase):
         log = self.client.get(resp.data['log_url'])
         self.assertEqual(log.status_code, 200)
         self.assertEqual(log.content.decode(), resp.data['log'])
+
 
 if __name__ == '__main__':
     main()

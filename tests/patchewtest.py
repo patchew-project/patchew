@@ -18,30 +18,32 @@ import json
 import atexit
 import gzip
 
+import django
+import django.test as dj_test
+from django.contrib.auth.models import User, Group
+import rest_framework.test
+
+from api.models import Message, Result, Project
+
+
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
+PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
+RUN_DIR = tempfile.mkdtemp()
 
 sys.path.append(BASE_DIR)
 
 os.environ["PATCHEW_TEST"] = "1"
+os.environ["PATCHEW_TEST_DATA_DIR"] = os.path.join(RUN_DIR, "patchew-data")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "patchew.settings")
-import django
 
 django.setup()
 
-import django.test
-from django.contrib.auth.models import User, Group
-import rest_framework.test
-from api.models import *
 
-PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
-RUN_DIR = tempfile.mkdtemp()
-os.environ["PATCHEW_TEST_DATA_DIR"] = os.path.join(RUN_DIR, "patchew-data")
-
-class PatchewTestCase(django.test.LiveServerTestCase):
+class PatchewTestCase(dj_test.LiveServerTestCase):
     user = "admin"
     email = "admin@test"
     password = "adminpass"
-    client = django.test.Client()
+    client = dj_test.Client()
     api_client = rest_framework.test.APIClient()
 
     REST_BASE = 'http://testserver/api/v1/'
@@ -79,8 +81,11 @@ class PatchewTestCase(django.test.LiveServerTestCase):
     def check_cli(self, args, rc=0, stdout=None, stderr=None):
         assert(isinstance(args, list))
         r, a, b = self.cli(args)
-        self.assertEqual(r, rc,
-            "Exit code {} != expected {}, stdout:\n{}\nstderr:\n{}\n".format(r, rc, a, b))
+        self.assertEqual(
+            r,
+            rc,
+            "Exit code {} != expected {}, stdout:\n{}\nstderr:\n{}\n".format(r, rc, a, b)
+        )
         if stdout is not None:
             self.assertEqual(stdout, a)
         if stderr is not None:
@@ -162,11 +167,13 @@ class PatchewTestCase(django.test.LiveServerTestCase):
                                 cwd=repo)
         return repo
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", "-d", action="store_true",
                         help="Enable debug output, and keep temp dir after done")
     return parser.parse_known_args()
+
 
 def main():
     import unittest
@@ -183,4 +190,3 @@ def main():
     finally:
         if not args.debug:
             shutil.rmtree(RUN_DIR)
-

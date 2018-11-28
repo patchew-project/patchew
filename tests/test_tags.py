@@ -8,14 +8,13 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
 import email
 import email.parser
 import email.policy
 from mbox import decode_payload
+
+from .patchewtest import PatchewTestCase, main
+
 
 class ImportTest(PatchewTestCase):
 
@@ -62,6 +61,7 @@ class ImportTest(PatchewTestCase):
         payload = decode_payload(msg)
         self.assertIn('SynICState *synic = get_synic(cs);', payload)
         self.assertIn('Reviewed-by: Philippe Mathieu-Daudé <philmd@redhat.com>', payload)
+
 
 if __name__ == '__main__':
     main()

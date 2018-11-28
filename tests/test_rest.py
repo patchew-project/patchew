@@ -8,23 +8,21 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
+from collections import OrderedDict
 import json
-import unittest
 
 from django.contrib.auth.models import User
 
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
 from api.models import Message
 from api.rest import AddressSerializer
-from collections import OrderedDict
+
+from .patchewtest import PatchewTestCase, main
 
 try:
     import coreapi
 except ImportError:
     coreapi = None
+
 
 class RestTest(PatchewTestCase):
     def setUp(self):
@@ -97,15 +95,23 @@ class RestTest(PatchewTestCase):
     def test_update_project_head(self):
         resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
-        self.api_client.login(username=self.user, password=self.password)        
-        resp_before = self.api_client.get(self.PROJECT_BASE + "series/"+ "20160628014747.20971-1-famz@redhat.com/")
+        self.api_client.login(username=self.user, password=self.password)
+        resp_before = self.api_client.get(
+            self.PROJECT_BASE + "series/" + "20160628014747.20971-1-famz@redhat.com/"
+        )
         data = {
-                "message_ids": ["20160628014747.20971-1-famz@redhat.com"],
-                "old_head": "None",
-                "new_head": "000000"
-                }
-        resp = self.api_client.post(self.PROJECT_BASE + "update_project_head/", data=json.dumps(data), content_type='application/json')
-        resp_after = self.api_client.get(self.PROJECT_BASE + "series/"+ "20160628014747.20971-1-famz@redhat.com/")
+            "message_ids": ["20160628014747.20971-1-famz@redhat.com"],
+            "old_head": "None",
+            "new_head": "000000",
+        }
+        resp = self.api_client.post(
+            self.PROJECT_BASE + "update_project_head/",
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        resp_after = self.api_client.get(
+            self.PROJECT_BASE + "series/" + "20160628014747.20971-1-famz@redhat.com/"
+        )
         self.assertEquals(resp_before.data['is_merged'], False)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.data['count'], 1)
@@ -226,10 +232,10 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['patches'][0]['stripped_subject'], 'crypto: add support for querying parameters for block encryption')
 
     def test_series_list(self):
-        resp1 = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
-                                        self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
-        resp2 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
-                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
+        self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
+                                self.p.id, '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        self.apply_and_retrieve('0001-simple-patch.mbox.gz',
+                                self.p.id, '20160628014747.20971-1-famz@redhat.com')
 
         resp = self.api_client.get(self.REST_BASE + 'series/')
         self.assertEqual(resp.data['count'], 2)
@@ -242,7 +248,7 @@ class RestTest(PatchewTestCase):
 
     def test_series_results_list(self):
         resp1 = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
-                                       self.p.id, '20160628014747.20971-1-famz@redhat.com')
+                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
         resp = self.api_client.get(resp1.data['results'])
         self.assertEqual(resp.data['count'], len(resp.data['results']))
 
@@ -277,20 +283,25 @@ class RestTest(PatchewTestCase):
 
     def test_series_delete(self):
         test_message_id = '1469192015-16487-1-git-send-email-berrange@redhat.com'
-        series = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',self.p.id,
-                                         test_message_id)
+        series = self.apply_and_retrieve(
+            '0004-multiple-patch-reviewed.mbox.gz', self.p.id, test_message_id
+        )
         message = series.data['message']
-        resp_before = self.api_client.get(self.REST_BASE + 'projects/' + str(self.p.id)
-                                          + '/series/' + test_message_id + '/')
+        resp_before = self.api_client.get(
+            self.REST_BASE + 'projects/' + str(self.p.id) + '/series/' + test_message_id + '/'
+        )
         resp_reply_before = self.api_client.get(message + 'replies/')
-        resp_without_login = self.api_client.delete(self.REST_BASE + 'projects/' + str(self.p.id)
-                                      + '/series/' + test_message_id + '/')
+        resp_without_login = self.api_client.delete(
+            self.REST_BASE + 'projects/' + str(self.p.id) + '/series/' + test_message_id + '/'
+        )
         self.api_client.login(username=self.user, password=self.password)
-        resp = self.api_client.delete(self.REST_BASE + 'projects/' + str(self.p.id)
-                                      + '/series/' + test_message_id + '/')
+        resp = self.api_client.delete(
+            self.REST_BASE + 'projects/' + str(self.p.id) + '/series/' + test_message_id + '/'
+        )
         self.api_client.logout()
-        resp_after = self.api_client.get(self.REST_BASE + 'projects/' + str(self.p.id)
-                                         + '/series/' + test_message_id + '/')
+        resp_after = self.api_client.get(
+            self.REST_BASE + 'projects/' + str(self.p.id) + '/series/' + test_message_id + '/'
+        )
         resp_reply_after = self.api_client.get(message + 'replies/')
 
         self.assertEqual(resp_before.status_code, 200)
@@ -391,7 +402,7 @@ class RestTest(PatchewTestCase):
         dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
         with open(dp, "r") as f:
             data = f.read()
-        test = self.create_user(username="test", password="userpass", groups=['importers'])
+        self.create_user(username="test", password="userpass", groups=['importers'])
         self.api_client.login(username="test", password="userpass")
         resp = self.api_client.post(self.REST_BASE + "messages/", data, content_type='message/rfc822')
         self.assertEqual(resp.status_code, 201)
@@ -419,19 +430,25 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data, Message.objects.all()[0].get_mbox())
 
     def test_address_serializer(self):
-        data1 = {"name":"Shubham", "address":"shubhamjain7495@gmail.com"}
-        serializer1 = AddressSerializer(data = data1)
+        data1 = {"name": "Shubham", "address": "shubhamjain7495@gmail.com"}
+        serializer1 = AddressSerializer(data=data1)
         valid1 = serializer1.is_valid()
         valid_data1 = serializer1.validated_data
-        data2 = {"name":123, "address":"shubhamjain7495@gmail.com"}
-        serializer2 = AddressSerializer(data = data2)
+        data2 = {"name": 123, "address": "shubhamjain7495@gmail.com"}
+        serializer2 = AddressSerializer(data=data2)
         valid2 = serializer2.is_valid()
         valid_data2 = serializer2.validated_data
 
-        self.assertEqual(valid1,True)
-        self.assertEqual(valid_data1,OrderedDict([('name', 'Shubham'), ('address', 'shubhamjain7495@gmail.com')]))
-        self.assertEqual(valid2,True)
-        self.assertEqual(valid_data2,OrderedDict([('name', '123'), ('address', 'shubhamjain7495@gmail.com')]))
+        self.assertEqual(valid1, True)
+        self.assertEqual(
+            valid_data1,
+            OrderedDict([('name', 'Shubham'), ('address', 'shubhamjain7495@gmail.com')])
+        )
+        self.assertEqual(valid2, True)
+        self.assertEqual(
+            valid_data2,
+            OrderedDict([('name', '123'), ('address', 'shubhamjain7495@gmail.com')])
+        )
 
     def test_message_replies(self):
         series = self.apply_and_retrieve('0004-multiple-patch-reviewed.mbox.gz',
@@ -452,6 +469,7 @@ class RestTest(PatchewTestCase):
     def test_schema(self):
         resp = self.api_client.get(self.REST_BASE + 'schema/')
         self.assertEqual(resp.status_code, 200)
+
 
 if __name__ == '__main__':
     main()

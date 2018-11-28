@@ -8,8 +8,10 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from tests.patchewtest import PatchewTestCase, main
 from api.models import Message
+
+from .patchewtest import PatchewTestCase, main
+
 
 class ImportTest(PatchewTestCase):
 
@@ -135,6 +137,7 @@ mode change 100644 => 100755 tests/qemu-iotests/205
         msg = Message.objects.first()
         self.maxDiff = 100000
         self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
+
 
 if __name__ == '__main__':
     main()

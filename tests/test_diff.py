@@ -8,10 +8,8 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
+from .patchewtest import PatchewTestCase, main
+
 
 class DiffTest(PatchewTestCase):
 
@@ -62,6 +60,7 @@ class DiffTest(PatchewTestCase):
         self.assertEqual(resp3.data['other_versions'][0]['resource_uri'], resp1.data['resource_uri'])
         self.assertEqual(resp3.data['other_versions'][1]['version'], 2)
         self.assertEqual(resp3.data['other_versions'][1]['resource_uri'], resp2.data['resource_uri'])
+
 
 if __name__ == '__main__':
     main()

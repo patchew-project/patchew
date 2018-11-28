@@ -8,7 +8,8 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from tests.patchewtest import PatchewTestCase, main
+from .patchewtest import PatchewTestCase, main
+
 
 class ProjectTest(PatchewTestCase):
 
@@ -76,6 +77,7 @@ class ProjectTest(PatchewTestCase):
         self.assertTrue(p.maintained_by(self.admin_user))
         self.assertFalse(p.maintained_by(u1))
         self.assertFalse(p.maintained_by(u2))
+
 
 if __name__ == '__main__':
     main()

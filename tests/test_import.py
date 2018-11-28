@@ -8,15 +8,14 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import sys
-import os
-sys.path.append(os.path.dirname(__file__))
-from tests.patchewtest import PatchewTestCase, main
 import json
+
 from api.models import Message, Project
 
-class ImportTest(PatchewTestCase):
+from .patchewtest import PatchewTestCase, main
 
+
+class ImportTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
         self.cli_login()
@@ -97,6 +96,7 @@ class ImportTest(PatchewTestCase):
                          ['[libvirt]  [PATCH v2] vcpupin: add clear feature', subj])
         self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
 
+
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
@@ -132,6 +132,7 @@ class UnprivilegedImportTest(ImportTest):
         p.git = repo
         p.save()
         self.check_cli(["project", "update"])
+
 
 if __name__ == '__main__':
     main()
