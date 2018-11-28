@@ -297,7 +297,7 @@ def view_mbox(request, project, message_id):
         # patches, quoted-printable is safe and mostly human-readable.
         try:
             container.replace_header('Content-Transfer-Encoding', 'quoted-printable')
-        except:
+        except KeyError:
             msg.add_header('Content-Transfer-Encoding', 'quoted-printable')
         payload = '\n'.join(mbox_with_tags_iter(payload, m.tags))
         payload = quopri.encodestring(payload.encode('utf-8'))
