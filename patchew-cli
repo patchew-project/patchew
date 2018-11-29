@@ -529,8 +529,8 @@ class TesterCommand(SubCommand):
             logf.write("=== OUTPUT BEGIN ===\n")
             logf.flush()
             start_time = time.time()
-            tp = subprocess.Popen([test_script], cwd=clone,
-                                  stdout=logf, stderr=logf)
+            tp = subprocess.Popen(["/usr/bin/script", "-qefc", test_script, "/dev/null"],
+                                  cwd=clone, stdout=logf, stderr=logf)
             rc = None
             timeout = r["test"]["timeout"]
             while timeout <= 0 or time.time() - start_time < timeout:
