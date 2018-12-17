@@ -1,4 +1,7 @@
 ---
+- name: Install rsync
+  package:
+    name: rsync
 - name: Install pip
   package:
     name: python-pip
