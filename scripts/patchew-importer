@@ -77,29 +77,32 @@ imported()
 
 import()
 {
-    echo import $@
-    if ! timeout -k 600 600 $PATCHEW_CLI import $@; then
-        cp $@ $BAD_MESSAGES_DIR
+    echo $1 import $2
+    if ! timeout -k 600 600 $PATCHEW_CLI import $2; then
+        cp $2 $BAD_MESSAGES_DIR
         echo "(bad message saved in $BAD_MESSAGES_DIR)"
     fi
     if test "$IMAP_DELETE_AFTER_IMPORT" = y; then
-        rm -f $f
-        echo "Deleted $f"
+        rm -f $2
+        echo "Deleted $2"
     fi
-    touch $IMPORTED_DIR/$(hashstr $@)
+    touch $IMPORTED_DIR/$(hashstr $2)
 }
 
 offlineimap_import()
 {
+    local n
     if ! timeout -k 2000 1800 offlineimap -c $offlineimap_rc; then
         sleep 300
         return
     fi
+    n=1
     find "$maildir" -type f | while read f; do
         if imported "$f"; then
             return
         fi
-        import "$f" || true
+        import $n "$f" || true
+        let n=n+1
     done
 }
 
