@@ -108,7 +108,6 @@ offlineimap_import()
 
 while :; do
     $PATCHEW_CLI login "$PATCHEW_USER" "$PATCHEW_PASS"
-    offlineimap_import
     while :; do
         wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
         if (cd $wd; $PATCHEW_CLI apply --applier-mode); then
@@ -121,5 +120,6 @@ while :; do
         fi
     done
     $PATCHEW_CLI project update
+    offlineimap_import
     sleep 60
 done
