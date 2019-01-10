@@ -43,9 +43,18 @@ def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
                     cwd=cache_repo,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
-    subprocess.check_call(["git", "remote", "add", "-f", "--mirror=fetch",
+    subprocess.check_call(["git", "remote", "add",
                           remote_name, remote], cwd=cache_repo,
                           stdout=logf, stderr=logf)
+    subprocess.check_call(["git", "config",
+                           "remote.%s.fetch" % (remote_name,),
+                           "+refs/heads/*:refs/heads/*"], cwd=cache_repo,
+                          stdout=logf, stderr=logf)
+    subprocess.check_call(["git", "fetch", remote_name], cwd=cache_repo,
+                          stdout=logf, stderr=logf)
+    if head.startswith("refs/tags/"):
+        subprocess.check_call(["git", "fetch", remote_name, "+%s:%s" % (head, head)],
+                              cwd=cache_repo, stdout=logf, stderr=logf)
     clone_cmd = ["git", "clone", "-q"]
     if recursive:
         clone_cmd += ["--recursive"]
