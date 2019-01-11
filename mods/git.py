@@ -273,9 +273,10 @@ class ApplierReportView(APILoginRequiredView):
             data['tag'] = 'refs/tags/' + tag
             if url:
                 data['url'] = url
-            elif url_template and tag:
+            elif tag:
                 url_template = p.get_property("git.url_template")
-                data['url'] = url_template.replace("%t", tag)
+                if url_template:
+                    data['url'] = url_template.replace("%t", tag)
             if base:
                 data['base'] = base
             r.status = Result.SUCCESS
