@@ -278,14 +278,14 @@ def view_mbox(request, project, message_id):
                 old_tags.add(line)
 
         # If no --- line, tags go at the end as there's no better place
-        for tag in tags:
+        for tag in sorted(tags):
             if tag not in old_tags:
                 yield tag
         if need_minusminusminus:
             yield line
         yield from lines
 
-    def get_mbox_with_tags(m):
+    def get_mbox_with_tags(m, series_tags):
         mbox = m.get_mbox()
         msg = email.message_from_string(mbox)
         container = msg.get_payload(0) if msg.is_multipart() else msg
@@ -299,7 +299,7 @@ def view_mbox(request, project, message_id):
             container.replace_header('Content-Transfer-Encoding', 'quoted-printable')
         except KeyError:
             msg.add_header('Content-Transfer-Encoding', 'quoted-printable')
-        payload = '\n'.join(mbox_with_tags_iter(payload, m.tags))
+        payload = '\n'.join(mbox_with_tags_iter(payload, set(m.tags).union(series_tags)))
         payload = quopri.encodestring(payload.encode('utf-8'))
         container.set_payload(payload, charset='utf-8')
         return msg.as_bytes(unixfrom=True)
@@ -311,12 +311,14 @@ def view_mbox(request, project, message_id):
         if not s.is_complete:
             raise Http404("Series not complete")
         messages = s.get_patches()
+        series_tags = set(s.tags)
     else:
         messages = [s]
+        series_tags = set()
 
     mbox_list = []
     for message in messages:
-        mbox_list.append(get_mbox_with_tags(message))
+        mbox_list.append(get_mbox_with_tags(message, series_tags))
     mbox = b"\n".join(mbox_list)
     return HttpResponse(mbox, content_type="text/plain")
 
