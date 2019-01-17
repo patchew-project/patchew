@@ -162,6 +162,7 @@ Syntax:
  - accept:USERNAME or ack:USERNAME - the series was marked as accepted by the user
  - reject:USERNAME or nack:USERNAME - the series was marked as reject by the user
  - review:USERNAME - the series was marked as accepted or rejected by the user
+ - watch:USERNAME - the series is in the user's watched queue
 
 USERNAME can be "me" to identify the current user
 
@@ -267,7 +268,7 @@ Search text keyword in the email message. Example:
             return Q(is_merged=True)
         return None
 
-    def _make_filter_review(self, username, user, **kwargs):
+    def _make_filter_queue(self, username, user, **kwargs):
         if username == "me":
             if not user.is_authenticated:
                 # Django hack to return an always false Q object
@@ -320,13 +321,16 @@ Search text keyword in the email message. Example:
             return self._make_filter_result(term[8:], status=Result.RUNNING)
         elif term.startswith("ack:") or term.startswith("accept:") or term.startswith("accepted:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user, name="accept")
+            return self._make_filter_queue(username, user, name="accept")
         elif term.startswith("nack:") or term.startswith("reject:") or term.startswith("rejected:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user, name="reject")
+            return self._make_filter_queue(username, user, name="reject")
         elif term.startswith("review:") or term.startswith("reviewed:"):
             username = term[term.find(":") + 1:]
-            return self._make_filter_review(username, user, name="accept")
+            return self._make_filter_queue(username, user, name__in=["accept", "reject"])
+        elif term.startswith("watch:") or term.startswith("watched:"):
+            username = term[term.find(":") + 1:]
+            return self._make_filter_queue(username, user, name="watched")
         elif term.startswith("project:"):
             cond = term[term.find(":") + 1:]
             self._projects.add(cond)
