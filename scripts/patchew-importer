@@ -110,7 +110,11 @@ while :; do
     $PATCHEW_CLI login "$PATCHEW_USER" "$PATCHEW_PASS"
     while :; do
         wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
-        if (cd $wd; $PATCHEW_CLI apply --applier-mode); then
+	applier_args='--applier-mode '
+	if test "$PATCHEW_TARGET_REPO" != ""; then
+	  applier_args="$applier_args --applier-target $PATCHEW_TARGET_REPO"
+	fi
+        if (cd $wd; $PATCHEW_CLI apply $applier_args); then
             rm -rf $wd
         elif [ $? -eq 3 ]; then
             rm -rf $wd

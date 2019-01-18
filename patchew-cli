@@ -673,6 +673,9 @@ class ApplyCommand(SubCommand):
                             Clone and checkout a temporary repo, and apply the
                             patch there. Implies --any, conflicts with -C, -b,
                             -B and -t.""")
+        parser.add_argument("--applier-target",
+                            help="""Restricts the applier to destination repositories
+                            that start with the content of the argument.""")
 
     def _get_maintainers(self, repo, fname):
         script = os.path.join(repo, "scripts/get_maintainer.pl")
@@ -756,7 +759,10 @@ class ApplyCommand(SubCommand):
                               cwd=repo, stdout=logf, stderr=logf)
 
     def _applier_mode(self, args):
-        toapply = self.api_do("applier-get")
+        applier_get_args = {}
+        if args.applier_target:
+            applier_get_args['target_repo'] = args.applier_target
+        toapply = self.api_do("applier-get", **applier_get_args)
         if not toapply:
             print("No series need apply")
             return 3
@@ -818,6 +824,8 @@ class ApplyCommand(SubCommand):
                 print("--applier-mode conflicts with -C, -b, -B and -t")
                 return 1
             return self._applier_mode(args)
+        if args.applier_target:
+            print("--applier-target requires --applier-mode")
         r = self.api_do("search", terms=args.term)
         if not r:
             print("Nothing to apply")

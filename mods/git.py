@@ -233,8 +233,15 @@ class ApplierGetView(APILoginRequiredView):
     name = "applier-get"
     allowed_groups = ["importers"]
 
-    def handle(self, request):
-        m = Message.objects.filter(results__name="git", results__status="pending").first()
+    def handle(self, request, target_repo=None):
+        q = Message.objects.filter(results__name="git", results__status="pending")
+        if target_repo is not None and target_repo != '':
+            if target_repo[-1] != '/':
+                target_repo = target_repo + '/'
+            projects = Project.objects.filter(projectproperty__name='git.push_to',
+                                              projectproperty__value__startswith=target_repo)
+            q = q.filter(project__in=projects)
+        m = q.first()
         if not m:
             return None
 

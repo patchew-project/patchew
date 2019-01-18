@@ -18,6 +18,10 @@
     - name: "importer_identity"
       prompt: "Path to file containing private key"
       private: no
+    - name: "importer_repo"
+      prompt: "Target repository allowed by the private key (e.g. git@github.com:youruser)"
+      default: ""
+      private: no
     - name: "imap_server"
       prompt: "IMAP server address to download patches"
       private: no
