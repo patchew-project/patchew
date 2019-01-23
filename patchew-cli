@@ -510,6 +510,7 @@ class TesterCommand(SubCommand):
         print("  Workdir:", wd)
         print("  Project:", r["project"])
         print("  Identity:", str(r["identity"]))
+        sys.stdout.flush()
         logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8",
                     newline='', errors="ignore")
         test_cmd = r["test"]["script"]
