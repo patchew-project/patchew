@@ -577,15 +577,32 @@ class TesterCommand(SubCommand):
                     log = "N/A. Internal error while reading log file\n"
                 print("  Result:", "Passed" if passed else "Failed")
                 logging.debug(log)
-                self.api_do("testing-report", project=r["project"],
-                                              identity=r["identity"],
-                                              test=r["test"]["name"],
-                                              tester=name,
-                                              head=r["head"],
-                                              base=r["base"],
-                                              passed=passed,
-                                              log=log,
-                                              is_timeout=is_timeout)
+                max_size = 100000000
+                prefixed = False
+                orig_log_size = len(log)
+                while max_size > 100000:
+                    try:
+                        self.api_do("testing-report", project=r["project"],
+                                                      identity=r["identity"],
+                                                      test=r["test"]["name"],
+                                                      tester=name,
+                                                      head=r["head"],
+                                                      base=r["base"],
+                                                      passed=passed,
+                                                      log=log,
+                                                      is_timeout=is_timeout)
+                    except error.HTTPError as e:
+                        if e.code != 413:
+                            raise e
+                        if not prefixed:
+                            prefixed = True
+                            log = 'WARNING: Log truncated!\n\n' + log
+                        log = log[:max_size]
+                        max_size = max_size / 10
+                    else:
+                        break
+                if prefixed:
+                    print("Log truncated from %d to %d bytes" % {orig_log_size, len(log)})
                 logf.close()
             finally:
                 if not no_clean_up:
