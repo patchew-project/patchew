@@ -24,8 +24,8 @@
       private: no
   vars:
     base_dir: "{{ instance_name }}"
-    src_dir: "{{ base_dir }}/src"
-    patchew_cmd: "{{ src_dir }}/patchew-cli -s {{ patchew_server }}"
+    dest_base_dir: "~{{ cron_user }}/{{ base_dir }}"
+    patchew_cmd: "{{ base_dir }}/src/patchew-cli -s {{ patchew_server }}"
   tasks:
     - debug:
         msg: Patchew tester deploy starting
@@ -35,13 +35,16 @@
         shell: /bin/bash
         state: present
     - name: Create patchew data folder
+      become: yes
+      become_user: "{{ cron_user }}"
       file:
-        path: "{{ base_dir }}"
+        path: "{{ dest_base_dir }}"
         state: directory
     - name: Copy source
+      remote_user: "{{ cron_user }}"
       synchronize:
         src: ../../../
-        dest: "{{ src_dir }}"
+        dest: "{{ dest_base_dir }}/src"
         recursive: true
         group: no
         owner: no
@@ -51,19 +54,19 @@
           - "--exclude=*.swp"
           - "--exclude=/venv"
     - name: Generate password file
-      shell: "echo {{ tester_pass }} > $HOME/.patchew-tester-pass"
+      become: yes
+      become_user: "{{ cron_user }}"
+      shell: "cd ~{{ cron_user }} && echo {{ tester_pass }} > {{ base_dir }}/patchew-tester-pass"
     - name: Login with patchew-cli
-      shell: "{{ patchew_cmd }} login {{ tester_user }} $(cat $HOME/.patchew-tester-pass)"
+      become: yes
+      become_user: "{{ cron_user }}"
+      shell: "cd ~{{ cron_user }} && {{ patchew_cmd }} login {{ tester_user }} $(cat {{ base_dir }}/patchew-tester-pass)"
     - name: Logout with patchew-cli
-      shell: "{{ patchew_cmd }} logout"
-    - name: Define PATCHEW env in cron
-      cron:
-        name: PATCHEW
-        user: "{{ cron_user }}"
-        env: yes
-        value: "{{ patchew_cmd }}"
+      become: yes
+      become_user: "{{ cron_user }}"
+      shell: "cd ~{{ cron_user }} && {{ patchew_cmd }} logout"
     - cron:
         name: "Patchew tester {{ instance_name }}"
         user: "{{ cron_user }}"
         minute: "*/10"
-        job: "{ $PATCHEW login {{ tester_user }} $(cat $HOME/.patchew-tester-pass); $PATCHEW tester --name {{ instance_name }} --singleton -p {{ tester_project }}; } >>$HOME/patchew-tester.log 2>&1"
+        job: "{ {{ patchew_cmd }} login {{ tester_user }} $(cat {{ base_dir }}/patchew-tester-pass); {{ patchew_cmd }} tester --name {{ instance_name }} --singleton -p {{ tester_project }}; } >>{{ base_dir }}/log 2>&1"
