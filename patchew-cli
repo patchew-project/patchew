@@ -609,8 +609,8 @@ class TesterCommand(SubCommand):
                     shutil.rmtree(wd)
             return True
 
-    def _check_singleton(self):
-        lockfile = os.path.expanduser("~/.patchew-tester.lock")
+    def _check_singleton(self, name):
+        lockfile = os.path.expanduser("~/.%s.lock" % name)
         self._lockfile = open(lockfile, "w+")
         try:
             fcntl.flock(self._lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -632,7 +632,7 @@ class TesterCommand(SubCommand):
                 print(i)
             return 0
         if args.singleton:
-            self._check_singleton()
+            self._check_singleton(args.name or "patchew-tester")
         subprocess.check_output(["git", "version"])
         count = 0
         cap_refresh = 10
