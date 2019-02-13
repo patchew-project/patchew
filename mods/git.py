@@ -16,6 +16,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
+from django.db.models import Q
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import Message, MessageProperty, Project, Result
