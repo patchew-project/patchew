@@ -85,8 +85,9 @@ import()
     if test "$IMAP_DELETE_AFTER_IMPORT" = y; then
         rm -f $2
         echo "Deleted $2"
+    else
+        touch $IMPORTED_DIR/$(hashstr $2)
     fi
-    touch $IMPORTED_DIR/$(hashstr $2)
 }
 
 offlineimap_import()
