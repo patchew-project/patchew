@@ -591,7 +591,7 @@ class TesterCommand(SubCommand):
                                                       passed=passed,
                                                       log=log,
                                                       is_timeout=is_timeout)
-                    except error.HTTPError as e:
+                    except urllib.error.HTTPError as e:
                         if e.code != 413:
                             raise e
                         if not prefixed:
