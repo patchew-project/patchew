@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import format_html
 from mod import PatchewModule
+import datetime
 import time
 import math
 from api.views import APILoginRequiredView
@@ -456,8 +457,11 @@ class TestingGetView(APILoginRequiredView):
 
     def _find_applicable_test(self, queryset, user, po, tester, capabilities):
         # Prefer non-running tests, or tests that started the earliest
-        q = queryset.filter(status__in=(Result.PENDING, Result.RUNNING),
-                            name__startswith='testing.').order_by('status', 'last_update')
+        one_hour_ago = datetime.datetime.now() - datetime.timedelta(0, 3600)
+        where = Q(status=Result.PENDING)
+        where = where | Q(status=Result.RUNNING, last_update__lt=one_hour_ago)
+        where = where & Q(name__startswith='testing.')
+        q = queryset.filter(where).order_by('status', 'last_update')
         tests = _instance.get_tests(po)
         for r in q:
             if isinstance(r, MessageResult) and not r.message.git_result.is_success():
