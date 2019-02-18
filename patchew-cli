@@ -598,7 +598,7 @@ class TesterCommand(SubCommand):
                             prefixed = True
                             log = 'WARNING: Log truncated!\n\n' + log
                         log = log[:max_size]
-                        max_size = max_size / 10
+                        max_size = max_size // 10
                     else:
                         break
                 if prefixed:
