@@ -602,7 +602,7 @@ class TesterCommand(SubCommand):
                     else:
                         break
                 if prefixed:
-                    print("Log truncated from %d to %d bytes" % {orig_log_size, len(log)})
+                    print("Log truncated from %d to %d bytes" % (orig_log_size, len(log)))
                 logf.close()
             finally:
                 if not no_clean_up:
