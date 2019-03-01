@@ -68,5 +68,5 @@
     - cron:
         name: "Patchew tester {{ instance_name }}"
         user: "{{ cron_user }}"
-        minute: "*/10"
-        job: "{ {{ patchew_cmd }} login {{ tester_user }} $(cat {{ base_dir }}/patchew-tester-pass); {{ patchew_cmd }} tester --name {{ instance_name }} --singleton -p {{ tester_project }}; } >>{{ base_dir }}/log 2>&1"
+        minute: "*/3"
+        job: "{ {{ patchew_cmd }} login {{ tester_user }} $(cat {{ base_dir }}/patchew-tester-pass); {{ patchew_cmd }} tester --name {{ instance_name }} --singleton -N 1 --no-wait -p {{ tester_project }}; } >>{{ base_dir }}/log 2>&1"
