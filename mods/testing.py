@@ -142,6 +142,15 @@ class TestingModule(PatchewModule):
                 if isinstance(obj, Message):
                     obj.set_property("testing.tested-base",
                                      self.get_msg_base_tags(obj))
+            if isinstance(obj, Project):
+                # cache the last result so that badges are not affected by RUNNING state
+                failures = obj.get_property("testing.failures", [])
+                if result.status == result.SUCCESS and result.name in failures:
+                    failures.remove(result.name)
+                    obj.set_property('testing.failures', list(failures))
+                if result.status == result.FAILURE and result.name not in failures:
+                    failures.append(result.name)
+                    obj.set_property('testing.failures', list(failures))
 
         if result.name != "git":
             return
@@ -221,6 +230,13 @@ class TestingModule(PatchewModule):
         self.clear_and_start_testing(obj, request.GET.get("test", ""))
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
+    def www_view_badge(self, request, project, ext):
+        po = Project.objects.filter(name=project).first()
+        if po.get_property('testing.failures'):
+            return HttpResponseRedirect('https://img.shields.io/badge/patchew-failing-critical.' + ext)
+        else:
+            return HttpResponseRedirect('https://img.shields.io/badge/patchew-passing-success.' + ext)
+
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(url(r"^testing-reset/(?P<project_or_series>.*)/",
                                self.www_view_testing_reset,
@@ -228,6 +244,8 @@ class TestingModule(PatchewModule):
         urlpatterns.append(url(r"^logs/(?P<project_or_series>.*)/testing.(?P<testing_name>.*)/",
                                TestingLogViewer.as_view(),
                                name="testing-log"))
+        urlpatterns.append(url(r"^(?P<project>[^/]*)/badge.(?P<ext>svg|png)$", self.www_view_badge,
+                               name="testing-badge"))
 
     def reverse_testing_log(self, obj, test, request=None, html=False):
         if isinstance(obj, Message):
