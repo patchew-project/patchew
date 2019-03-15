@@ -11,6 +11,7 @@
 import os
 import subprocess
 import hashlib
+import json
 from django.conf.urls import url
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
@@ -19,7 +20,8 @@ from django.utils.html import format_html
 from django.db.models import Q
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import Message, MessageProperty, Project, Result
+from api.models import (Message, MessageProperty, Project,
+        ProjectProperty, Result)
 from api.rest import PluginMethodField, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
@@ -237,13 +239,19 @@ class ApplierGetView(APILoginRequiredView):
     def handle(self, request, target_repo=None):
         q = Message.objects.filter(results__name="git", results__status="pending")
         if target_repo is not None and target_repo != '':
+            props = ProjectProperty.objects.filter(name='git.push_to')
+            # unfortunately startswith does not work with JSONFields, so we have to hack
+            # around it and look at the raw database representation.  This would fail
+            # if we used PostgreSQL json fields!
+            target_repo_escaped = json.dumps(target_repo)
             if target_repo[-1] != '/':
-                projects_q = Q(projectproperty__value=target_repo) | \
-                    Q(projectproperty__value__startswith=target_repo + '/')
+                props = props.extra(where=["value = %s or value like %s"],
+                                    params=[target_repo_escaped,
+                                            target_repo_escaped[0:-1] + '/%'])
             else:
-                projects_q = Q(projectproperty__value__startswith=target_repo)
-            projects = Project.objects.filter(projects_q)
-            q = q.filter(project__in=projects)
+                props = props.extra(where=["value like %s"],
+                                    params=target_repo_escaped[0:-1] + '%')
+            q = q.filter(project__in=[prop.project for prop in props.all()])
         m = q.first()
         if not m:
             return None
