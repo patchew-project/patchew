@@ -218,12 +218,21 @@ if not DEBUG:
                 'class': 'logging.FileHandler',
                 'filename': os.path.join(DATA_DIR, "log", "patchew.log"),
             },
+            'null': {
+                'level': 'DEBUG',
+                'class': 'logging.NullHandler',
+            },
         },
         'loggers': {
             'django': {
                 'handlers': ['file'],
                 'level': 'DEBUG',
                 'propagate': True,
+            },
+            'django.template': {
+                'handlers': ['null'],  # Quiet by default!
+                'propagate': False,
+                'level': 'DEBUG',
             },
         },
     }
