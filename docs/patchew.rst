@@ -94,6 +94,10 @@ command line).  Note that the fingerprint format, as printed by
 bytes separated by colons; offlineimap and thus ``scripts/deploy``
 do not use colons.
 
+The importer will also need a private key that is allowed to push to the
+git repository.  Right now, the private key must not have a passphrase;
+SSH agents are not supported.
+
 You can also specify all the variables directly on the command line
 using the ``-e`` option::
 
@@ -102,6 +106,7 @@ using the ``-e`` option::
         patchew_server=http://patchew.example.com/
         importer_user=importer
         importer_pass=gotsomepatches
+        importer_identity=/path/to/id_rsa
         imap_server=imap.example.com
         imap_user=username@example.com
         imap_pass=hunter2
