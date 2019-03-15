@@ -308,15 +308,14 @@ class ProjectCommand(SubCommand):
                                                   "%s..%s" % (old_head, new_head)],
                                                   cwd=clone).decode().splitlines()
         except:
-            old_head = new_head
             new_commits = [new_head]
         logging.debug("old head: %s", old_head)
         logging.debug("new commits: \n%s" % \
                 "\n".join(["  " + x for x in new_commits]))
-        output = subprocess.check_output("""git log --format=%%b %s..%s |
+        output = subprocess.check_output("""git show --format=%%b %s |
                 awk 'BEGIN{IGNORECASE=1} /^message-id:/{print}'
                 """% \
-                (old_head, new_head), shell=True, cwd=clone).decode()
+                ' '.join(new_commits), shell=True, cwd=clone).decode()
         msgids = [x[len("message-id:"):].strip() for x in output.splitlines()]
         logging.debug("message ids: \n%s" % \
                 "\n".join(["  " + x for x in msgids]))
