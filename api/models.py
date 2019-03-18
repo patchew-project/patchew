@@ -328,26 +328,38 @@ class MessageManager(models.Manager):
         pass
 
     def project_messages(self, project):
-        q = super(MessageManager, self).get_queryset()
+        po = None
         if isinstance(project, str):
-            po = Project.objects.get(name=project)
+            po = Project.objects.filter(name=project).first()
         elif isinstance(project, int):
-            po = Project.objects.get(id=project)
+            po = Project.objects.filter(id=project).first()
+        if not po:
+            return None
+
+        q = super(MessageManager, self).get_queryset()
         q = q.filter(project=po) | q.filter(project__parent_project=po)
         return q
 
     def series_heads(self, project=None):
         if project:
             q = self.project_messages(project)
+            if not q:
+                return None
         else:
             q = super(MessageManager, self).get_queryset()
         return q.filter(is_series_head=True).prefetch_related('properties', 'project')
 
     def find_series(self, message_id, project_name=None):
-        return self.series_heads(project_name).filter(message_id=message_id).first()
+        heads = self.series_heads(project_name)
+        if not heads:
+            return None
+        return heads.filter(message_id=message_id).first()
 
     def find_message(self, message_id, project_name):
-        return self.project_messages(project_name).filter(message_id=message_id).first()
+        messages = self.project_messages(project_name)
+        if not messages:
+            return None
+        return messages.filter(message_id=message_id).first()
 
     def patches(self):
         return super(MessageManager, self).get_queryset().filter(is_patch=True)
