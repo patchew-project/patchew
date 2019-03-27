@@ -333,7 +333,7 @@ class MessageManager(models.Manager):
             po = Project.objects.filter(name=project).first()
         elif isinstance(project, int):
             po = Project.objects.filter(id=project).first()
-        if not po:
+        if po is None:
             return None
 
         q = super(MessageManager, self).get_queryset()
@@ -343,7 +343,7 @@ class MessageManager(models.Manager):
     def series_heads(self, project=None):
         if project:
             q = self.project_messages(project)
-            if not q:
+            if q is None:
                 return None
         else:
             q = super(MessageManager, self).get_queryset()
@@ -351,13 +351,13 @@ class MessageManager(models.Manager):
 
     def find_series(self, message_id, project_name=None):
         heads = self.series_heads(project_name)
-        if not heads:
+        if heads is None:
             return None
         return heads.filter(message_id=message_id).first()
 
     def find_message(self, message_id, project_name):
         messages = self.project_messages(project_name)
-        if not messages:
+        if messages is None:
             return None
         return messages.filter(message_id=message_id).first()
 
