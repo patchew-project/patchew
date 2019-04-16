@@ -278,8 +278,7 @@ class Project(models.Model):
                 if not p.is_merged:
                     break
             else:
-                series.is_merged = True
-                series.save()
+                series.set_merged()
         return len(updated_series)
 
     def create_result(self, **kwargs):
@@ -306,7 +305,8 @@ class ProjectProperty(models.Model):
 
 declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
-
+declare_event("SeriesMerged", project="project object",
+              series="series instance that is marked complete")
 
 declare_event("MessageAdded", message="message object that is added")
 
@@ -739,6 +739,13 @@ class Message(models.Model):
         self.is_complete = True
         self.save()
         emit_event("SeriesComplete", project=self.project, series=self)
+
+    def set_merged(self):
+        if self.is_merged:
+            return
+        self.is_merged = True
+        self.save()
+        emit_event("SeriesMerged", project=self.project, series=self)
 
     def create_result(self, **kwargs):
         return MessageResult(message=self, **kwargs)
