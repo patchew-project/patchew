@@ -673,7 +673,7 @@ class Message(models.Model):
             d.day, d.hour, d.minute, d.second, d.year)
 
     def get_last_reply_age(self):
-        return self._get_age(self.last_reply_date)
+        return self._get_age(self.last_reply_date or self.date)
 
     def get_body(self):
         return self.get_mbox_obj().get_body()

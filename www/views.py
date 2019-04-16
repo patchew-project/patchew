@@ -361,6 +361,8 @@ def view_series_message(request, project, thread_id, message_id):
     if not s:
         raise Http404("Series not found")
     m = api.models.Message.objects.filter(message_id=message_id, in_reply_to=thread_id).first()
+    if not m:
+        raise Http404("Message not found")
     nav_path = prepare_navigate_list(
         "View patch",
         ("series_list", {"project": project}, project),

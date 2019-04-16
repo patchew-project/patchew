@@ -12,7 +12,7 @@ import abc
 import sys
 
 from django.views import View
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse, Http404
 from django.utils.safestring import mark_safe
 
 class ANSIProcessor(object):

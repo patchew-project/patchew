@@ -110,6 +110,8 @@ class DiffModule(PatchewModule):
     def www_view_series_diff(self, request, project, series_left, series_right):
         sl = Message.objects.filter(project__name=project, message_id=series_left)
         sr = Message.objects.filter(project__name=project, message_id=series_right)
+        if sl is None or sr is None:
+            raise Http404("Series not found")
         return render_page(request, "series-diff.html",
                            series_left=self._get_series_for_diff(sl),
                            series_right=self._get_series_for_diff(sr))

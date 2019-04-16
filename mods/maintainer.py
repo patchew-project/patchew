@@ -10,6 +10,7 @@
 
 import re
 from django.conf.urls import url
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
 from mod import PatchewModule
