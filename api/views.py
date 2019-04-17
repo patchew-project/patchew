@@ -111,16 +111,6 @@ class AddProjectView(APILoginRequiredView):
         p.save()
 
 
-class GetProjectPropertiesView(APILoginRequiredView):
-    name = "get-project-properties"
-
-    def handle(self, request, project):
-        po = Project.objects.get(name=project)
-        if not po.maintained_by(request.user):
-            raise PermissionDenied("Access denied to this project")
-        return po.get_properties()
-
-
 class UpdateProjectHeadView(APILoginRequiredView):
     name = "update-project-head"
     allowed_groups = ["importers"]
@@ -133,19 +123,6 @@ class UpdateProjectHeadView(APILoginRequiredView):
         ret = po.series_update(message_ids)
         po.project_head = new_head
         return ret
-
-
-class SetPropertyView(APILoginRequiredView):
-    name = "set-properties"
-    allowed_groups = ["importers"]
-
-    def handle(self, request, project, message_id, properties):
-        mo = Message.objects.filter(project__name=project,
-                                    message_id=message_id).first()
-        if not mo:
-            raise Http404("Message not found")
-        for k, v in properties.items():
-            mo.set_property(k, v)
 
 
 class SetProjectPropertiesView(APILoginRequiredView):

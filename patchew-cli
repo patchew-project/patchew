@@ -346,42 +346,10 @@ class ProjectCommand(SubCommand):
         finally:
             shutil.rmtree(wd)
 
-    def project_property(self, argv):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("name", help="Name of the project")
-        parser.add_argument("prop", nargs="?", help="Name of the property")
-        parser.add_argument("--delete", "-d", action="store_true",
-                            help="""delete the property with the given name.
-                            Must give a property name""")
-        parser.add_argument("value", nargs="?", help="Value of the property to set")
-        args = parser.parse_args(argv)
-        if not args.value and not args.delete:
-            # Get property and print them or the specified one
-            r = self.api_do("get-project-properties",
-                            project=args.name)
-            if not args.prop:
-                for k, v in iter(r.items()) if r else []:
-                    print(k, v)
-            else:
-                if r and args.prop in r:
-                    print(args.prop, r[args.prop])
-                else:
-                    print("Property Not found:", args.prop)
-                    if r and list(r.keys()):
-                        print("There are:", ", ".join(list(r.keys())))
-        else:
-            if args.delete:
-                args.value = None
-            # Set property
-            self.api_do("set-project-properties", project=args.name,
-                        properties={args.prop: args.value})
-
     def do(self, args, argv):
         if argv:
             if argv[0] == "add":
                 return self.add_project(argv[1:])
-            elif argv[0] == "property":
-                return self.project_property(argv[1:])
             elif argv[0] == "info":
                 return self.show_project(argv[1:])
             elif argv[0] == "update":
@@ -418,35 +386,6 @@ class UntestCommand(SubCommand):
 
     def do(self, args, argv):
         self.api_do("untest", terms=args.term)
-        return 0
-
-class SetPropertyCommand(SubCommand):
-    name = "set-property"
-    want_argv = True
-
-    def arguments(self, parser):
-        parser.add_argument("--project", "-p", required=True,
-                            help="Project name")
-        parser.add_argument("--message-id", "-m", required=True,
-                            help="Project name")
-        parser.add_argument("--file", action="store_true",
-                            help="Read property values from given file")
-        parser.add_argument("--json", action="store_true",
-                            help="Read property values as json")
-
-    def do(self, args, argv):
-        if not argv:
-            return 0
-        if len(argv) % 2:
-            print("Name and value unpaired:", argv[-1])
-        props = dict(list(zip(argv[::2], argv[1::2])))
-        if args.file:
-            props = dict([(k, open(v, "r").read()) for k, v in props.items()])
-        if args.json:
-            props = dict([(k, json.loads(v)) for k, v in props.items()])
-        self.api_do("set-properties", project=args.project,
-                    message_id=args.message_id,
-                    properties=props)
         return 0
 
 class TesterCommand(SubCommand):
