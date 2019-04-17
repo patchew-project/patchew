@@ -86,7 +86,6 @@ class ImportTest(PatchewTestCase):
         sh = Message.objects.series_heads()
         self.assertEqual(len(sh), 1)
         s = sh[0]
-        self.assertTrue(s.get_property("git.need-apply", True))
         self.assertTrue(s.project.name, sp.name)
 
         self.cli_import("0020-libvirt.mbox.gz")
