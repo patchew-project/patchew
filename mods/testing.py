@@ -405,7 +405,7 @@ class TestingModule(PatchewModule):
         self.check_active_testers(project)
 
         if project.maintained_by(request.user) \
-                and project.get_property("testing.started"):
+                and self.get_testing_results(project, ~Q(status=Result.PENDING)).exists():
             project.extra_ops += self._build_reset_ops(project)
 
     def get_capability_probes(self, project):
