@@ -700,19 +700,15 @@ class Message(models.Model):
         ret = []
         for l in self.get_body().splitlines():
             line = l.strip()
-            match = False
             for p in patterns:
                 if re.match(p, line):
-                    match = True
-                    break
-            if match:
-                cur.append(line)
-            else:
-                if cur:
+                    cur.append(line)
                     ret = cur
+                    break
+            else:
                 cur = []
-        if cur:
-            ret = cur
+                if ret and re.match(r'--- \S', line):
+                    break
         return "\n".join(ret)
 
     def get_message_view_url(self):

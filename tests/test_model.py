@@ -19,6 +19,7 @@ class ImportTest(PatchewTestCase):
         self.create_superuser()
         self.cli_login()
         self.add_project("QEMU", "qemu-devel@nongnu.org")
+        self.add_project("Patchew", "patchew-devel@redhat.com")
 
     def test_get_diff_stat(self):
         expected = """
@@ -36,6 +37,18 @@ rename hw/{i2c => display}/i2c-ddc.c (99%)
 rename include/hw/{i2c => display}/i2c-ddc.h (100%)
 """
         self.cli_import("0008-complex-diffstat.mbox.gz")
+        msg = Message.objects.first()
+        self.maxDiff = 100000
+        self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
+
+    def test_diff_stat_in_patch(self):
+        expected = """
+api/models.py                            |   4 +-
+tests/data/0008-complex-diffstat.mbox.gz | Bin 4961 -> 2575 bytes
+tests/test_model.py                      |  95 +++--------------------
+3 files changed, 15 insertions(+), 84 deletions(-)
+"""
+        self.cli_import("0029-diffstat-in-patch.gz")
         msg = Message.objects.first()
         self.maxDiff = 100000
         self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
