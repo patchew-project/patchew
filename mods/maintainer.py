@@ -38,13 +38,13 @@ class MaintainerModule(PatchewModule):
         for x in [m] + list(m.get_patches()):
             q, created = QueuedSeries.objects.get_or_create(user=user, message=x, name=queue)
             if created:
-                emit_event("MessageQueued", message=x, queue=q)
+                emit_event("MessageQueued", user=user, message=x, queue=q)
 
     def _drop_from_queue(self, user, m, queue):
         query = QueuedSeries.objects.filter(user=user, message__in=m.get_patches() + [m],
                                      name=queue)
         for q in query:
-            emit_event("MessageDropping", message=q.message, queue=q)
+            emit_event("MessageDropping", user=user, message=q.message, queue=q)
         q.delete()
 
     def _update_watch_queue(self, series):

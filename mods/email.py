@@ -74,6 +74,9 @@ Email information is configured in "INI" style:
                         BooleanSchema("reply_subject", "Set replying subject",
                                       desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
                                       default=True),
+                        BooleanSchema("to_user", "Send to user",
+                                      desc='Whether to set To to a user email, if the event has an associated user',
+                                      default=False),
                         StringSchema("to", "To", desc="Send email to"),
                         StringSchema("cc", "Cc", desc="Cc list"),
                         StringSchema("subject_template", "Subject template",
@@ -246,6 +249,8 @@ Email information is configured in "INI" style:
                 headers["Reply-To"] = "<%s>" % mo.project.mailing_list
             if nt["reply_subject"] and mo:
                 subject = "Re: " + mo.subject if not mo.subject.startswith("Re:") else mo.subject
+            if nt["to_user"] and 'user' in params and params['user'].email:
+                to += params['user'].email
             if not (subject and body and (to or cc)):
                 continue
             headers["Subject"] = subject
