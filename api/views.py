@@ -137,14 +137,6 @@ class SetProjectPropertiesView(APILoginRequiredView):
             po.set_property(k, v)
 
 
-def get_properties(m):
-    r = m.get_properties()
-    # for compatibility with patchew-cli's applier mode
-    if m.tags:
-        r['tags'] = m.tags
-    return r
-
-
 class DeleteProjectPropertiesByPrefixView(APILoginRequiredView):
     name = "delete-project-properties-by-prefix"
     allowed_groups = ["maintainers"]
@@ -161,7 +153,8 @@ def prepare_patch(p):
     r = {"subject": p.subject,
          "message-id": p.message_id,
          "mbox": p.get_mbox(),
-         "properties": get_properties(p)
+         # For backwards compatibility with old clients
+         "properties": {}
          }
     return r
 
@@ -181,7 +174,8 @@ def prepare_series(request, s, fields=None):
     if want_field("patches"):
         r["patches"] = [prepare_patch(x) for x in s.get_patches()]
     if want_field("properties"):
-        r["properties"] = get_properties(s)
+        # For backwards compatibility with old clients
+        r["properties"] = {}
     if want_field("tags"):
         r["tags"] = s.tags
     if want_field("is_complete"):
