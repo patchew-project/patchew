@@ -171,6 +171,7 @@ class Project(models.Model):
                                                   "top project which has "
                                                   "parent_project=NULL"))
     maintainers = models.ManyToManyField(User, blank=True)
+    config = jsonfield.JSONField(default={})
 
     def __str__(self):
         return self.name
@@ -178,6 +179,13 @@ class Project(models.Model):
     @classmethod
     def has_project(self, project):
         return self.objects.filter(name=project).exists()
+
+    def save(self, *args, **kwargs):
+        old_project = Project.objects.filter(pk=self.pk).first()
+        old_config = old_project.config if old_project else None
+        super(Project, self).save(*args, **kwargs)
+        if old_config != self.config:
+            emit_event("SetProjectConfig", obj=self)
 
     def get_property(self, prop, default=None):
         a = ProjectProperty.objects.filter(project=self, name=prop).first()
@@ -309,6 +317,9 @@ declare_event("SeriesMerged", project="project object",
               series="series instance that is marked complete")
 
 declare_event("MessageAdded", message="message object that is added")
+
+
+declare_event("SetProjectConfig", obj="project whose configuration was updated")
 
 
 declare_event("SetProperty", obj="object to set the property",

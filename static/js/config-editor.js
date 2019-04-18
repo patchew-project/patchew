@@ -70,9 +70,9 @@ function properties_save(btn) {
     $(btn).addClass("disabled");
     $(btn).text("Saving...");
     $(btn).parent().find(".save-message").remove();
-    patchew_api_do("set-project-properties",
+    patchew_api_do("set-project-config",
                    { project: current_project(),
-                     properties: props })
+                     config: props })
         .done(function (data) {
             save_done(btn, true);
         })
@@ -118,26 +118,11 @@ function map_add_item(btn) {
 function map_delete_item(btn) {
     item = $(btn).parent().parent().parent();
     name = item.find(".item-name").text();
-    prefix = item.data('property-prefix') + ".";
     if (!window.confirm("Really delete '" + name +"'?")) {
         return;
     }
-    $(btn).addClass("disabled");
-    $(btn).text("Deleting...");
-    $(btn).parent().find(".delete-message").remove();
-    patchew_api_do("delete-project-properties-by-prefix",
-                   { project: current_project(),
-                     prefix: prefix })
-        .done(function (data) {
-            item.remove();
-        })
-        .fail(function (data, text, error) {
-            $(btn).removeClass("disabled");
-            $(btn).text("Delete");
-            info = $("<div class=\"alert alert-danger delete-message\"></div>");
-            info.html("Error: " + error);
-            info.insertBefore($(btn));
-        });
+    item.remove();
+    confirm_leaving_page(true);
 }
 function enum_change(which) {
     val = $(which).val();

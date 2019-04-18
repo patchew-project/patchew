@@ -246,19 +246,20 @@ class ApplierGetView(APILoginRequiredView):
     def handle(self, request, target_repo=None):
         q = Message.objects.filter(results__name="git", results__status="pending")
         if target_repo is not None and target_repo != '':
-            props = ProjectProperty.objects.filter(name='git.push_to')
-            # unfortunately startswith does not work with JSONFields, so we have to hack
-            # around it and look at the raw database representation.  This would fail
-            # if we used PostgreSQL json fields!
-            target_repo_escaped = json.dumps(target_repo)
-            if target_repo[-1] != '/':
-                props = props.extra(where=["value = %s or value like %s"],
-                                    params=[target_repo_escaped,
-                                            target_repo_escaped[0:-1] + '/%'])
-            else:
-                props = props.extra(where=["value like %s"],
-                                    params=target_repo_escaped[0:-1] + '%')
-            q = q.filter(project__in=[prop.project for prop in props.all()])
+            # Postgres could use JSON fields instead.  Fortunately projects are
+            # few so this is cheap
+            def match_target_repo(config, target_repo):
+                push_to = config.get('git', {}).get('push_to')
+                if push_to is None:
+                    return False
+                if target_repo[-1] != '/':
+                    return push_to == target_repo or push_to.startswith(target_repo + '/')
+                else:
+                    return push_to.startswith(target_repo)
+
+            projects = Project.objects.values_list('id', 'config').all()
+            projects = [pid for pid, config in projects if match_target_repo(config, target_repo)]
+            q = q.filter(project__pk__in=projects)
         m = q.first()
         if not m:
             return None

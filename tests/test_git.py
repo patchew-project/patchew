@@ -22,9 +22,14 @@ class GitTest(PatchewTestCase):
         self.cli_login()
         self.repo = self.create_git_repo()
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org", git_repo=self.repo)
-        self.p.set_property("git.push_to", self.repo)
-        self.p.set_property("git.public_repo", self.repo)
-        self.p.set_property("git.url_template", self.repo + " %t")
+        self.p.config = {
+            "git": {
+                "push_to": self.repo,
+                "public_repo": self.repo,
+                "url_template": self.repo + " %t"
+            }
+        }
+        self.p.save()
         self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
     def cleanUp(self):

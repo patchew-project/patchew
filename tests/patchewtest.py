@@ -127,11 +127,15 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
 
     def add_project(self, name, mailing_list="", git_repo=""):
         p = Project(name=name, mailing_list=mailing_list, git=git_repo or self.create_git_repo(name))
-        p.save()
         push_repo = self.create_git_repo(name + "_push")
-        p.set_property("git.push_to", push_repo)
-        p.set_property("git.public_repo", push_repo)
-        p.set_property("git.url_template", push_repo)
+        p.config = {
+            "git": {
+                "push_to": push_repo,
+                "public_repo": push_repo,
+                "url_template": push_repo
+            }
+        }
+        p.save()
         return p
 
     def api_login(self):

@@ -129,28 +129,23 @@ class UpdateProjectHeadView(APILoginRequiredView):
         return ret
 
 
-class SetProjectPropertiesView(APILoginRequiredView):
-    name = "set-project-properties"
+class SetProjectConfigView(APILoginRequiredView):
+    name = "set-project-config"
     allowed_groups = ["maintainers"]
 
-    def handle(self, request, project, properties):
+    def handle(self, request, project, config):
         po = Project.objects.get(name=project)
         if not po.maintained_by(request.user):
             raise PermissionDenied("Access denied to this project")
-        for k, v in properties.items():
-            po.set_property(k, v)
-
-
-class DeleteProjectPropertiesByPrefixView(APILoginRequiredView):
-    name = "delete-project-properties-by-prefix"
-    allowed_groups = ["maintainers"]
-
-    def handle(self, request, project, prefix):
-        po = Project.objects.get(name=project)
-        if not po.maintained_by(request.user):
-            raise PermissionDenied("Access denied to this project")
-        for k in [x for x in po.get_properties().keys() if x.startswith(prefix)]:
-            po.set_property(k, None)
+        new_config = {}
+        for k, v in config.items():
+            *path, last = k.split('.')
+            parent = new_config
+            for item in path:
+                parent = parent.setdefault(item, {})
+            parent[last] = v
+        po.config = new_config
+        po.save()
 
 
 def prepare_patch(p):

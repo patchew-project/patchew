@@ -117,15 +117,16 @@ class TestingModule(PatchewModule):
                       html_log_url="URL to test log (HTML)",
                       is_timeout="whether the test has timeout")
         register_handler("SetProperty", self.on_set_property)
+        register_handler("SetProjectConfig", self.on_set_config)
         register_handler("ResultUpdate", self.on_result_update)
 
     def on_set_property(self, evt, obj, name, value, old_value):
         if isinstance(obj, Project) and name == "git.head" \
             and old_value != value:
             self.clear_and_start_testing(obj)
-        elif isinstance(obj, Project) and name.startswith("testing.tests.") \
-            and old_value != value:
-            self.project_recalc_pending_tests(obj)
+
+    def on_set_config(self, evt, obj):
+        self.project_recalc_pending_tests(obj)
 
     def get_msg_base_tags(self, msg):
         return [t for t in msg.tags if t.lower().startswith("based-on:")]

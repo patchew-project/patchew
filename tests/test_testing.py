@@ -17,11 +17,24 @@ from .patchewtest import PatchewTestCase, main
 
 
 def create_test(project, name, requirements="", script="#!/bin/bash\ntrue"):
-    prefix = "testing.tests." + name + "."
-    project.set_property(prefix + "timeout", 3600)
-    project.set_property(prefix + "enabled", True)
-    project.set_property(prefix + "script", script)
-    project.set_property(prefix + "requirements", requirements)
+    testing = project.config.setdefault('testing', {})
+    tests = testing.setdefault('tests', {})
+    tests[name] = {
+        'timeout': 3600,
+        'enabled': True,
+        'script': script,
+        'requirements': requirements
+    }
+    project.save()
+
+
+def create_requirement(project, name, script="#!/bin/bash\ntrue"):
+    testing = project.config.setdefault('testing', {})
+    requirements = testing.setdefault('requirements', {})
+    requirements[name] = {
+        'script': script,
+    }
+    project.save()
 
 
 class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
@@ -219,13 +232,11 @@ class TesterTest(PatchewTestCase):
         create_test(self.p2, "b")
 
         self.p3 = self.add_project("ALLOW", "qemu-devel@nongnu.org")
-        self.p3.set_property("testing.requirements.allow.script",
-                             "#!/bin/sh\ntrue")
+        create_requirement(self.p3, 'allow', "#!/bin/sh\ntrue")
         create_test(self.p3, "c", "allow")
 
         self.p4 = self.add_project("DENY", "qemu-devel@nongnu.org")
-        self.p4.set_property("testing.requirements.deny.script",
-                             "#!/bin/sh\nfalse")
+        create_requirement(self.p4, 'deny', "#!/bin/sh\nfalse")
         create_test(self.p4, "d", "deny")
 
         self.cli_login()
@@ -388,7 +399,8 @@ class TestingDisableTest(PatchewTestCase):
         self.cli_login()
         self.cli_import('0013-foo-patch.mbox.gz')
         self.do_apply()
-        self.p1.set_property("testing.tests.a.enabled", False)
+        self.p1.config['testing']['tests']['a']['enabled'] = False
+        self.p1.save()
         out, err = self.check_cli(["tester", "-p", "QEMU", "--no-wait"])
         self.assertNotIn("Project: QEMU\n", out)
         self.cli_logout()
