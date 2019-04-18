@@ -73,8 +73,12 @@ series cover letter, patch mail body and their replies.
             return m1.version > m2.version and m1.date >= m2.date
         for m in series.get_alternative_revisions():
             if newer_than(m, series):
+                series.is_obsolete = True
+                series.save()
                 series.set_property("obsoleted-by", m.message_id)
             elif newer_than(series, m):
+                m.is_obsolete = True
+                m.save()
                 m.set_property("obsoleted-by", series.message_id)
 
         updated = self.update_tags(series)
@@ -100,7 +104,8 @@ series cover letter, patch mail body and their replies.
         series_reviewers = _find_reviewers(series)
         reviewers = reviewers.union(series_reviewers)
         if num_reviewed == series.get_num()[1] or series_reviewers:
-            series.set_property("reviewed", True)
+            series.is_reviewed = True
+            series.save()
             series.set_property("reviewers", list(reviewers))
         if updated:
             emit_event("TagsUpdate", series=series)

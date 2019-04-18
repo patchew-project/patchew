@@ -138,9 +138,10 @@ class TestingModule(PatchewModule):
                 _instance.tester_check_in(po, result.data['tester'])
             if not self.get_testing_results(obj,
                            status__in=(Result.PENDING, Result.RUNNING)).exists():
-                obj.set_property("testing.done", True)
                 obj.set_property("testing.tested-head", result.data["head"])
                 if isinstance(obj, Message):
+                    obj.is_tested = True
+                    obj.save()
                     obj.set_property("testing.tested-base",
                                      self.get_msg_base_tags(obj))
             if isinstance(obj, Project):
@@ -188,10 +189,11 @@ class TestingModule(PatchewModule):
             for tn in all_tests:
                 if not tn in done_tests:
                     obj.create_result(name='testing.' + tn, status=Result.PENDING).save()
-            if len(done_tests) < len(all_tests):
-                obj.set_property("testing.done", None)
-                return
-        obj.set_property("testing.done", True)
+        if isinstance(obj, Message):
+            is_tested = len(all_tests) and len(done_tests) == len(all_tests)
+            if is_tested != obj.is_tested:
+                obj.is_tested = is_tested
+                obj.save()
 
     def project_recalc_pending_tests(self, project):
         self.recalc_pending_tests(project)
@@ -204,10 +206,10 @@ class TestingModule(PatchewModule):
             self.recalc_pending_tests(obj)
 
     def clear_and_start_testing(self, obj, test=""):
-        for k in list(obj.get_properties().keys()):
-            if k == "testing.done" or \
-               k == "testing.tested-head":
-                obj.set_property(k, None)
+        obj.set_property("testing.tested-head", None)
+        if isinstance(obj, Message):
+            obj.is_tested = False
+            obj.save()
         if test:
             r = self.get_testing_result(obj, test)
             if r:
@@ -342,7 +344,7 @@ class TestingModule(PatchewModule):
                 "type": "danger",
                 "char": "T",
                 })
-        elif message.get_property("testing.done"):
+        elif message.is_tested:
             message.status_tags.append({
                 "title": "Testing passed",
                 "url": reverse("series_detail",

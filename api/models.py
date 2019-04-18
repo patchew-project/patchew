@@ -508,6 +508,10 @@ class Message(models.Model):
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
     is_merged = models.BooleanField(default=False, blank=True)
+    is_obsolete = models.BooleanField(default=False)
+    is_tested = models.BooleanField(default=False)
+    is_reviewed = models.BooleanField(default=False)
+
     # patch index number if is_patch
     patch_num = models.PositiveSmallIntegerField(null=True, blank=True)
 

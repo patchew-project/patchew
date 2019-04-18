@@ -254,16 +254,13 @@ Search text keyword in the email message. Example:
             self._add_to_keywords('PULL')
             return Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
         elif cond == "reviewed":
-            return self._make_filter_subquery(MessageProperty, Q(name="reviewed", value=True))
+            return Q(is_reviewed=True)
         elif cond in ("obsoleted", "old"):
-            return self._make_filter_subquery(
-                MessageProperty,
-                Q(name="obsoleted-by", value__isnull=False) & ~Q(name="obsoleted-by", value__iexact='')
-            )
+            return Q(is_obsolete=True)
         elif cond == "applied":
             return self._make_filter_subquery(MessageResult, Q(name="git", status=Result.SUCCESS))
         elif cond == "tested":
-            return self._make_filter_subquery(MessageProperty, Q(name="testing.done", value=True))
+            return Q(is_tested=True)
         elif cond == "merged":
             return Q(is_merged=True)
         return None
