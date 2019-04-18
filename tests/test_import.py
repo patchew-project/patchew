@@ -33,17 +33,6 @@ class ImportTest(PatchewTestCase):
         a = '[Qemu-devel] [PATCH] quorum: Only compile when supported\n' * 2
         self.check_cli(["search"], stdout=a.strip())
 
-    def test_case_insensitive(self):
-        self.cli_import("0002-unusual-cased-tags.mbox.gz")
-        a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
-        ao = json.loads(a)[0]
-        self.assertEqual(["Fam Zheng", "famz@redhat.com"],
-                         ao["properties"]["reviewers"][0])
-        self.assertIn('Reviewed-By: Fam Zheng <famz@redhat.com>',
-                      ao["properties"]["tags"])
-        self.assertIn('tESTed-bY: Fam Zheng <famz@redhat.com>',
-                      ao["properties"]["tags"])
-
     def test_non_utf_8(self):
         self.cli_import("0005-non-utf-8.mbox.gz")
 
@@ -52,16 +41,6 @@ class ImportTest(PatchewTestCase):
 
     def test_import_invalid_charset(self):
         self.cli_import("0007-invalid-charset.mbox.gz")
-
-    def test_obsoleted_by(self):
-        self.cli_import("0009-obsolete-by.mbox.gz")
-        a, b = self.check_cli(["search", "-r", "-o", "subject,properties"])
-        ao = json.loads(a)
-        for m in ao:
-            if "[PATCH]" in m["subject"]:
-                self.assertTrue(m["properties"].get("obsoleted-by"))
-            else:
-                self.assertFalse(m["properties"].get("obsoleted-by"))
 
     def test_import_invalid_byte(self):
         self.add_project("EDK2", "edk2-devel@lists.01.org")

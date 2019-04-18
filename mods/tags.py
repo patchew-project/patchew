@@ -9,10 +9,11 @@
 # http://opensource.org/licenses/MIT.
 
 from mod import PatchewModule
-from mbox import parse_address
+from mbox import addr_db_to_rest, parse_address
 from event import register_handler, emit_event, declare_event
 from api.models import Message
 from api.rest import PluginMethodField
+import rest_framework
 
 REV_BY_PREFIX = "Reviewed-by:"
 BASED_ON_PREFIX = "Based-on:"
@@ -142,3 +143,20 @@ series cover letter, patch mail body and their replies.
                     "row_class": "obsolete"
                     })
 
+    def get_obsoleted_by(self, message, request, format):
+        obsoleted_by = message.get_property("obsoleted-by")
+        if not obsoleted_by:
+            return None
+        return rest_framework.reverse.reverse("series-detail",
+                     kwargs={'projects_pk': message.project.id, 'message_id': obsoleted_by},
+                     request=request, format=format)
+
+    def get_reviewers(self, message, request, format):
+        reviewers = message.get_property("reviewers", [])
+        return [addr_db_to_rest(x) for x in reviewers]
+
+    def rest_message_fields_hook(self, request, fields):
+        fields['reviewers'] = PluginMethodField(obj=self, required=False)
+
+    def rest_series_fields_hook(self, request, fields, detailed):
+        fields['obsoleted_by'] = PluginMethodField(obj=self, required=False)

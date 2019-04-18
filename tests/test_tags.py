@@ -23,6 +23,7 @@ class ImportTest(PatchewTestCase):
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
         self.p.prefix_tags = "!qemu-web"
         self.p.save()
+        self.PROJECT_BASE = '%sprojects/%d/' % (self.REST_BASE, self.p.id)
 
     def test_import_one(self):
         resp = self.apply_and_retrieve('0017-qemu-web-is-not-qemu.mbox.gz',
@@ -61,6 +62,30 @@ class ImportTest(PatchewTestCase):
         payload = decode_payload(msg)
         self.assertIn('SynICState *synic = get_synic(cs);', payload)
         self.assertIn('Reviewed-by: Philippe Mathieu-Daudé <philmd@redhat.com>', payload)
+
+    def test_case_insensitive(self):
+        self.cli_login()
+        self.cli_import("0002-unusual-cased-tags.mbox.gz")
+        self.cli_logout()
+        MESSAGE_ID = '20160628014747.20971-1-famz@redhat.com'
+        resp = self.api_client.get(self.PROJECT_BASE + 'messages/' + MESSAGE_ID + '/')
+        self.assertEqual({"name": "Fam Zheng", "address": "famz@redhat.com"},
+                         resp.data["reviewers"][0])
+        self.assertIn('Reviewed-By: Fam Zheng <famz@redhat.com>',
+                      resp.data["tags"])
+        self.assertIn('tESTed-bY: Fam Zheng <famz@redhat.com>',
+                      resp.data["tags"])
+
+    def test_obsoleted_by(self):
+        self.cli_login()
+        self.cli_import("0009-obsolete-by.mbox.gz")
+        self.cli_logout()
+        OLD_ID = '20160628014747.20971-1-famz@redhat.com'
+        NEW_ID = '20160628014747.20971-2-famz@redhat.com'
+        resp = self.api_client.get(self.PROJECT_BASE + 'series/' + OLD_ID + '/')
+        self.assertEqual(self.PROJECT_BASE + 'series/' + NEW_ID + '/', resp.data["obsoleted_by"])
+        resp = self.api_client.get(self.PROJECT_BASE + 'series/' + NEW_ID + '/')
+        self.assertEqual(None, resp.data["obsoleted_by"])
 
 
 if __name__ == '__main__':
