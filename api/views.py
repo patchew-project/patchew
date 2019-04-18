@@ -18,6 +18,7 @@ import json
 from .search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from mod import dispatch_module_hook
 
 
 class APIView(View):
@@ -83,8 +84,11 @@ def prepare_project(p):
         "url": p.url,
         "git": p.git,
         "description": p.description,
-        "properties": p.get_properties(),
+        "properties": {},
     }
+    dispatch_module_hook("get_projects_prepare_hook", project=p,
+                         response=ret['properties'])
+
     return ret
 
 

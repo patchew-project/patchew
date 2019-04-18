@@ -128,6 +128,10 @@ class GitModule(PatchewModule):
     def rest_series_fields_hook(self, request, fields, detailed):
         fields['based_on'] = PluginMethodField(obj=self, required=False)
 
+    def get_projects_prepare_hook(self, project, response):
+        response["git.head"] = project.get_property("git.head")
+        response["git.push_to"] = project.get_property("git.push_to")
+
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
