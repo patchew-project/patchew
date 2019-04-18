@@ -91,7 +91,7 @@ class TestingModule(PatchewModule):
                                      required=True),
                     ])
 
-    project_property_schema = \
+    project_config_schema = \
         ArraySchema("testing", desc="Configuration for testing module",
                     members=[
                         MapSchema("tests", "Tests",

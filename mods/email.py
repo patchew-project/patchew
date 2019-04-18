@@ -88,7 +88,7 @@ Email information is configured in "INI" style:
                                      required=True),
                     ])
 
-    project_property_schema = \
+    project_config_schema = \
         ArraySchema("email", desc="Configuration for email module",
                     members=[
                         MapSchema("notifications", "Email notifications",

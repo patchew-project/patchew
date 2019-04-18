@@ -21,7 +21,7 @@ class PatchewModule(object):
     """ Module base class """
     name = None # The name of the module, must be unique
     default_config = "" # The default config string
-    project_property_schema = None
+    project_config_schema = None
 
     def get_model(self):
         # ALways read from DB to accept configuration update in-flight
@@ -145,9 +145,9 @@ class PatchewModule(object):
         assert False
 
     def build_config_html(self, request, project):
-        assert not isinstance(self.project_property_schema, StringSchema)
-        assert not isinstance(self.project_property_schema, IntegerSchema)
-        scm = self.project_property_schema
+        assert not isinstance(self.project_config_schema, StringSchema)
+        assert not isinstance(self.project_config_schema, IntegerSchema)
+        scm = self.project_config_schema
         return self._build_one(request, project, scm.name + ".", scm)
 
 _loaded_modules = {}

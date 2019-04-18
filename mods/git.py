@@ -63,7 +63,7 @@ class GitModule(PatchewModule):
     allowed_groups = ('importers', )
     result_data_serializer_class = ResultDataSerializer
 
-    project_property_schema = \
+    project_config_schema = \
         ArraySchema("git", desc="Configuration for git module",
                     members=[
                         StringSchema("push_to", "Push remote",
