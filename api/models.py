@@ -172,6 +172,7 @@ class Project(models.Model):
                                                   "parent_project=NULL"))
     maintainers = models.ManyToManyField(User, blank=True)
     config = jsonfield.JSONField(default={})
+    properties = jsonfield.JSONField(default={})
 
     def __str__(self):
         return self.name
@@ -358,7 +359,7 @@ class MessageManager(models.Manager):
                 return None
         else:
             q = super(MessageManager, self).get_queryset()
-        return q.filter(is_series_head=True).prefetch_related('properties', 'project')
+        return q.filter(is_series_head=True).prefetch_related('messageproperty_set', 'project')
 
     def find_series(self, message_id, project_name=None):
         heads = self.series_heads(project_name)
@@ -523,6 +524,7 @@ class Message(models.Model):
     objects = MessageManager()
 
     maintainers = jsonfield.JSONField(blank=True, default=[])
+    properties = jsonfield.JSONField(default={})
 
     def save_mbox(self, mbox_blob):
         save_blob(mbox_blob, self.message_id)
@@ -622,7 +624,7 @@ class Message(models.Model):
                 # The prefetch cache is invalidated, query again
                 all_props = MessageProperty.objects.filter(message=self)
         else:
-            all_props = self.properties.all()
+            all_props = self.messageproperty_set.all()
         r = {}
         for m in all_props:
             r[m.name] = m.value
@@ -784,8 +786,7 @@ class MessageResult(Result):
 
 
 class MessageProperty(models.Model):
-    message = models.ForeignKey('Message', on_delete=models.CASCADE,
-                                related_name='properties')
+    message = models.ForeignKey('Message', on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
     value = jsonfield.JSONField()
 
