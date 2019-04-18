@@ -53,7 +53,7 @@ class PatchewModule(object):
         prefix = prefix + scm.name + "."
         def _build_map_items():
             r = {}
-            for p, v in project.get_properties().items():
+            for p in project.get_properties().keys():
                 if not p.startswith(prefix):
                     continue
                 name = p[len(prefix):]
@@ -149,6 +149,41 @@ class PatchewModule(object):
         assert not isinstance(self.project_config_schema, IntegerSchema)
         scm = self.project_config_schema
         return self._build_one(request, project, scm.name + ".", scm)
+
+    def _get_map_scm(self, project, prop_name, scm):
+        prefix = prop_name + "."
+        result = {}
+        for p in project.get_properties().keys():
+            if not p.startswith(prefix):
+                continue
+            name = p[len(prefix):]
+            name = name[:name.rfind(".")]
+            if name in result:
+                continue
+            assert scm.item.name == '{name}'
+            value = self._get_one(project, prefix + name, scm.item)
+            result[name] = value
+        return result
+
+    def _get_array_scm(self, project, prop_name, scm):
+        prefix = prop_name + "."
+        result = {}
+        for i in scm.members:
+            assert i.name != '{name}'
+            result[i.name] = self._get_one(project, prefix + i.name, i)
+        return result
+
+    def _get_one(self, project, prop_name, scm):
+        if type(scm) == MapSchema:
+            return self._get_map_scm(project, prop_name, scm)
+        elif type(scm) == ArraySchema:
+            return self._get_array_scm(project, prop_name, scm)
+        else:
+            return project.get_property(prop_name)
+
+    def get_project_config(self, project):
+        scm = self.project_config_schema
+        return self._get_one(project, scm.name, scm)
 
 _loaded_modules = {}
 

@@ -298,18 +298,7 @@ class TestingModule(PatchewModule):
         ret = {}
         if isinstance(obj, Message):
             obj = obj.project
-        for k, v in obj.get_properties().items():
-            if not k.startswith("testing.tests."):
-                continue
-            tn = k[len("testing.tests."):]
-            if "." not in tn:
-                continue
-            an = tn[tn.find(".") + 1:]
-            tn = tn[:tn.find(".")]
-            ret.setdefault(tn, {})
-            ret[tn][an] = v
-            ret[tn]["name"] = tn
-        return ret
+        return self.get_project_config(obj).get("tests", {})
 
     def _build_reset_ops(self, obj):
         if isinstance(obj, Message):
@@ -409,15 +398,8 @@ class TestingModule(PatchewModule):
             project.extra_ops += self._build_reset_ops(project)
 
     def get_capability_probes(self, project):
-        ret = {}
-        for k, v in project.get_properties().items():
-            prefix = "testing.requirements."
-            if not k.startswith(prefix):
-                continue
-            name = k[len(prefix):]
-            name = name[:name.find(".")]
-            ret[name] = v
-        return ret
+        props = self.get_project_config(project).get('requirements', {})
+        return {k: v['script'] for k, v in props.items()}
 
     def get_testing_probes(self, project, request, format):
         return self.get_capability_probes(project)
@@ -494,6 +476,7 @@ class TestingGetView(APILoginRequiredView):
                 if req not in capabilities:
                     break
             else:
+                t["name"] = tn
                 yield r, t
 
     def _find_project_test(self, request, po, tester, capabilities):

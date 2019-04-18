@@ -98,9 +98,6 @@ class GitModule(PatchewModule):
         if series.is_complete:
             self.mark_as_pending_apply(series)
 
-    def get_project_config(self, project, what):
-        return project.get_property("git." + what)
-
     def _is_repo(self, path):
         if not os.path.isdir(path):
             return False
@@ -116,10 +113,14 @@ class GitModule(PatchewModule):
 
     def get_mirror(self, po, request, format):
         response = {}
-        for key, prop in (("head", "git.head"),
-                          ("pushurl", "git.push_to"),
-                          ("url", "git.public_repo")):
-            response[key] = po.get_property(prop) or None
+        config = self.get_project_config(po)
+        if "push_to" in config:
+            response["pushurl"] = config["push_to"]
+        if "public_repo" in config:
+            response["url"] = config["public_repo"]
+        head = po.get_property("git.head")
+        if head:
+            response["head"] = head
         return response
 
     def rest_project_fields_hook(self, request, fields):
@@ -130,7 +131,9 @@ class GitModule(PatchewModule):
 
     def get_projects_prepare_hook(self, project, response):
         response["git.head"] = project.get_property("git.head")
-        response["git.push_to"] = project.get_property("git.push_to")
+        config = self.get_project_config(project)
+        if "push_to" in config:
+            response["git.push_to"] = config["push_to"]
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
@@ -264,9 +267,9 @@ class ApplierGetView(APILoginRequiredView):
                                                       "properties", "tags"])
 
         po = m.project
-        for prop in ["git.push_to", "git.public_repo", "git.url_template"]:
-            if po.get_property(prop):
-                response[prop] = po.get_property(prop)
+        config = _instance.get_project_config(po)
+        for k, v in config.items():
+            response["git." + k] = v
         base = _instance.get_base(m)
         if base:
             response["git.repo"] = base.data["repo"]
@@ -296,7 +299,8 @@ class ApplierReportView(APILoginRequiredView):
             if url:
                 data['url'] = url
             elif tag:
-                url_template = p.get_property("git.url_template")
+                config = _instance.get_project_config(p)
+                url_template = config.get("url_template")
                 if url_template:
                     data['url'] = url_template.replace("%t", tag)
             if base:
