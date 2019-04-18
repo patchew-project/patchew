@@ -189,30 +189,40 @@ class Project(models.Model):
             emit_event("SetProjectConfig", obj=self)
 
     def get_property(self, prop, default=None):
-        a = ProjectProperty.objects.filter(project=self, name=prop).first()
-        if a:
-            return a.value
-        else:
-            return default
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            if not item in x:
+                return default
+            x = x[item]
+        return x.get(last, default)
 
-    def get_properties(self):
-        r = {}
-        for m in ProjectProperty.objects.filter(project=self):
-            r[m.name] = m.value
-        return r
-
-    def _do_set_property(self, prop, value):
-        if value is None:
-            ProjectProperty.objects.filter(project=self, name=prop).delete()
+    def delete_property(self, prop):
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            if not item in x:
+                return
+            x = x[item]
+        if not last in x:
             return
-        pp, created = ProjectProperty.objects.get_or_create(project=self,
-                                                            name=prop)
-        pp.value = value
-        pp.save()
+        old_val = x[last]
+        del x[last]
+        self.save()
+        emit_event("SetProperty", obj=self, name=prop, value=None,
+                   old_value=old_val)
 
     def set_property(self, prop, value):
-        old_val = self.get_property(prop)
-        self._do_set_property(prop, value)
+        if value is None:
+            self.delete_property(prop)
+            return
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            x = x.setdefault(item, {})
+        old_val = x.get(last)
+        x[last] = value
+        self.save()
         emit_event("SetProperty", obj=self, name=prop, value=value,
                    old_value=old_val)
 
@@ -614,37 +624,40 @@ class Message(models.Model):
         return self.num_patches
 
     def get_property(self, prop, default=None):
-        return self.get_properties().get(prop, default)
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            if not item in x:
+                return default
+            x = x[item]
+        return x.get(last, default)
 
-    def get_properties(self):
-        if hasattr(self, '_properties'):
-            if self._properties is not None:
-                return self._properties
-            else:
-                # The prefetch cache is invalidated, query again
-                all_props = MessageProperty.objects.filter(message=self)
-        else:
-            all_props = self.messageproperty_set.all()
-        r = {}
-        for m in all_props:
-            r[m.name] = m.value
-        self._properties = r
-        return r
-
-    def _do_set_property(self, prop, value):
-        if value is None:
-            MessageProperty.objects.filter(message=self, name=prop).delete()
+    def delete_property(self, prop):
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            if not item in x:
+                return
+            x = x[item]
+        if not last in x:
             return
-        mp, created = MessageProperty.objects.get_or_create(message=self,
-                                                            name=prop)
-        mp.value = value
-        mp.save()
-        # Invalidate cache
-        self._properties = None
+        old_val = x[last]
+        del x[last]
+        self.save()
+        emit_event("SetProperty", obj=self, name=prop, value=None,
+                   old_value=old_val)
 
     def set_property(self, prop, value):
-        old_val = self.get_property(prop)
-        self._do_set_property(prop, value)
+        if value is None:
+            self.delete_property(prop)
+            return
+        x = self.properties
+        *path, last = prop.split('.')
+        for item in path:
+            x = x.setdefault(item, {})
+        old_val = x.get(last)
+        x[last] = value
+        self.save()
         emit_event("SetProperty", obj=self, name=prop, value=value,
                    old_value=old_val)
 

@@ -371,14 +371,10 @@ class TestingModule(PatchewModule):
 
     def check_active_testers(self, project):
         at = []
-        for k, v in project.get_properties().items():
-            prefix = "testing.check_in."
-            if not k.startswith(prefix):
-                continue
+        for tn, v in project.get_property('testing.check_in', {}).items():
             age = time.time() - v
             if age > 10 * 60:
                 continue
-            tn = k[len(prefix):]
             at.append("%s (%dmin)" % (tn, math.ceil(age / 60)))
         if not at:
             return
