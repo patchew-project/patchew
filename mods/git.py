@@ -20,8 +20,7 @@ from django.utils.html import format_html
 from django.db.models import Q
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
-from api.models import (Message, MessageProperty, Project,
-        ProjectProperty, Result)
+from api.models import (Message, Project, Result)
 from api.rest import PluginMethodField, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView

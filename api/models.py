@@ -312,16 +312,6 @@ class ProjectResult(Result):
         return self.project
 
 
-class ProjectProperty(models.Model):
-    project = models.ForeignKey('Project', on_delete=models.CASCADE)
-    name = models.CharField(max_length=1024, db_index=True)
-    value = jsonfield.JSONField()
-
-    class Meta:
-        unique_together = ('project', 'name',)
-        verbose_name_plural = "Project Properties"
-
-
 declare_event("SeriesComplete", project="project object",
               series="series instance that is marked complete")
 declare_event("SeriesMerged", project="project object",
@@ -369,7 +359,7 @@ class MessageManager(models.Manager):
                 return None
         else:
             q = super(MessageManager, self).get_queryset()
-        return q.filter(is_series_head=True).prefetch_related('messageproperty_set', 'project')
+        return q.filter(is_series_head=True).prefetch_related('project')
 
     def find_series(self, message_id, project_name=None):
         heads = self.series_heads(project_name)
@@ -796,23 +786,6 @@ class MessageResult(Result):
     @property
     def obj(self):
         return self.message
-
-
-class MessageProperty(models.Model):
-    message = models.ForeignKey('Message', on_delete=models.CASCADE)
-    name = models.CharField(max_length=256)
-    value = jsonfield.JSONField()
-
-    def __str__(self):
-        if len(self.value) > 30:
-            val_prev = self.value[:30] + "..."
-        else:
-            val_prev = self.value
-        return "%s: %s = %s" % (self.message.subject, self.name, val_prev)
-
-    class Meta:
-        unique_together = ('message', 'name',)
-        verbose_name_plural = "Message Properties"
 
 
 class Module(models.Model):

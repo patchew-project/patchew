@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from .models import Message, MessageProperty, MessageResult, Result, QueuedSeries
+from .models import Message, MessageResult, Result, QueuedSeries
 from functools import reduce
 
 from django.db import connection

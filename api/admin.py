@@ -9,27 +9,15 @@
 # http://opensource.org/licenses/MIT.
 
 from django.contrib import admin
-from .models import Message, MessageProperty, Module, Project, ProjectProperty
+from .models import Message, Module, Project
 from mod import get_module
-
-
-class ProjectPropertyInline(admin.TabularInline):
-    model = ProjectProperty
-    extra = 0
 
 
 class ProjectAdmin(admin.ModelAdmin):
     filter_horizontal = ('maintainers',)
-    inlines = [ProjectPropertyInline]
-
-
-class MessagePropertyInline(admin.TabularInline):
-    model = MessageProperty
-    extra = 0
 
 
 class MessageAdmin(admin.ModelAdmin):
-    inlines = [MessagePropertyInline]
     list_filter = [('is_series_head')]
     search_fields = [
         'message_id',

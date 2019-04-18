@@ -19,8 +19,7 @@ import datetime
 import time
 import math
 from api.views import APILoginRequiredView
-from api.models import (Message, MessageProperty, MessageResult,
-        Project, ProjectResult, Result)
+from api.models import (Message, MessageResult, Project, ProjectResult, Result)
 from api.rest import PluginMethodField, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
