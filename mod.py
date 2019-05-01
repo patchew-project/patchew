@@ -69,15 +69,9 @@ class PatchewModule(object):
         members = [self._build_one(request, project,
                                    prefix + "." + x.name,
                                    config.get(x.name), x) for x in scm.members]
-        show_save_button = False
-        for m in scm.members:
-            if type(m) == StringSchema:
-                show_save_button = True
-                break
         return self._render_template(request, project, TMPL_ARRAY,
                                      schema=scm,
                                      members=members,
-                                     show_save_button=show_save_button,
                                      prefix=prefix)
 
     def _build_string_scm(self, request, project, prefix, config, scm):
@@ -208,6 +202,7 @@ TMPL_STRING = """
         <input
     {% endif %}
     type="text" class="form-control project-property"
+    data-property-path="{{ prefix }}"
     id="{{ module.name }}-input-{{ schema.name }}" {% if schema.required %}required{%endif%}
     name="{{ name }}" placeholder="{{ schema.desc }}"
     {% if schema.multiline %}
@@ -222,6 +217,7 @@ TMPL_INTEGER = """
 <div class="form-group">
     <label for="{{ module.name }}-input-{{ schema.name }}">{{ schema.title }}</label>
     <input type="number" class="form-control project-property"
+    data-property-path="{{ prefix }}"
     id="{{ module.name }}-input-{{ schema.name }}" {% if schema.required %}required{%endif%}
     name="{{ name }}" placeholder="{{ schema.desc }}"
     {% if schema.multiline %}
@@ -236,6 +232,7 @@ TMPL_BOOLEAN = """
 <div class="checkbox">
 <label>
   <input class="project-property" type="checkbox" name="{{ name }}"
+    data-property-path="{{ prefix }}"
   {% if value == None %}
     {% if schema.default %}
       checked
@@ -262,6 +259,7 @@ TMPL_ENUM = """
     <label for="{{ module.name }}-input-{{ schema.name }}">{{ schema.title }}</label>
     <select class="form-control project-property"
     id="{{ module.name }}-input-{{ schema.name }}"
+    data-property-path="{{ prefix }}"
     onchange="enum_change(this)"
     {% if schema.required %}required{%endif%}
     name="{{ name }}">
@@ -290,25 +288,16 @@ TMPL_ENUM = """
 """
 
 TMPL_ARRAY = """
-<input type="hidden" name="property-prefix" class="property-prefix" value="{{ prefix }}">
 {% for schema in members %}
     {{ schema }}
 {% endfor %}
-{% if show_save_button %}
-    <div class="form-group">
-        <button type="button" class="btn btn-info" onclick="properties_save(this)">
-             Save
-         </button>
-    </div>
-{% endif %}
 """
 
 TMPL_MAP_ITEM = """
-<div class="item panel panel-default">
-    <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
+<div class="item panel panel-default" data-property-prefix="{{ prefix }}{% if item.name %}.{{ item.name }}{% endif %}">
+    <div class="item-heading panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         {{ item_schema.title }}
         <strong class="item-name">{{ item.name }}</strong>
-        <input type="hidden" value="{{ prefix }}{{ item.name }}." class="prefix" />
     </div>
     <div class="panel-body panel-collapse collapse">
         {{ item.html }}
@@ -323,7 +312,7 @@ TMPL_MAP_ITEM = """
 """
 
 TMPL_MAP = """
-<div id="{{ schema.name }}-container">
+<div>
     <script class="item-template" type="text/x-custom-template">
     """ + TMPL_MAP_ITEM + """
     </script>

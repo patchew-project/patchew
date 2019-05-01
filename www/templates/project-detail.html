@@ -78,6 +78,13 @@
         </div>
     </div>
     {% endfor %}
+    {% if request.user.is_authenticated %}
+        <div class="form-group">
+            <button type="button" class="btn btn-info" onclick="properties_save(this)">
+                 Save
+             </button>
+        </div>
+    {% endif %}
 </div>
 
 <script type="text/javascript">

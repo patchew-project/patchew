@@ -17,9 +17,9 @@ function save_done(btn, succeeded, error) {
 }
 
 function collect_properties(btn, check_required) {
-    prefix = $(btn).parent().parent().find(".property-prefix").val();
     properties = {};
     $(btn).parent().parent().find(".project-property").each(function () {
+        path = $(this).data('property-path');
         if (check_required && this.required && !this.value) {
             alert($(this).parent().find("label").html() + " is required!");
             $(this).focus();
@@ -43,7 +43,7 @@ function collect_properties(btn, check_required) {
         } else {
             val = this.value;
         }
-        properties[prefix + this.name] = val;
+        properties[path] = val;
     });
     return properties;
 }
@@ -80,6 +80,7 @@ function map_add_item(btn) {
     if (!name || name == 'null') {
         return;
     }
+    container = $(btn).parent().parent();
     if (name in collect_items(btn)) {
         alert(test_name + " already exists.");
         return;
@@ -88,17 +89,23 @@ function map_add_item(btn) {
         alert("Invalid name, no dot is allowed.");
         return;
     }
-    container = $(btn).parent().parent();
     tmpl = container.find(".item-template").html();
-    nt = $(tmpl)
-    nt.find(".item-name").html(name);
-    old = nt.find(".property-prefix").val();
-    nt.find(".property-prefix").val(old + name + ".");
-    container.find(".items").append(nt);
+    nt = $(tmpl);
+    nt.find(".item-name").text(name);
+    prefix = nt.data('property-prefix') + '.' + name;
+    nt.data('property-prefix', prefix);
+    nt.find(".project-property").each(function() {
+        old = $(this).data('property-path');
+        $(this).data('property-path', prefix + old);
+    });
+    nt.find(".panel-collapse").collapse("show");
+    container.find("> .items").append(nt);
 }
+
 function map_delete_item(btn) {
-    name = $(btn).parent().parent().parent().find(".item-name").html();
-    prefix = $(btn).parent().parent().parent().find(".prefix").val();
+    item = $(btn).parent().parent().parent();
+    name = item.find(".item-name").text();
+    prefix = item.data('property-prefix') + ".";
     if (!window.confirm("Really delete '" + name +"'?")) {
         return;
     }
@@ -109,8 +116,7 @@ function map_delete_item(btn) {
                    { project: current_project(),
                      prefix: prefix })
         .done(function (data) {
-            container = $(btn).parent().parent().parent();
-            container.remove();
+            item.remove();
         })
         .fail(function (data, text, error) {
             $(btn).removeClass("disabled");
