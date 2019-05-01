@@ -49,29 +49,14 @@ class PatchewModule(object):
         data["module"] = self
         return Template(tmpl).render(Context(data))
 
-    def _build_map_scm(self, request, project, prefix, scm):
-        prefix = prefix + scm.name + "."
-        def _build_map_items():
-            r = {}
-            for p in project.get_properties().keys():
-                if not p.startswith(prefix):
-                    continue
-                name = p[len(prefix):]
-                name = name[:name.rfind(".")]
-                if name in r:
-                    continue
-                pref = prefix + name + "."
-                r[name] = {
-                          "name": name,
-                          "html": self._build_one(request, project,
-                                                  pref, scm.item)
-                          }
-            return list(r.values())
-
-        schema_html = self._build_one(request, project, prefix,
-                                      scm.item)
+    def _build_map_scm(self, request, project, prefix, config, scm):
+        schema_html = self._build_one(request, project, "", {}, scm.item)
         item = {"html": schema_html}
-        items = _build_map_items()
+        config = config or {}
+        items = [{
+            "name": name,
+            "html": self._build_one(request, project, prefix + "." + name,
+                                    value, scm.item)} for name, value in config.items()]
         return self._render_template(request, project, TMPL_MAP,
                                      schema=scm,
                                      item_schema=scm.item,
@@ -79,9 +64,11 @@ class PatchewModule(object):
                                      items=items,
                                      item=item)
 
-    def _build_array_scm(self, request, project, prefix, scm):
+    def _build_array_scm(self, request, project, prefix, config, scm):
+        config = config or {}
         members = [self._build_one(request, project,
-                                                prefix, x) for x in scm.members]
+                                   prefix + "." + x.name,
+                                   config.get(x.name), x) for x in scm.members]
         show_save_button = False
         for m in scm.members:
             if type(m) == StringSchema:
@@ -93,62 +80,54 @@ class PatchewModule(object):
                                      show_save_button=show_save_button,
                                      prefix=prefix)
 
-    def _build_string_scm(self, request, project, prefix, scm):
-        prop_name = prefix + scm.name
-        prop_value = project.get_property(prop_name)
+    def _build_string_scm(self, request, project, prefix, config, scm):
         return self._render_template(request, project, TMPL_STRING,
                                      schema=scm,
                                      name=scm.name,
                                      prefix=prefix,
-                                     value=prop_value)
+                                     value=config or '')
 
-    def _build_integer_scm(self, request, project, prefix, scm):
-        prop_name = prefix + scm.name
-        prop_value = project.get_property(prop_name)
+    def _build_integer_scm(self, request, project, prefix, config, scm):
         return self._render_template(request, project, TMPL_INTEGER,
                                      schema=scm,
                                      name=scm.name,
                                      prefix=prefix,
-                                     value=prop_value)
+                                     value=config or 0)
 
-    def _build_boolean_scm(self, request, project, prefix, scm):
-        prop_name = prefix + scm.name
-        prop_value = project.get_property(prop_name)
+    def _build_boolean_scm(self, request, project, prefix, config, scm):
         return self._render_template(request, project, TMPL_BOOLEAN,
                                      schema=scm,
                                      name=scm.name,
                                      prefix=prefix,
-                                     value=prop_value)
+                                     value=config or False)
 
-    def _build_enum_scm(self, request, project, prefix, scm):
-        prop_name = prefix + scm.name
-        prop_value = project.get_property(prop_name)
+    def _build_enum_scm(self, request, project, prefix, config, scm):
         return self._render_template(request, project, TMPL_ENUM,
                                      schema=scm,
                                      name=scm.name,
                                      prefix=prefix,
-                                     value=prop_value)
+                                     value=config)
 
-    def _build_one(self, request, project, prefix, scm):
+    def _build_one(self, request, project, prefix, config, scm):
         if type(scm) == MapSchema:
-            return self._build_map_scm(request, project, prefix, scm)
+            return self._build_map_scm(request, project, prefix, config, scm)
         elif type(scm) == StringSchema:
-            return self._build_string_scm(request, project, prefix, scm)
+            return self._build_string_scm(request, project, prefix, config, scm)
         elif type(scm) == IntegerSchema:
-            return self._build_integer_scm(request, project, prefix, scm)
+            return self._build_integer_scm(request, project, prefix, config, scm)
         elif type(scm) == BooleanSchema:
-            return self._build_boolean_scm(request, project, prefix, scm)
+            return self._build_boolean_scm(request, project, prefix, config, scm)
         elif type(scm) == EnumSchema:
-            return self._build_enum_scm(request, project, prefix, scm)
+            return self._build_enum_scm(request, project, prefix, config, scm)
         elif type(scm) == ArraySchema:
-            return self._build_array_scm(request, project, prefix, scm)
+            return self._build_array_scm(request, project, prefix, config, scm)
         assert False
 
     def build_config_html(self, request, project):
-        assert not isinstance(self.project_config_schema, StringSchema)
-        assert not isinstance(self.project_config_schema, IntegerSchema)
+        assert isinstance(self.project_config_schema, ArraySchema)
         scm = self.project_config_schema
-        return self._build_one(request, project, scm.name + ".", scm)
+        config = self.get_project_config(project)
+        return self._build_one(request, project, scm.name, config, scm)
 
     def _get_map_scm(self, project, prop_name, scm):
         prefix = prop_name + "."
