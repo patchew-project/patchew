@@ -17,7 +17,7 @@ function save_done(btn, succeeded, error) {
 }
 
 function collect_properties(btn, check_required) {
-    prefix = $(btn).parent().parent().find("#property-prefix").val();
+    prefix = $(btn).parent().parent().find(".property-prefix").val();
     properties = {};
     $(btn).parent().parent().find(".project-property").each(function () {
         if (check_required && this.required && !this.value) {
@@ -89,16 +89,16 @@ function map_add_item(btn) {
         return;
     }
     container = $(btn).parent().parent();
-    tmpl = container.find("#item-template").html();
+    tmpl = container.find(".item-template").html();
     nt = $(tmpl)
-    nt.find("#item-name").html(name);
-    old = nt.find("#property-prefix").val();
-    nt.find("#property-prefix").val(old + name + ".");
+    nt.find(".item-name").html(name);
+    old = nt.find(".property-prefix").val();
+    nt.find(".property-prefix").val(old + name + ".");
     container.find(".items").append(nt);
 }
 function map_delete_item(btn) {
-    name = $(btn).parent().parent().parent().find("#item-name").html();
-    prefix = $(btn).parent().parent().parent().find("#prefix").val();
+    name = $(btn).parent().parent().parent().find(".item-name").html();
+    prefix = $(btn).parent().parent().parent().find(".prefix").val();
     if (!window.confirm("Really delete '" + name +"'?")) {
         return;
     }

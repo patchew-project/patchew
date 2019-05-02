@@ -260,7 +260,7 @@ TMPL_ENUM = """
           {% endif %}
         {% endfor %}
     </select>
-    <div class="form-group" id="enum-desc">
+    <div class="form-group enum-desc">
     {% for opt, desc in schema.enums.items %}
       {% if opt == value %}
 """ + TMPL_ENUM_DESC + """
@@ -268,7 +268,7 @@ TMPL_ENUM = """
     {% endfor %}
     </div>
     {% for opt, desc in schema.enums.items %}
-        <div class="hidden" id="enum-desc-{{ opt }}">
+        <div class="hidden enum-desc-{{ opt }}">
 """ + TMPL_ENUM_DESC + """
         </div>
     {% endfor %}
@@ -276,7 +276,7 @@ TMPL_ENUM = """
 """
 
 TMPL_ARRAY = """
-<input type="hidden" name="property-prefix" id="property-prefix" value="{{ prefix }}">
+<input type="hidden" name="property-prefix" class="property-prefix" value="{{ prefix }}">
 {% for schema in members %}
     {{ schema }}
 {% endfor %}
@@ -293,8 +293,8 @@ TMPL_MAP_ITEM = """
 <div class="item panel panel-default">
     <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
         {{ item_schema.title }}
-        <strong id="item-name">{{ item.name }}</strong>
-        <input type="hidden" value="{{ prefix }}{{ item.name }}." id="prefix" />
+        <strong class="item-name">{{ item.name }}</strong>
+        <input type="hidden" value="{{ prefix }}{{ item.name }}." class="prefix" />
     </div>
     <div class="panel-body panel-collapse collapse">
         {{ item.html }}
@@ -310,7 +310,7 @@ TMPL_MAP_ITEM = """
 
 TMPL_MAP = """
 <div id="{{ schema.name }}-container">
-    <script id="item-template" type="text/x-custom-template">
+    <script class="item-template" type="text/x-custom-template">
     """ + TMPL_MAP_ITEM + """
     </script>
     <div class="items">
