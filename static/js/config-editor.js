@@ -2,6 +2,16 @@ function current_project() {
     return $('h2').text();
 }
 
+function confirm_leaving_page(enable) {
+    if (enable) {
+        window.onbeforeunload = function() {
+            return "You have modified the configuration but have not saved it yet.";
+        };
+    } else {
+        window.onbeforeunload = null;
+    }
+}
+
 function save_done(btn, succeeded, error) {
     $(btn).text("Save");
     $(btn).removeClass("disabled");
@@ -9,6 +19,7 @@ function save_done(btn, succeeded, error) {
     if (succeeded) {
         info.addClass("alert-success");
         info.html("Saved");
+        confirm_leaving_page(false);
     } else {
         info.addClass("alert-danger");
         info.html("Error: " + error);
@@ -101,6 +112,7 @@ function map_add_item(btn) {
     });
     nt.find(".panel-collapse").collapse("show");
     container.find("> .items").append(nt);
+    confirm_leaving_page(true);
 }
 
 function map_delete_item(btn) {
