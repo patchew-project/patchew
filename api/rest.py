@@ -46,6 +46,9 @@ class PatchewPermission(permissions.BasePermission):
     def is_superuser(self, request):
         return request.user and request.user.is_superuser
 
+    def is_safe_method(self, request):
+        return request.method in permissions.SAFE_METHODS
+
     def has_project_permission(self, request, view, obj):
         return obj.maintained_by(request.user)
 
@@ -56,7 +59,7 @@ class PatchewPermission(permissions.BasePermission):
         return False
 
     def has_generic_permission(self, request, view):
-        return (request.method in permissions.SAFE_METHODS) or \
+        return self.is_safe_method(request) or \
             self.is_superuser(request) or \
             self.has_group_permission(request, view, self.allowed_groups)
 
@@ -91,6 +94,11 @@ class PatchewPermission(permissions.BasePermission):
         return self.has_generic_permission(request, view) or \
             not isinstance(obj, Project) or \
             self.has_project_permission(request, view, obj)
+
+
+class MaintainerPermission(PatchewPermission):
+    def is_safe_method(self, request):
+        return False
 
 
 class ImportPermission(PatchewPermission):
@@ -197,6 +205,14 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by('id')
     serializer_class = ProjectSerializer
     permission_classes = (PatchewPermission,)
+
+    @action(methods=['get', 'put'], detail=True, permission_classes=[MaintainerPermission])
+    def config(self, request, pk=None):
+        project = self.get_object()
+        if request.method == 'PUT':
+            project.config = request.data
+            project.save()
+        return Response(project.config)
 
     @action(methods=['post'], detail=True, permission_classes=[ImportPermission])
     def update_project_head(self, request, pk=None):

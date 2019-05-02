@@ -92,6 +92,36 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['name'], "QEMU")
         self.assertEquals(resp.data['mailing_list'], "qemu-devel@nongnu.org")
 
+    def test_project_config_get(self):
+        self.p.config = {
+            "git": {
+                "push_to": "/tmp/aaa"
+            }
+        }
+        self.p.save()
+        resp = self.api_client.get(self.PROJECT_BASE + 'config/')
+        self.assertEquals(resp.status_code, 403)
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.get(self.PROJECT_BASE + 'config/')
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data['git']['push_to'], '/tmp/aaa')
+
+    def test_project_config_put(self):
+        new_config = {
+            "git": {
+                "push_to": "/tmp/bbb"
+            }
+        }
+        resp = self.api_client.put(self.PROJECT_BASE + 'config/', new_config, format='json')
+        self.assertEquals(resp.status_code, 403)
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.put(self.PROJECT_BASE + 'config/', new_config, format='json')
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data['git']['push_to'], '/tmp/bbb')
+        resp = self.api_client.get(self.PROJECT_BASE + 'config/')
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data['git']['push_to'], '/tmp/bbb')
+
     def test_update_project_head(self):
         resp = self.apply_and_retrieve('0001-simple-patch.mbox.gz',
                                        self.p.id, '20160628014747.20971-1-famz@redhat.com')
