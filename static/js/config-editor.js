@@ -70,9 +70,10 @@ function properties_save(btn) {
         });
 }
 
-function collect_items(btn) {
-    $(btn).parent().parent().find(".map-item");
-    return {};
+function collect_items(container) {
+    return container.find("> .items > .item > .item-heading > .item-name").map(function() {
+        return $(this).text();
+    }).get();
 }
 
 function map_add_item(btn) {
@@ -81,8 +82,8 @@ function map_add_item(btn) {
         return;
     }
     container = $(btn).parent().parent();
-    if (name in collect_items(btn)) {
-        alert(test_name + " already exists.");
+    if (collect_items(container).includes(name)) {
+        alert(name + " already exists.");
         return;
     }
     if (name.indexOf(".") >= 0) {
