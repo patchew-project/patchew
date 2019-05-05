@@ -253,18 +253,9 @@ class MboxMessage(object):
         body = self.get_body()
         if self.get_subject().startswith("Re:"):
             return False
-        return self._has_lines(body,
-                               "---",
-                               "diff ",
-                               "index ",
-                               "---",
-                               "+++",
-                               "@@") or \
-               self._has_lines(body,
-                               "---",
-                               "diff ",
-                               "old mode ",
-                               "new mode ")
+        return self._has_lines(body, "---", "diff ", "index ", "---", "+++", "@@") or \
+               self._has_lines(body, "---", "diff ", "index ", "GIT binary patch") or \
+               self._has_lines(body, "---", "diff ", "old mode ", "new mode ")
 
     def is_series_head(self):
         """Create and return a Series from Message if it is one, otherwise
