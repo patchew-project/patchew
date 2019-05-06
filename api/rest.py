@@ -18,7 +18,7 @@ from .models import Project, ProjectResult, Message, MessageResult, Result
 from .search import SearchEngine
 from rest_framework import (permissions, serializers, viewsets, filters,
                             mixins, renderers, status)
-from rest_framework.decorators import detail_route, action
+from rest_framework.decorators import action
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField, ListField
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
@@ -484,12 +484,12 @@ class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
     serializer_class = MessageSerializer
     parser_classes = (JSONParser, MessagePlainTextParser, )
 
-    @detail_route(renderer_classes=[StaticTextRenderer])
+    @action(detail=True, renderer_classes=[StaticTextRenderer])
     def mbox(self, request, *args, **kwargs):
         message = self.get_object()
         return Response(message.get_mbox())
 
-    @detail_route()
+    @action(detail=True)
     def replies(self, request, *args, **kwargs):
         message = self.get_object()
         replies = Message.objects.filter(in_reply_to=message.message_id,
