@@ -1,7 +1,3 @@
-function current_project() {
-    return $('h2').text();
-}
-
 function confirm_leaving_page(enable) {
     if (enable) {
         window.onbeforeunload = function() {
@@ -30,7 +26,16 @@ function save_done(btn, succeeded, error) {
 function collect_properties(btn, check_required) {
     properties = {};
     $(btn).parent().parent().find(".project-property").each(function () {
-        path = $(this).data('property-path');
+        path = $(this).data('property-path').split('.').reverse();
+        parent = properties;
+        while (path.length > 1) {
+            key = path.pop();
+            if (!(key in parent))
+                parent[key] = {};
+            parent = parent[key];
+        }
+        key = path[0];
+
         if (check_required && this.required && !this.value) {
             alert($(this).parent().find("label").html() + " is required!");
             $(this).focus();
@@ -54,7 +59,7 @@ function collect_properties(btn, check_required) {
         } else {
             val = this.value;
         }
-        properties[path] = val;
+        parent[key] = val;
     });
     return properties;
 }
@@ -70,9 +75,17 @@ function properties_save(btn) {
     $(btn).addClass("disabled");
     $(btn).text("Saving...");
     $(btn).parent().find(".save-message").remove();
-    patchew_api_do("set-project-config",
-                   { project: current_project(),
-                     config: props })
+    options = {
+        data: JSON.stringify(props),
+        type: 'PUT',
+        dataType: 'json',
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if ($(btn).data('csrf-token') != '') {
+        options['headers']['X-CSRFToken'] = $(btn).data('csrf-token');
+    }
+    console.log(props);
+    $.ajax($(btn).data('href'), options)
         .done(function (data) {
             save_done(btn, true);
         })
