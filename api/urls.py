@@ -34,7 +34,6 @@ router = DefaultRouter(trailing_slash=True)
 router.include_format_suffixes = False
 router.register('users', rest.UsersViewSet)
 router.register('projects', rest.ProjectsViewSet)
-router.register('projects/by-name', rest.ProjectsByNameViewSet)
 router.register('series', rest.SeriesViewSet, base_name='series')
 router.register('messages', rest.MessagesViewSet)
 
@@ -51,6 +50,7 @@ results_router.register('results', rest.SeriesResultsViewSet, base_name='results
 schema_view = get_schema_view(title='API schema')
 
 urlpatterns = _build_urls() + [
+    url(r'^v1/projects/by-name/(?P<name>[^/]*)(?P<tail>/.*|$)', rest.ProjectsByNameView.as_view()),
     url(r'^v1/users/login/$', LoginView.as_view(), name='rest_login'),
     url(r'^v1/users/logout/$', LogoutView.as_view(), name='rest_logout'),
     url(r"^v1/", include(router.urls)),

@@ -16,7 +16,7 @@ from django.template import loader
 from mod import dispatch_module_hook
 from .models import Project, ProjectResult, Message, MessageResult, Result
 from .search import SearchEngine
-from rest_framework import (permissions, serializers, viewsets, filters,
+from rest_framework import (permissions, serializers, generics, viewsets, filters,
                             mixins, renderers, status)
 from rest_framework.decorators import action
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField, ListField
@@ -237,15 +237,31 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         return Response({"new_head": project.project_head, "count": ret})
 
 
-class ProjectsByNameViewSet(viewsets.GenericViewSet):
+class ProjectsByNameView(generics.GenericAPIView):
+    serializer_class = ProjectSerializer
     queryset = Project.objects.all()
-    permission_classes = (PatchewPermission,)
     lookup_field = 'name'
 
-    def retrieve(self, request, *args, **kwargs):
+    def _redirect(self, request, *args, **kwargs):
         instance = self.get_object()
         url = reverse_detail(instance, request)
+        if kwargs['tail']:
+            tail = kwargs['tail']
+            if kwargs['tail'][0] == '/' and url[-1] == '/':
+                tail = tail[1:]
+            url += tail
+        params = request.query_params.urlencode()
+        if params:
+            url += "?" + params
         return HttpResponseRedirect(url, status=status.HTTP_307_TEMPORARY_REDIRECT)
+
+    delete = _redirect
+    get = _redirect
+    head = _redirect
+    options = _redirect
+    patch = _redirect
+    post = _redirect
+    put = _redirect
 
 
 # Common classes for series and messages

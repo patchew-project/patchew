@@ -91,6 +91,10 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.data['resource_uri'], self.PROJECT_BASE)
         self.assertEquals(resp.data['name'], "QEMU")
         self.assertEquals(resp.data['mailing_list'], "qemu-devel@nongnu.org")
+        resp = self.api_client.get(self.REST_BASE + 'projects/by-name/QEMU/?some=thing&foo=bar')
+        self.assertEquals(resp.status_code, 307)
+        self.assertIn('some=thing', resp['Location'])
+        self.assertIn('foo=bar', resp['Location'])
 
     def test_project_config_get(self):
         self.p.config = {
