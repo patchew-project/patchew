@@ -68,7 +68,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'URL_FIELD_NAME': 'resource_uri',
     'PAGE_SIZE': 50,
     'UPLOADED_FILES_USE_URL': True,
