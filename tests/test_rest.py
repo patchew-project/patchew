@@ -100,7 +100,7 @@ class RestTest(PatchewTestCase):
         }
         self.p.save()
         resp = self.api_client.get(self.PROJECT_BASE + 'config/')
-        self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.status_code, 401)
         self.api_client.login(username=self.user, password=self.password)
         resp = self.api_client.get(self.PROJECT_BASE + 'config/')
         self.assertEquals(resp.status_code, 200)
@@ -113,7 +113,7 @@ class RestTest(PatchewTestCase):
             }
         }
         resp = self.api_client.put(self.PROJECT_BASE + 'config/', new_config, format='json')
-        self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.status_code, 401)
         self.api_client.login(username=self.user, password=self.password)
         resp = self.api_client.put(self.PROJECT_BASE + 'config/', new_config, format='json')
         self.assertEquals(resp.status_code, 200)
@@ -153,7 +153,7 @@ class RestTest(PatchewTestCase):
             'name': 'keycodemapdb',
         }
         resp = self.api_client.post(self.REST_BASE + 'projects/', data=data)
-        self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.status_code, 401)
 
     def test_project_post_minimal(self):
         data = {
@@ -336,7 +336,7 @@ class RestTest(PatchewTestCase):
 
         self.assertEqual(resp_before.status_code, 200)
         self.assertEqual(resp_reply_before.status_code, 200)
-        self.assertEqual(resp_without_login.status_code, 403)
+        self.assertEqual(resp_without_login.status_code, 401)
         self.assertEqual(resp.status_code, 204)
         self.assertEqual(resp_after.status_code, 404)
         self.assertEqual(resp_reply_after.status_code, 404)
@@ -397,7 +397,7 @@ class RestTest(PatchewTestCase):
         with open(dp, "r") as f:
             data = f.read()
         resp = self.api_client.post(self.PROJECT_BASE + "messages/", data, content_type='message/rfc822')
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 401)
 
     def test_non_maintainer_create_message(self):
         self.create_user(username="test", password="userpass")
