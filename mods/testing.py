@@ -20,13 +20,14 @@ import time
 import math
 from api.views import APILoginRequiredView
 from api.models import (Message, MessageResult, Project, ProjectResult, Result)
-from api.rest import PluginMethodField, reverse_detail
+from api.rest import PluginMethodField, TestPermission, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
 from schema import *
-from rest_framework import serializers
+from rest_framework import serializers, generics
 from rest_framework.fields import CharField, BooleanField
+from rest_framework.response import Response
 
 _instance = None
 
@@ -249,6 +250,10 @@ class TestingModule(PatchewModule):
         urlpatterns.append(url(r"^(?P<project>[^/]*)/badge.(?P<ext>svg|png)$", self.www_view_badge,
                                name="testing-badge"))
 
+    def api_url_hook(self, urlpatterns):
+        urlpatterns.append(url(r"^v1/projects/(?P<pk>[^/]*)/get-test/$", GetTestView.as_view(),
+                               name="get-test"))
+
     def reverse_testing_log(self, obj, test, request=None, html=False):
         if isinstance(obj, Message):
             log_url = reverse("testing-log",
@@ -413,21 +418,8 @@ class TestingModule(PatchewModule):
             return
         po.set_property('testing.check_in.' + tester, time.time())
 
-class TestingGetView(APILoginRequiredView):
-    name = "testing-get"
-    allowed_groups = ["testers"]
 
-    def _generate_test_data(self, project, repo, head, base, identity, result_uri, test):
-        r = {"project": project,
-             "repo": repo,
-             "head": head,
-             "base": base,
-             "test": test,
-             "identity": identity,
-             "result_uri": result_uri,
-             }
-        return r
-
+class GetTestViewMixin(object):
     def _generate_series_test_data(self, request, s, result, test):
         gr = s.git_result
         assert gr.is_success()
@@ -499,19 +491,63 @@ class TestingGetView(APILoginRequiredView):
             return r, s, td
         return None
 
-    def handle(self, request, project, tester, capabilities):
+    def _do_testing_get(self, request, po, tester, capabilities):
         # Try project head test first
-        _instance.tester_check_in(project, tester or request.user.username)
-        po = Project.objects.get(name=project)
+        _instance.tester_check_in(po.name, tester or request.user.username)
         candidate = self._find_project_test(request, po, tester, capabilities)
         if not candidate:
             candidate = self._find_series_test(request, po, tester, capabilities)
         if not candidate:
-            return
+            return None
         r, obj, test_data = candidate
         r.status = Result.RUNNING
         r.save()
         return test_data
+
+
+class TestingGetView(APILoginRequiredView, GetTestViewMixin):
+    name = "testing-get"
+    allowed_groups = ["testers"]
+
+    def _generate_test_data(self, project, repo, head, base, identity, result_uri, test):
+        r = {"project": project,
+             "repo": repo,
+             "head": head,
+             "base": base,
+             "test": test,
+             "identity": identity,
+             "result_uri": result_uri,
+             }
+        return r
+
+    def handle(self, request, project, tester, capabilities):
+        po = Project.objects.get(name=project)
+        return self._do_testing_get(request, po, tester, capabilities)
+
+
+class GetTestView(generics.GenericAPIView, GetTestViewMixin):
+    queryset = Project.objects.all()
+    permission_classes = (TestPermission,)
+
+    def _generate_test_data(self, project, repo, head, base, identity, result_uri, test):
+        r = {"repo": repo,
+             "head": head,
+             "base": base,
+             "test": test,
+             "identity": identity,
+             "result_uri": result_uri,
+             }
+        return r
+
+    def post(self, request, *args, **kwargs):
+        tester = request.data.get('tester', '')
+        capabilities = request.data.get('capabilities', [])
+        test_data = self._do_testing_get(request, self.get_object(), tester, capabilities)
+        if test_data:
+            return Response(test_data)
+        else:
+            return Response(status=204)
+
 
 class TestingReportView(APILoginRequiredView):
     name = "testing-report"

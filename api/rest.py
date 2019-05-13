@@ -120,6 +120,10 @@ class ImportPermission(PatchewPermission):
     allowed_groups = ('importers',)
 
 
+class TestPermission(PatchewPermission):
+    allowed_groups = ('testers',)
+
+
 # utility function to generate REST API URLs
 
 def reverse_detail(obj, request):
