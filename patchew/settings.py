@@ -68,7 +68,7 @@ MIDDLEWARE = [
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
-        "patchew.CsrfExemptSessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "URL_FIELD_NAME": "resource_uri",
