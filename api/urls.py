@@ -8,6 +8,8 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+from rest_auth.views import LoginView, LogoutView
+
 from django.conf.urls import url, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested.routers import NestedDefaultRouter
@@ -49,6 +51,8 @@ results_router.register('results', rest.SeriesResultsViewSet, base_name='results
 schema_view = get_schema_view(title='API schema')
 
 urlpatterns = _build_urls() + [
+    url(r'^v1/users/login/$', LoginView.as_view(), name='rest_login'),
+    url(r'^v1/users/logout/$', LogoutView.as_view(), name='rest_logout'),
     url(r"^v1/", include(router.urls)),
     url(r"^v1/", include(projects_router.urls)),
     url(r"^v1/", include(results_router.urls)),
