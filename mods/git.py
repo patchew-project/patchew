@@ -19,6 +19,7 @@ from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler
 from api.models import Message, Project, Result
+import api.rest
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
@@ -48,7 +49,7 @@ class GitLogViewer(LogView):
         return obj.git_result
 
 
-class ResultDataSerializer(serializers.Serializer):
+class ResultDataSerializer(api.rest.ResultDataSerializer):
     # TODO: should be present iff the result is success or failure
     base = CharField(required=False)
 
@@ -56,6 +57,15 @@ class ResultDataSerializer(serializers.Serializer):
     repo = CharField(required=False)
     url = CharField(required=False)
     tag = CharField(required=False)
+
+    def create(self, data):
+        if "tag" in data and "url" not in data and self.project:
+            config = _instance.get_project_config(self.project)
+            url_template = config.get("url_template")
+            tag = data["tag"]
+            if url_template and tag.startswith("refs/tags/"):
+                data["url"] = url_template.replace("%t", tag[10:])
+        return super(ResultDataSerializer, self).create(data)
 
 
 class GitModule(PatchewModule):

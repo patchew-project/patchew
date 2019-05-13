@@ -701,6 +701,16 @@ class HyperlinkedResultField(HyperlinkedIdentityField):
         return self.reverse(view_name, kwargs=kwargs, request=request, format=format)
 
 
+class ResultDataSerializer(serializers.Serializer):
+    def __init__(self, *args, **kwargs):
+        # Don't pass the 'project' arg up to the superclass
+        self.project = kwargs.pop("project", None)
+        super(ResultDataSerializer, self).__init__(*args, **kwargs)
+
+    def create(self, data):
+        return data
+
+
 class ResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = Result
@@ -715,14 +725,23 @@ class ResultSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         return obj.get_log_url(request)
 
+    def get_data_serializer(self, *args, **kwargs):
+        project = self.context["parent"].project
+        data_serializer_class = self.context["renderer"].result_data_serializer_class
+        return data_serializer_class(
+            *args, **kwargs, project=project, context=self.context
+        )
+
+    def update(self, instance, validated_data):
+        if "data" in validated_data:
+            validated_data["data"] = self.get_data_serializer().create(
+                validated_data["data"]
+            )
+        return super(ResultSerializer, self).update(instance, validated_data)
+
     def validate(self, data):
         if "data" in data:
-            data_serializer_class = self.context[
-                "renderer"
-            ].result_data_serializer_class
-            data_serializer_class(data=data["data"], context=self.context).is_valid(
-                raise_exception=True
-            )
+            self.get_data_serializer(data=data["data"]).is_valid(raise_exception=True)
         return data
 
 
@@ -770,6 +789,7 @@ class ResultsViewSet(
         context = super(ResultsViewSet, self).get_serializer_context()
         if "name" in self.kwargs:
             context["renderer"] = self.result_renderer
+        context["parent"] = self
         return context
 
     def get_serializer_class(self, *args, **kwargs):
