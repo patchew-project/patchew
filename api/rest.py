@@ -344,12 +344,14 @@ class SeriesSerializer(BaseMessageSerializer):
         model = Message
         fields = ('resource_uri',) + BaseMessageSerializer.Meta.fields + (
             'message', 'stripped_subject', 'last_comment_date', 'last_reply_date',
-            'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results')
+            'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results',
+            'is_obsolete', 'is_tested', 'is_reviewed', 'maintainers')
 
     resource_uri = HyperlinkedMessageField(view_name='series-detail')
     message = HyperlinkedMessageField(view_name='messages-detail')
     results = HyperlinkedMessageField(view_name='results-list', lookup_field='series_message_id')
     total_patches = SerializerMethodField()
+    maintainers = ListField(child=CharField(), required=False)
 
     def __init__(self, *args, **kwargs):
         self.detailed = kwargs.pop('detailed', False)
