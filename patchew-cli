@@ -644,19 +644,21 @@ class TesterCommand(SubCommand):
         return ret
 
     def test_one(self, name, project, no_clean_up, capabilities):
-        r = self.api_do(
-            "testing-get", project=project, tester=name, capabilities=capabilities
+        r = self.rest_api_do(
+            url_cmd="projects/by-name/%s/get-test" % project,
+            request_method="post",
+            content_type="application/json",
+            data=json.dumps(
+                {"project": project, "tester": name, "capabilities": capabilities}
+            ),
         )
         if not r:
             return False
         print("Running test '%s'" % r["test"]["name"])
-        if r["project"] != project:
-            return
-
         wd = tempfile.mkdtemp(prefix="patchew-tester-tmp-", dir="/var/tmp/")
         print("  Workdir:", wd)
-        print("  Project:", r["project"])
-        print("  Identity:", str(r["identity"]))
+        print("  Project:", project)
+        print("  Result URI:", str(r["result_uri"]))
         sys.stdout.flush()
         logf = open(
             os.path.join(wd, "log"), "w+", encoding="utf-8", newline="", errors="ignore"
@@ -742,18 +744,19 @@ class TesterCommand(SubCommand):
                 prefixed = False
                 orig_log_size = len(log)
                 while max_size > 100000:
+                    json_data = {
+                        "status": "success" if passed else "failure",
+                        "data": {"head": r["head"], "is_timeout": is_timeout},
+                        "log": str(log),
+                    }
+                    if name:
+                        json_data["data"]["tester"] = name
                     try:
-                        self.api_do(
-                            "testing-report",
-                            project=r["project"],
-                            identity=r["identity"],
-                            test=r["test"]["name"],
-                            tester=name,
-                            head=r["head"],
-                            base=r["base"],
-                            passed=passed,
-                            log=log,
-                            is_timeout=is_timeout,
+                        self.rest_api_do(
+                            url_cmd=r["result_uri"],
+                            request_method="put",
+                            content_type="application/json",
+                            data=json.dumps(json_data),
                         )
                     except urllib.error.HTTPError as e:
                         if e.code != 413:
