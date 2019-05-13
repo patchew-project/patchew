@@ -486,47 +486,6 @@ class MessageManager(models.Manager):
         self.update_series(msg)
         return msg
 
-    def add_message_from_mbox(self, mbox, user, project_name=None):
-        def find_message_projects(m):
-            return [p for p in Project.objects.all() if p.recognizes(m)]
-
-        m = MboxMessage(mbox)
-        msgid = m.get_message_id()
-        if project_name:
-            projects = [Project.object.get(name=project_name)]
-        else:
-            projects = find_message_projects(m)
-        stripped_subject = m.get_subject(strip_tags=True)
-        is_series_head = m.is_series_head()
-        for p in projects:
-            msg = Message(
-                message_id=msgid,
-                in_reply_to=m.get_in_reply_to() or "",
-                date=m.get_date(),
-                subject=m.get_subject(),
-                stripped_subject=stripped_subject,
-                version=m.get_version(),
-                sender=m.get_from(),
-                recipients=m.get_to() + m.get_cc(),
-                prefixes=m.get_prefixes(),
-                topic=(
-                    Topic.objects.for_stripped_subject(stripped_subject)
-                    if is_series_head
-                    else None
-                ),
-                is_patch=m.is_patch(),
-                patch_num=m.get_num()[0],
-            )
-            msg.project = p
-            if self.filter(message_id=msgid, project__name=p.name).first():
-                raise self.DuplicateMessageError(msgid)
-            msg.save_mbox(mbox)
-            msg.save()
-            emit_event("MessageAdded", message=msg)
-            self.update_series(msg)
-        return projects
-
-
 def HeaderFieldModel(**args):
     return models.CharField(max_length=4096, **args)
 

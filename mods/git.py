@@ -21,7 +21,6 @@ from event import declare_event, register_handler
 from api.models import Message, Project, Result
 import api.rest
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
-from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 import schema
 from rest_framework import generics, serializers
@@ -149,12 +148,6 @@ class GitModule(PatchewModule):
 
     def rest_series_fields_hook(self, request, fields, detailed):
         fields["based_on"] = PluginMethodField(obj=self, required=False)
-
-    def get_projects_prepare_hook(self, project, response):
-        response["git.head"] = project.get_property("git.head")
-        config = self.get_project_config(project)
-        if "push_to" in config:
-            response["git.push_to"] = config["push_to"]
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
@@ -307,39 +300,6 @@ class GitModule(PatchewModule):
         return q
 
 
-class ApplierGetView(APILoginRequiredView):
-    name = "applier-get"
-    allowed_groups = ["importers"]
-
-    def handle(self, request, target_repo=None):
-        m = _instance.pending_series(target_repo).first()
-        if not m:
-            return None
-
-        response = prepare_series(
-            request,
-            m,
-            fields=["project", "message-id", "patches", "properties", "tags"],
-        )
-
-        po = m.project
-        config = _instance.get_project_config(po)
-        for k, v in config.items():
-            response["git." + k] = v
-        base = _instance.get_base(m)
-        if base:
-            response["git.repo"] = base.data["repo"]
-            response["git.base"] = base.data["tag"]
-        response["project.git"] = po.git
-        response["mbox_uri"] = rest_framework.reverse.reverse(
-            "series-mbox",
-            kwargs={"projects_pk": m.project_id, "message_id": m.message_id},
-            request=request,
-        )
-        response["result_uri"] = reverse_detail(m.git_result, request)
-        return response
-
-
 class UnappliedSeriesSerializer(SeriesSerializer):
     class Meta:
         model = Message
@@ -365,49 +325,3 @@ class UnappliedSeriesView(generics.ListAPIView):
 
     def get_queryset(self, target_repo=None):
         return _instance.pending_series(target_repo)
-
-
-class ApplierReportView(APILoginRequiredView):
-    name = "applier-report"
-    allowed_groups = ["importers"]
-
-    def handle(
-        self,
-        request,
-        project,
-        message_id,
-        tag,
-        url,
-        base,
-        repo,
-        failed,
-        log,
-        maintainers=[],
-    ):
-        p = Project.objects.get(name=project)
-        r = (
-            Message.objects.series_heads()
-            .get(project=p, message_id=message_id)
-            .git_result
-        )
-        r.log = log
-        r.message.maintainers = maintainers
-        r.message.save()
-        data = {}
-        if failed:
-            r.status = Result.FAILURE
-        else:
-            data["repo"] = repo
-            data["tag"] = "refs/tags/" + tag
-            if url:
-                data["url"] = url
-            elif tag:
-                config = _instance.get_project_config(p)
-                url_template = config.get("url_template")
-                if url_template:
-                    data["url"] = url_template.replace("%t", tag)
-            if base:
-                data["base"] = base
-            r.status = Result.SUCCESS
-        r.data = data
-        r.save()

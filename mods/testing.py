@@ -18,7 +18,6 @@ from mod import PatchewModule
 import datetime
 import time
 import math
-from api.views import APILoginRequiredView
 from api.models import Message, MessageResult, Project, ProjectResult, Result
 import api.rest
 from api.rest import PluginMethodField, TestPermission, reverse_detail
@@ -524,12 +523,25 @@ class TestingModule(PatchewModule):
         po.set_property("testing.check_in." + tester, time.time())
 
 
-class GetTestViewMixin(object):
+class GetTestView(generics.GenericAPIView):
+    queryset = Project.objects.all()
+    permission_classes = (TestPermission,)
+
+    def _generate_test_data(self, repo, head, base, identity, result_uri, test):
+        r = {
+            "repo": repo,
+            "head": head,
+            "base": base,
+            "test": test,
+            "identity": identity,
+            "result_uri": result_uri,
+        }
+        return r
+
     def _generate_series_test_data(self, request, s, result, test):
         gr = s.git_result
         assert gr.is_success()
         return self._generate_test_data(
-            project=s.project.name,
             repo=gr.data["repo"],
             head=gr.data["tag"],
             base=gr.data.get("base", None),
@@ -546,7 +558,6 @@ class GetTestViewMixin(object):
         self, request, project, repo, head, base, result, test
     ):
         return self._generate_test_data(
-            project=project,
             repo=repo,
             head=head,
             base=base,
@@ -613,122 +624,18 @@ class GetTestViewMixin(object):
             return r, s, td
         return None
 
-    def _do_testing_get(self, request, po, tester, capabilities):
+    def post(self, request, *args, **kwargs):
+        tester = request.data.get("tester", "")
+        capabilities = request.data.get("capabilities", [])
+        po = self.get_object()
         # Try project head test first
         _instance.tester_check_in(po.name, tester or request.user.username)
         candidate = self._find_project_test(request, po, tester, capabilities)
         if not candidate:
             candidate = self._find_series_test(request, po, tester, capabilities)
         if not candidate:
-            return None
+            return Response(status=204)
         r, obj, test_data = candidate
         r.status = Result.RUNNING
         r.save()
-        return test_data
-
-
-class TestingGetView(APILoginRequiredView, GetTestViewMixin):
-    name = "testing-get"
-    allowed_groups = ["testers"]
-
-    def _generate_test_data(
-        self, project, repo, head, base, identity, result_uri, test
-    ):
-        r = {
-            "project": project,
-            "repo": repo,
-            "head": head,
-            "base": base,
-            "test": test,
-            "identity": identity,
-            "result_uri": result_uri,
-        }
-        return r
-
-    def handle(self, request, project, tester, capabilities):
-        po = Project.objects.get(name=project)
-        return self._do_testing_get(request, po, tester, capabilities)
-
-
-class GetTestView(generics.GenericAPIView, GetTestViewMixin):
-    queryset = Project.objects.all()
-    permission_classes = (TestPermission,)
-
-    def _generate_test_data(
-        self, project, repo, head, base, identity, result_uri, test
-    ):
-        r = {
-            "repo": repo,
-            "head": head,
-            "base": base,
-            "test": test,
-            "identity": identity,
-            "result_uri": result_uri,
-        }
-        return r
-
-    def post(self, request, *args, **kwargs):
-        tester = request.data.get("tester", "")
-        capabilities = request.data.get("capabilities", [])
-        test_data = self._do_testing_get(
-            request, self.get_object(), tester, capabilities
-        )
-        if test_data:
-            return Response(test_data)
-        else:
-            return Response(status=204)
-
-
-class TestingReportView(APILoginRequiredView):
-    name = "testing-report"
-    allowed_groups = ["testers"]
-
-    def handle(
-        self,
-        request,
-        tester,
-        project,
-        test,
-        head,
-        base,
-        passed,
-        log,
-        identity,
-        is_timeout=False,
-    ):
-        _instance.add_test_report(
-            request,
-            project,
-            tester,
-            test,
-            head,
-            base,
-            identity,
-            passed,
-            log,
-            is_timeout,
-        )
-
-
-class TestingCapabilitiesView(APILoginRequiredView):
-    name = "testing-capabilities"
-    allowed_groups = ["testers"]
-
-    def handle(self, request, tester, project):
-        _instance.tester_check_in(project, tester or request.user.username)
-        po = Project.objects.filter(name=project).first()
-        if not po:
-            raise Http404("Project '%s' not found" % project)
-        probes = _instance.get_capability_probes(po)
-        return probes
-
-
-class UntestView(APILoginRequiredView):
-    name = "untest"
-    allowed_groups = ["testers"]
-
-    def handle(self, request, terms):
-        se = SearchEngine()
-        q = se.search_series(user=request.user, *terms)
-        for s in q:
-            _instance.clear_and_start_testing(s)
+        return Response(test_data)
