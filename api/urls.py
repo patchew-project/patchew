@@ -22,7 +22,7 @@ def _build_urls(base=None, r=[]):
         if cls.name:
             # API views should handle the authentication explicitly, disable
             # csrf check to simplify client code
-            r.append(url(cls.name + "/", cls.as_view()))
+            r.append(url("^" + cls.name + "/", cls.as_view()))
         else:
             _build_urls(cls, r)
     return r
@@ -49,9 +49,9 @@ results_router.register('results', rest.SeriesResultsViewSet, base_name='results
 schema_view = get_schema_view(title='API schema')
 
 urlpatterns = _build_urls() + [
-    url(r"v1/", include(router.urls)),
-    url(r"v1/", include(projects_router.urls)),
-    url(r"v1/", include(results_router.urls)),
+    url(r"^v1/", include(router.urls)),
+    url(r"^v1/", include(projects_router.urls)),
+    url(r"^v1/", include(results_router.urls)),
     url(r'^v1/schema/$', schema_view),
     # Use the base class's handler by default
     url(r".*", views.APIView.as_view())
