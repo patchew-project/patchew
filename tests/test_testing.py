@@ -329,7 +329,7 @@ class TesterTest(PatchewTestCase):
             ["tester", "-p", "QEMU,UMEQ,ALLOW,DENY", "--no-wait", "-N", "1"]
         )
         self.assertIn("Project: QEMU\n", out)
-        self.assertIn("'type': 'project'", out)
+        self.assertIn("/api/v1/projects/%d/results/testing.a/" % self.p1.id, out)
         out, err = self.check_cli(
             ["tester", "-p", "QEMU,UMEQ,ALLOW,DENY", "--no-wait", "-N", "1"]
         )
