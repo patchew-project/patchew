@@ -22,9 +22,10 @@ from rest_framework.decorators import action
 from rest_framework.fields import SerializerMethodField, CharField, JSONField, EmailField, ListField
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
+from rest_framework.views import APIView
 import rest_framework
 from mbox import addr_db_to_rest, MboxMessage
-from rest_framework.parsers import JSONParser, BaseParser
+from rest_framework.parsers import BaseParser
 
 SEARCH_PARAM = 'q'
 
@@ -274,7 +275,8 @@ class AddressSerializer(serializers.Serializer):
 class BaseMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ('resource_uri', 'message_id', 'subject', 'date', 'sender', 'recipients', 'tags')
+        read_only_fields = ('resource_uri', 'message_id', 'subject', 'date', 'sender', 'recipients')
+        fields = read_only_fields + ('tags', )
 
     resource_uri = HyperlinkedMessageField(view_name='messages-detail')
     recipients = AddressSerializer(many=True)
@@ -300,7 +302,7 @@ class BaseMessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 # a (project, message_id) tuple is unique, so we can always retrieve an object
-class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin):
+class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin, mixins.UpdateModelMixin):
     def get_queryset(self):
         return self.queryset.filter(project=self.kwargs['projects_pk'])
 
@@ -342,10 +344,12 @@ class PatchSerializer(BaseMessageSerializer):
 class SeriesSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
-        fields = ('resource_uri',) + BaseMessageSerializer.Meta.fields + (
-            'message', 'stripped_subject', 'last_comment_date', 'last_reply_date',
-            'is_complete', 'is_merged', 'num_patches', 'total_patches', 'results',
+        subclass_read_only_fields = ('message', 'stripped_subject', 'num_patches',
+            'total_patches', 'results')
+        fields = BaseMessageSerializer.Meta.fields + subclass_read_only_fields + (
+            'last_comment_date', 'last_reply_date', 'is_complete', 'is_merged',
             'is_obsolete', 'is_tested', 'is_reviewed', 'maintainers')
+        read_only_fields = BaseMessageSerializer.Meta.read_only_fields + subclass_read_only_fields
 
     resource_uri = HyperlinkedMessageField(view_name='series-detail')
     message = HyperlinkedMessageField(view_name='messages-detail')
@@ -416,7 +420,8 @@ class SeriesViewSet(BaseMessageViewSet):
 
 
 class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
-                           SeriesViewSet, mixins.DestroyModelMixin):
+                           SeriesViewSet, mixins.UpdateModelMixin,
+                           mixins.DestroyModelMixin):
     def collect_patches(self, series):
         if series.is_patch:
             patches = [series]
@@ -456,11 +461,12 @@ class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
 
 # Messages
 
-# TODO: add POST endpoint connected to email plugin?
 class MessageSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
         fields = BaseMessageSerializer.Meta.fields + ('mbox', )
+        read_only_fields = BaseMessageSerializer.Meta.read_only_fields + ('mbox', )
+
     mbox = CharField()
 
     def get_fields(self):
@@ -475,6 +481,14 @@ class MessageSerializer(BaseMessageSerializer):
                              fields=fields)
         return fields
 
+
+class MessageCreationSerializer(BaseMessageSerializer):
+    class Meta:
+        model = Message
+        fields = BaseMessageSerializer.Meta.fields + ('mbox', )
+        read_only_fields = []
+
+    mbox = CharField()
 
 class StaticTextRenderer(renderers.BaseRenderer):
     media_type = 'text/plain'
@@ -497,10 +511,15 @@ class MessagePlainTextParser(BaseParser):
         return MboxMessage(data).get_json()
 
 
-class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
-                             BaseMessageViewSet, mixins.CreateModelMixin):
-    serializer_class = MessageSerializer
-    parser_classes = (JSONParser, MessagePlainTextParser, )
+class ProjectMessagesViewSet(ProjectMessagesViewSetMixin, BaseMessageViewSet,
+                             mixins.CreateModelMixin, mixins.UpdateModelMixin):
+    parser_classes = APIView.parser_classes + [MessagePlainTextParser]
+
+    def get_serializer_class(self, *args, **kwargs):
+        if self.request.method == 'POST':
+            return MessageCreationSerializer
+        else:
+            return MessageSerializer
 
     @action(detail=True, renderer_classes=[StaticTextRenderer])
     def mbox(self, request, *args, **kwargs):
@@ -519,9 +538,14 @@ class ProjectMessagesViewSet(ProjectMessagesViewSetMixin,
 
 
 class MessagesViewSet(BaseMessageViewSet):
-    serializer_class = MessageSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-    parser_classes = (JSONParser, MessagePlainTextParser, )
+    parser_classes = APIView.parser_classes + [MessagePlainTextParser]
+
+    def get_serializer_class(self, *args, **kwargs):
+        if self.request.method == 'POST':
+            return MessageCreationSerializer
+        else:
+            return MessageSerializer
 
     def create(self, request, *args, **kwargs):
         m = MboxMessage(request.data['mbox'])

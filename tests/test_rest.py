@@ -353,6 +353,24 @@ class RestTest(PatchewTestCase):
         self.assertEqual(resp.data['subject'], "[Qemu-devel] [PATCH v2 10/27] imx_fec: Reserve full 4K "
                          "page for the register file")
 
+    def test_patch_message(self):
+        the_tags = ['Reviewed-by: Paolo Bonzini <pbonzini@redhat.com']
+        dp = self.get_data_path("0022-another-simple-patch.json.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.post(self.PROJECT_BASE + "messages/", data, content_type='application/json')
+        self.assertEqual(resp.status_code, 201)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20171023201055.21973-11-andrew.smirnov@gmail.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.data['tags'], [])
+        resp = self.api_client.patch(self.PROJECT_BASE + "messages/20171023201055.21973-11-andrew.smirnov@gmail.com/",
+                                     { 'tags': the_tags })
+        self.assertEqual(resp.status_code, 200)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "messages/20171023201055.21973-11-andrew.smirnov@gmail.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.data['tags'], the_tags)
+
     def test_create_text_message(self):
         dp = self.get_data_path("0004-multiple-patch-reviewed.mbox.gz")
         with open(dp, "r") as f:
@@ -363,6 +381,20 @@ class RestTest(PatchewTestCase):
         resp_get = self.api_client.get(self.PROJECT_BASE + "messages/1469192015-16487-1-git-send-email-berrange@redhat.com/")
         self.assertEqual(resp_get.status_code, 200)
         self.assertEqual(resp.data['subject'], "[Qemu-devel] [PATCH v4 0/2] Report format specific info for LUKS block driver")
+
+    def test_patch_series(self):
+        dp = self.get_data_path("0001-simple-patch.mbox.gz")
+        with open(dp, "r") as f:
+            data = f.read()
+        self.api_client.login(username=self.user, password=self.password)
+        resp = self.api_client.post(self.PROJECT_BASE + "messages/", data, content_type='message/rfc822')
+        self.assertEqual(resp.status_code, 201)
+        resp = self.api_client.patch(self.PROJECT_BASE + "series/20160628014747.20971-1-famz@redhat.com/",
+                                     { 'is_tested' : True })
+        self.assertEqual(resp.status_code, 200)
+        resp_get = self.api_client.get(self.PROJECT_BASE + "series/20160628014747.20971-1-famz@redhat.com/")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertTrue(resp_get.data['is_tested'])
 
     def test_create_message_without_project_pk(self):
         dp = self.get_data_path("0024-multiple-project-patch.json.gz")
