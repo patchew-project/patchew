@@ -773,60 +773,19 @@ class ApplyCommand(SubCommand):
             subprocess.check_call(
                 ["git", "checkout", bo, bn], cwd=repo, stdout=logf, stderr=logf
             )
+        args = ["git", "am", "-m", "-3"]
+        if signoff:
+            args += ["-s"]
         maintainers = set()
-        apply_failed = False
-        for p in s["patches"]:
-            patchf = tempfile.NamedTemporaryFile()
-            patchf.write(p["mbox"].encode("utf-8"))
-            patchf.flush()
-            maintainers = maintainers.union(self._get_maintainers(repo, patchf.name))
-            if apply_failed:
-                continue
-            if 0 != subprocess.call(
-                ["git", "am", "-m", "-3", patchf.name],
-                cwd=repo,
-                stdout=logf,
-                stderr=logf,
-            ):
-                logf.flush()
-                logf.write("Failed to apply patch:\n%s" % p["subject"])
-                apply_failed = True
-                continue
-            filter_cmd = ""
-            commit_message_lines = (
-                subprocess.check_output(
-                    ["git", "log", "-n", "1", "--format=%b"], cwd=repo
-                )
-                .decode("utf-8")
-                .splitlines()
-            )
-            for t in set(p.get("tags", []) + s.get("tags", [])):
-                if t in commit_message_lines:
-                    continue
-                filter_cmd += "echo '%s';" % t
-            if signoff:
-                # Signed-off-by of the user line goes last
-                name = subprocess.check_output(["git", "config", "user.name"])
-                email = subprocess.check_output(["git", "config", "user.email"])
-                if not (name and email):
-                    raise Exception("Git user info not set")
-                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % (
-                    name.decode().strip(),
-                    email.decode().strip(),
-                )
-            if filter_cmd:
-                subprocess.check_output(
-                    [
-                        "git",
-                        "filter-branch",
-                        "-f",
-                        "--msg-filter",
-                        "cat; " + filter_cmd,
-                        "HEAD~1..",
-                    ],
-                    cwd=repo,
-                )
-        if apply_failed:
+        req = urllib.request.Request(s["mbox_uri"])
+        resp = urllib.request.urlopen(req)
+        respdata = resp.read()
+        patchf = tempfile.NamedTemporaryFile()
+        patchf.write(respdata)
+        patchf.flush()
+        if 0 != subprocess.call(
+            args + [patchf.name], cwd=repo, stdout=logf, stderr=logf
+        ):
             raise ApplyFailedException()
         elif tag:
             subprocess.check_call(
@@ -835,7 +794,7 @@ class ApplyCommand(SubCommand):
                 stdout=logf,
                 stderr=logf,
             )
-        return list(maintainers)
+        return patchf
 
     def _push(self, repo, remote, tag, logf):
         subprocess.check_call(
@@ -882,7 +841,8 @@ class ApplyCommand(SubCommand):
                 .decode("utf-8")
                 .strip()
             )
-            maintainers = self._apply(wd, toapply, branch, force_branch, tag, logf)
+            patchf = self._apply(wd, toapply, branch, force_branch, tag, logf)
+            maintainers = self._get_maintainers(repo, patchf.name)
             if push_repo:
                 self._push(wd, push_repo, tag, logf)
             url = toapply.get("git.url_template", "").replace("%t", tag)
