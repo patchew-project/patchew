@@ -513,18 +513,34 @@ class SearchCommand(SubCommand):
         parser.add_argument(
             "--raw", "-r", action="store_true", help="Output raw response"
         )
+        parser.add_argument("--limit", "-l", type=int, help="Limit")
+        parser.add_argument("--offset", "-O", type=int, help="Offset")
         parser.add_argument("term", nargs="*", type=str)
 
     def do(self, args, argv):
-        r = self.api_do("search", terms=args.term, fields=args.output.split(","))
-        if not r:
-            return 0
-        if args.raw:
-            print(json.dumps(r, indent=2, separators=",:"))
-        else:
-            for x in r:
-                for a in args.output.split(","):
-                    print(x[a])
+        kwargs = {}
+        if args.limit:
+            kwargs["limit"] = args.limit
+        kwargs["offset"] = args.offset or 0
+        kwargs["q"] = " ".join(args.term)
+        while True:
+            r = self.rest_api_do(
+                url_cmd="series",
+                request_method="get",
+                query=kwargs,
+            )
+            if not r:
+                return 0
+            if args.raw:
+                print(json.dumps(r["results"], indent=2, separators=",:"))
+                break
+            else:
+                for x in r["results"]:
+                    for a in args.output.split(","):
+                        print(x[a])
+                if r["next"] is None or args.limit:
+                    break
+                kwargs["offset"] += len(r["results"])
         return 0
 
 
@@ -1106,7 +1122,10 @@ class ApplyCommand(SubCommand):
             return self._applier_mode(args)
         if args.applier_target:
             print("--applier-target requires --applier-mode")
-        r = self.api_do("search", terms=args.term)
+        r = self.rest_api_do(
+            url_cmd="series", request_method="get", query={"q": " ".join(args.term)}
+        )
+        r = r["results"]
         if not r:
             print("Nothing to apply")
             return 3
