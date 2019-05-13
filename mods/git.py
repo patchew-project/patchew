@@ -12,6 +12,7 @@ import os
 import subprocess
 import hashlib
 import json
+import rest_framework
 from django.conf.urls import url
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
@@ -275,6 +276,12 @@ class ApplierGetView(APILoginRequiredView):
             response["git.repo"] = base.data["repo"]
             response["git.base"] = base.data["tag"]
         response["project.git"] = po.git
+        response["mbox_uri"] = rest_framework.reverse.reverse("series-mbox",
+                                                              kwargs={
+                                                                  'projects_pk': m.project_id,
+                                                                  'message_id': m.message_id,
+                                                              },
+                                                              request=request)
         response["result_uri"] = reverse_detail(m.git_result, request)
         return response
 

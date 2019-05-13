@@ -29,6 +29,20 @@ from rest_framework.parsers import BaseParser
 
 SEARCH_PARAM = 'q'
 
+
+class StaticTextRenderer(renderers.BaseRenderer):
+    media_type = 'text/plain'
+    format = 'mbox'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        renderer_context = renderer_context or {}
+        response = renderer_context.get('response')
+        if response and response.exception:
+            return '%d %s' % (response.status_code, response.status_text.title())
+        else:
+            return data
+
+
 # patchew-specific permission classes
 
 
@@ -361,13 +375,14 @@ class SeriesSerializer(BaseMessageSerializer):
     class Meta:
         model = Message
         subclass_read_only_fields = ('message', 'stripped_subject', 'num_patches',
-            'total_patches', 'results')
+            'total_patches', 'results', 'mbox_uri')
         fields = BaseMessageSerializer.Meta.fields + subclass_read_only_fields + (
             'last_comment_date', 'last_reply_date', 'is_complete', 'is_merged',
             'is_obsolete', 'is_tested', 'is_reviewed', 'maintainers')
         read_only_fields = BaseMessageSerializer.Meta.read_only_fields + subclass_read_only_fields
 
     resource_uri = HyperlinkedMessageField(view_name='series-detail')
+    mbox_uri = HyperlinkedMessageField(view_name='series-mbox')
     message = HyperlinkedMessageField(view_name='messages-detail')
     results = HyperlinkedMessageField(view_name='results-list', lookup_field='series_message_id')
     total_patches = SerializerMethodField()
@@ -474,6 +489,14 @@ class ProjectSeriesViewSet(ProjectMessagesViewSetMixin,
     def perform_destroy(self, instance):
         Message.objects.delete_subthread(instance)
 
+    @action(detail=True, renderer_classes=[StaticTextRenderer])
+    def mbox(self, request, *args, **kwargs):
+        message = self.get_object()
+        mbox = message.get_mbox_with_tags()
+        if not mbox:
+            raise Http404("Series not complete")
+        return Response(mbox)
+
 
 # Messages
 
@@ -505,19 +528,6 @@ class MessageCreationSerializer(BaseMessageSerializer):
         read_only_fields = []
 
     mbox = CharField()
-
-class StaticTextRenderer(renderers.BaseRenderer):
-    media_type = 'text/plain'
-    format = 'mbox'
-
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        renderer_context = renderer_context or {}
-        response = renderer_context.get('response')
-        if response and response.exception:
-            return '%d %s' % (response.status_code, response.status_text.title())
-        else:
-            return data
-
 
 class MessagePlainTextParser(BaseParser):
     media_type = 'message/rfc822'
