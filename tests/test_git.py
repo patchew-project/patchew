@@ -144,6 +144,21 @@ class GitTest(PatchewTestCase):
         self.assertEqual(log.status_code, 200)
         self.assertEqual(log.content.decode(), resp.data['log'])
 
+    def test_rest_unapplied(self):
+        self.cli_import('0004-multiple-patch-reviewed.mbox.gz')
+        self.cli_import('0001-simple-patch.mbox.gz')
+        self.api_client.login(username=self.user, password=self.password)
+        self.api_client.put(self.PROJECT_BASE + 'series/20160628014747.20971-1-famz@redhat.com/results/git/',
+                            { 'status': 'success' })
+        resp = self.api_client.get(self.REST_BASE + 'series/unapplied/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data['results']), 1)
+        self.assertEquals(resp.data['results'][0]['message_id'], '1469192015-16487-1-git-send-email-berrange@redhat.com')
+        self.do_apply()
+        resp = self.api_client.get(self.REST_BASE + 'series/unapplied/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data['results']), 0)
+
 
 if __name__ == '__main__':
     main()

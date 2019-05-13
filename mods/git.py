@@ -22,12 +22,12 @@ from django.db.models import Q
 from mod import PatchewModule
 from event import declare_event, register_handler, emit_event
 from api.models import (Message, Project, Result)
-from api.rest import PluginMethodField, reverse_detail
+from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 from schema import *
-from rest_framework import serializers
-from rest_framework.fields import CharField
+from rest_framework import generics, mixins, serializers
+from rest_framework.fields import CharField, SerializerMethodField
 
 _instance = None
 
@@ -239,11 +239,12 @@ class GitModule(PatchewModule):
                                GitLogViewer.as_view(),
                                name="git-log"))
 
-class ApplierGetView(APILoginRequiredView):
-    name = "applier-get"
-    allowed_groups = ["importers"]
+    def api_url_hook(self, urlpatterns):
+        urlpatterns.append(url(r"^v1/series/unapplied/$",
+                               UnappliedSeriesView.as_view(),
+                               name="unapplied"))
 
-    def handle(self, request, target_repo=None):
+    def pending_series(self, target_repo):
         q = Message.objects.filter(results__name="git", results__status="pending")
         if target_repo is not None and target_repo != '':
             # Postgres could use JSON fields instead.  Fortunately projects are
@@ -260,7 +261,14 @@ class ApplierGetView(APILoginRequiredView):
             projects = Project.objects.values_list('id', 'config').all()
             projects = [pid for pid, config in projects if match_target_repo(config, target_repo)]
             q = q.filter(project__pk__in=projects)
-        m = q.first()
+        return q
+
+class ApplierGetView(APILoginRequiredView):
+    name = "applier-get"
+    allowed_groups = ["importers"]
+
+    def handle(self, request, target_repo=None):
+        m = _instance.pending_series(target_repo).first()
         if not m:
             return None
 
@@ -284,6 +292,32 @@ class ApplierGetView(APILoginRequiredView):
                                                               request=request)
         response["result_uri"] = reverse_detail(m.git_result, request)
         return response
+
+
+class UnappliedSeriesSerializer(SeriesSerializer):
+    class Meta:
+        model = Message
+        fields = SeriesSerializer.Meta.fields + ('mirror', 'result_uri')
+
+    mirror = SerializerMethodField()
+    result_uri = SerializerMethodField()
+
+    def get_result_uri(self, obj):
+        request = self.context['request']
+        return reverse_detail(obj.git_result, request)
+
+    def get_mirror(self, obj):
+        request = self.context['request']
+        mirror = _instance.get_mirror(obj.project, request, None)
+        mirror['source'] = obj.project.git
+        return mirror
+
+class UnappliedSeriesView(generics.ListAPIView):
+    name = "unapplied"
+    serializer_class = UnappliedSeriesSerializer
+
+    def get_queryset(self, target_repo=None):
+        return _instance.pending_series(target_repo)
 
 class ApplierReportView(APILoginRequiredView):
     name = "applier-report"

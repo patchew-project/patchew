@@ -17,6 +17,7 @@ from rest_framework.schemas import get_schema_view
 
 from . import views
 from . import rest
+from mod import dispatch_module_hook
 
 
 def _build_urls(base=None, r=[]):
@@ -49,7 +50,9 @@ results_router.register('results', rest.SeriesResultsViewSet, base_name='results
 
 schema_view = get_schema_view(title='API schema')
 
-urlpatterns = _build_urls() + [
+urlpatterns = _build_urls()
+dispatch_module_hook("api_url_hook", urlpatterns=urlpatterns)
+urlpatterns += [
     url(r'^v1/projects/by-name/(?P<name>[^/]*)(?P<tail>/.*|$)', rest.ProjectsByNameView.as_view()),
     url(r'^v1/users/login/$', LoginView.as_view(), name='rest_login'),
     url(r'^v1/users/logout/$', LogoutView.as_view(), name='rest_logout'),
