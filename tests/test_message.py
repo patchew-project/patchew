@@ -47,15 +47,17 @@ class MessageTest(PatchewTestCase):
         self.add_project("QEMU", "qemu-devel@nongnu.org")
         self.cli_import("0002-unusual-cased-tags.mbox.gz")
         self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
-        a, b = self.check_cli(["search", "-r", "-o", "message-id"])
-        ao = json.loads(a)[0]
-        self.assertEqual("20160628014747.20971-1-famz@redhat.com", ao["message-id"])
+
+        a, b = self.check_cli(["search", "-r"])
+        ids = [ao["message_id"] for ao in json.loads(a)]
+        self.assertIn("20160628014747.20971-1-famz@redhat.com", ids)
+        self.assertIn("1469192015-16487-1-git-send-email-berrange@redhat.com", ids)
+
         self.cli_delete("from:Fam")
-        a, b = self.check_cli(["search", "-r", "-o", "message-id"])
-        ao = json.loads(a)[0]
-        self.assertEqual(
-            "1469192015-16487-1-git-send-email-berrange@redhat.com", ao["message-id"]
-        )
+        a, b = self.check_cli(["search", "-r"])
+        ids = [ao["message_id"] for ao in json.loads(a)]
+        self.assertNotIn("20160628014747.20971-1-famz@redhat.com", ids)
+        self.assertIn("1469192015-16487-1-git-send-email-berrange@redhat.com", ids)
 
     def test_asctime(self):
         message = Message()
