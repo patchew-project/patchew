@@ -15,7 +15,6 @@ import argparse
 import configparser
 import json
 import urllib.request, urllib.parse, urllib.error
-import http.cookiejar
 import subprocess
 import tempfile
 import shutil
@@ -25,7 +24,7 @@ import time
 import hashlib
 import fcntl
 
-COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
+TOKEN_FILENAME = os.path.expanduser("~/.patchew.token")
 
 
 class APIError(Exception):
@@ -131,24 +130,62 @@ class SubCommand(object):
     help = ""
     want_argv = False  # Whether the command accepts extra arguments
 
+    def __init__(self):
+        self.tokens = None
+
+    def load_api_tokens(self):
+        self.tokens = {}
+        try:
+            with open(TOKEN_FILENAME, "r") as f:
+                for line in f:
+                    try:
+                        server, token = line.split()
+                        self.tokens[server] = token
+                    except Exception:
+                        pass
+        except IOError:
+            pass
+
+    def save_api_tokens(self):
+        if self.tokens is None:
+            self.load_api_tokens()
+
+        new_fn = TOKEN_FILENAME + ".new"
+        try:
+            with open(new_fn, "w") as f:
+                for server, token in self.tokens.items():
+                    print(server, token, file=f)
+        finally:
+            try:
+                os.rename(new_fn, TOKEN_FILENAME)
+                return
+            except IOError:
+                pass
+            try:
+                os.remove(new_fn)
+            except IOError:
+                pass
+
     def rest_api_do(
-        self, url_cmd, request_method="get", query=None, content_type=None, data=None
+        self,
+        url_cmd,
+        request_method="get",
+        query=None,
+        content_type=None,
+        data=None,
+        authenticate=None,
     ):
+        if self.tokens is None:
+            self.load_api_tokens()
+        if authenticate is None:
+            authenticate = request_method.lower() != "get"
+
         logging.debug("API call '%s':" % url_cmd)
         if query:
             logging.debug("query:\n%s" % query)
         if data:
             logging.debug("data:\n%s" % data)
-        cookie = http.cookiejar.MozillaCookieJar(COOKIE_FILENAME)
-        try:
-            cookie.load()
-        except IOError:
-            pass
-        except http.cookiejar.LoadError:
-            print("Error while loading cookie", COOKIE_FILENAME)
-            pass
-        handler = urllib.request.HTTPCookieProcessor(cookie)
-        opener = urllib.request.build_opener(handler)
+        opener = urllib.request.build_opener()
         if url_cmd.startswith("http"):
             url = url_cmd
         else:
@@ -168,6 +205,8 @@ class SubCommand(object):
             )
             if content_type is not None:
                 req.add_header("Content-Type", content_type)
+            if authenticate and self.base_url in self.tokens:
+                req.add_header("Authorization", "Token " + self.tokens[self.base_url])
             try:
                 resp = opener.open(req)
             except urllib.error.HTTPError as e:
@@ -178,7 +217,6 @@ class SubCommand(object):
                     url = e.headers["location"]
                 else:
                     raise e
-        cookie.save(ignore_discard=True, ignore_expires=True)
         respdata = resp.read()
         logging.debug("Server response:\n%s" % (respdata or "<empty>"))
         if respdata:
@@ -207,10 +245,20 @@ class LoginCommand(SubCommand):
                 args.password = getpass.getpass("Password: ")
             if not args.password:
                 return 1
-            self.api_do("login", username=args.username, password=args.password)
+            self.load_api_tokens()
+            if self.base_url in self.tokens:
+                del self.tokens[self.base_url]
+            r = self.rest_api_do(
+                url_cmd="users/login",
+                request_method="post",
+                content_type="application/json",
+                data=json.dumps({"username": args.username, "password": args.password}),
+            )
+            self.tokens[self.base_url] = r["key"]
         except Exception as e:
             print("Login failed:", e)
             return 1
+        self.save_api_tokens()
         return 0
 
 
@@ -218,7 +266,7 @@ class LogoutCommand(SubCommand):
     name = "logout"
 
     def do(self, args, argv):
-        self.api_do("logout")
+        self.rest_api_do(url_cmd="users/logout", request_method="post")
         return 0
 
 
