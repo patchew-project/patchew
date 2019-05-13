@@ -1001,7 +1001,7 @@ class ApplyCommand(SubCommand):
             return []
 
     def _apply(self, repo, s, branch, force_branch, tag, logf=None, signoff=False):
-        msgid = s["message-id"]
+        msgid = s["message_id"]
         bn = None
         if force_branch:
             bn = force_branch
@@ -1054,32 +1054,40 @@ class ApplyCommand(SubCommand):
         subprocess.check_call(cmd, cwd=repo, stdout=logf, stderr=logf)
 
     def _applier_mode(self, args):
-        applier_get_args = {}
+        applier_get_args = {"limit": 1}
         if args.applier_target:
             applier_get_args["target_repo"] = args.applier_target
-        toapply = self.api_do("applier-get", **applier_get_args)
+        toapply = self.rest_api_do("series/unapplied", query=applier_get_args)
+        toapply = toapply["results"]
         if not toapply:
             print("No series need apply")
             return 3
+        toapply = toapply[0]
         logf = tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8")
-        push_repo = toapply.get("git.push_to")
-        public_repo = toapply.get("git.public_repo")
+        push_repo = toapply["mirror"]["pushurl"]
+        public_repo = toapply["mirror"]["url"]
         wd = tempfile.mkdtemp(dir="/var/tmp")
+        message_id = toapply["message_id"]
+        series_url = toapply["resource_uri"]
+        result_url = toapply["result_uri"]
+        push_options = toapply.get("push_options", None)
+        data = {}
         try:
-            if toapply.get("git.repo"):
-                remote, head = toapply["git.repo"], toapply["git.base"]
+            based_on = toapply.get("based_on") or {}
+            if based_on.get("repo"):
+                remote, head = based_on["repo"], based_on["tag"]
                 git_clone_repo(wd, remote, head, sys.stdout)
             else:
-                project_git = toapply["project.git"]
+                project_git = toapply["mirror"]["source"]
                 if " " in project_git:
                     remote, head = project_git.split(" ", 2)
                 else:
                     remote, head = project_git, "master"
                 git_clone_repo(wd, remote, "origin/" + head, sys.stdout)
-            branch = toapply["message-id"]
+            branch = message_id
             force_branch = None
-            tag = "patchew/" + toapply["message-id"]
-            base = (
+            tag = "patchew/" + message_id
+            data["base"] = (
                 subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=wd)
                 .decode("utf-8")
                 .strip()
@@ -1087,13 +1095,7 @@ class ApplyCommand(SubCommand):
             patchf = self._apply(wd, toapply, branch, force_branch, tag, logf)
             maintainers = self._get_maintainers(wd, patchf.name)
             if push_repo:
-                push_options = (
-                    toapply.get("git.push_options")
-                    if toapply.get("git.use_git_push_option")
-                    else None
-                )
                 self._push(wd, push_repo, tag, logf, push_options)
-            url = toapply.get("git.url_template", "").replace("%t", tag)
         except Exception as e:
             if not isinstance(e, ApplyFailedException):
                 traceback.print_exc(file=logf)
@@ -1102,16 +1104,12 @@ class ApplyCommand(SubCommand):
             if push_repo:
                 log = log.replace(push_repo, public_repo)
             print(log)
-            self.api_do(
-                "applier-report",
-                project=toapply["project"],
-                message_id=toapply["message-id"],
-                tag=None,
-                url=None,
-                base=None,
-                repo=None,
-                failed=True,
-                log=log,
+            result_json = {"status": "failure", "data": data, "log": log}
+            self.rest_api_do(
+                url_cmd=result_url,
+                request_method="put",
+                content_type="application/json",
+                data=json.dumps(result_json),
             )
             return 1
         finally:
@@ -1120,17 +1118,21 @@ class ApplyCommand(SubCommand):
         log = logf.read()
         if push_repo:
             log = log.replace(push_repo, public_repo)
-        self.api_do(
-            "applier-report",
-            project=toapply["project"],
-            message_id=toapply["message-id"],
-            tag=tag,
-            url=url,
-            base=base,
-            repo=public_repo,
-            failed=False,
-            log=log,
-            maintainers=maintainers,
+        json_data = {"maintainers": maintainers}
+        self.rest_api_do(
+            url_cmd=series_url,
+            request_method="patch",
+            content_type="application/json",
+            data=json.dumps(json_data),
+        )
+        data["repo"] = public_repo
+        data["tag"] = "refs/tags/" + tag
+        result_json = {"status": "success", "data": data, "log": log}
+        self.rest_api_do(
+            url_cmd=result_url,
+            request_method="put",
+            content_type="application/json",
+            data=json.dumps(result_json),
         )
         return 0
 
