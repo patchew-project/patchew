@@ -63,7 +63,7 @@ Email information is configured in "INI" style:
                                       desc="Whether this event is enabled",
                                       default=True),
                         BooleanSchema("reply_to_all", "Reply to all",
-                                      desc='Whether to "reply to all" if the event has an associated email message',
+                                      desc='If set, Cc all the receipients of the email message associated to the event. Also, if set the original sender of the email message will be a recipient even if the "to" field is nonempty',
                                       default=False),
                         BooleanSchema("in_reply_to", "Set In-Reply-To",
                                       desc='Whether to set In-Reply-To to the message id, if the event has an associated email message',
@@ -228,9 +228,11 @@ Email information is configured in "INI" style:
                 cc = [x.strip() for x in Template(nt["cc"]).render(ctx).strip().split()]
             except EmailCancelled:
                 continue
-            if nt["reply_to_all"] and mo:
-                to += [mo.get_sender_addr()]
-                cc += [x[1] for x in mo.recipients]
+            if mo:
+                if nt["reply_to_all"] or not len(to):
+                    to += [mo.get_sender_addr()]
+                if nt["reply_to_all"]:
+                    cc += [x[1] for x in mo.recipients]
             if mo and nt["in_reply_to"]:
                 headers["In-Reply-To"] = "<%s>" % mo.message_id
             if mo and nt["set_reply_to"]:
