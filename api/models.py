@@ -8,6 +8,8 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 import datetime
+import email
+import quopri
 import re
 
 from django.core import validators
@@ -17,7 +19,8 @@ from django.urls import reverse
 import jsonfield
 import lzma
 
-from mbox import MboxMessage
+from mbox import MboxMessage, decode_payload
+from patchew.tags import lines_iter
 from event import emit_event, declare_event
 from .blobs import save_blob, load_blob
 import mod
@@ -541,6 +544,61 @@ class Message(models.Model):
         return self.mbox_blob
 
     mbox = property(get_mbox)
+
+    def _get_mbox_with_tags(self, series_tags=[]):
+        def mbox_with_tags_iter(mbox, tags):
+            regex = "^[-A-Za-z]*:"
+            old_tags = set()
+            lines = lines_iter(mbox)
+            need_minusminusminus = False
+            for line in lines:
+                if line.startswith('---'):
+                    need_minusminusminus = True
+                    break
+                yield line
+                if re.match(regex, line):
+                    old_tags.add(line)
+
+            # If no --- line, tags go at the end as there's no better place
+            for tag in sorted(tags):
+                if tag not in old_tags:
+                    yield tag
+            if need_minusminusminus:
+                yield line
+            yield from lines
+
+        mbox = self.get_mbox()
+        msg = email.message_from_string(mbox)
+        container = msg.get_payload(0) if msg.is_multipart() else msg
+        if container.get_content_type() != "text/plain":
+            return msg.as_bytes(unixfrom=True)
+
+        payload = decode_payload(container)
+        # We might be adding 8-bit trailers to a message with 7bit CTE.  For
+        # patches, quoted-printable is safe and mostly human-readable.
+        try:
+            container.replace_header('Content-Transfer-Encoding', 'quoted-printable')
+        except KeyError:
+            msg.add_header('Content-Transfer-Encoding', 'quoted-printable')
+        payload = '\n'.join(mbox_with_tags_iter(payload, set(self.tags).union(series_tags)))
+        payload = quopri.encodestring(payload.encode('utf-8'))
+        container.set_payload(payload, charset='utf-8')
+        return msg.as_bytes(unixfrom=True)
+
+    def get_mbox_with_tags(self):
+        if not self.is_patch:
+            if not self.is_complete:
+                return None
+            messages = self.get_patches()
+            series_tags = set(self.tags)
+        else:
+            messages = [self]
+            series_tags = set()
+
+        mbox_list = []
+        for message in messages:
+            mbox_list.append(message._get_mbox_with_tags(series_tags))
+        return b"\n".join(mbox_list)
 
     def get_num(self):
         assert self.is_patch or self.is_series_head

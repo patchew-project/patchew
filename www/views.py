@@ -16,12 +16,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.conf import settings
 import api
-import email
-import quopri
-from mbox import decode_payload
 import re
 from mod import dispatch_module_hook
-from patchew.tags import lines_iter
 import subprocess
 
 PAGE_SIZE = 50
@@ -264,62 +260,12 @@ def view_series_list(request, project):
 
 
 def view_mbox(request, project, message_id):
-    def mbox_with_tags_iter(mbox, tags):
-        regex = "^[-A-Za-z]*:"
-        old_tags = set()
-        lines = lines_iter(mbox)
-        need_minusminusminus = False
-        for line in lines:
-            if line.startswith('---'):
-                need_minusminusminus = True
-                break
-            yield line
-            if re.match(regex, line):
-                old_tags.add(line)
-
-        # If no --- line, tags go at the end as there's no better place
-        for tag in sorted(tags):
-            if tag not in old_tags:
-                yield tag
-        if need_minusminusminus:
-            yield line
-        yield from lines
-
-    def get_mbox_with_tags(m, series_tags):
-        mbox = m.get_mbox()
-        msg = email.message_from_string(mbox)
-        container = msg.get_payload(0) if msg.is_multipart() else msg
-        if container.get_content_type() != "text/plain":
-            return msg.as_bytes(unixfrom=True)
-
-        payload = decode_payload(container)
-        # We might be adding 8-bit trailers to a message with 7bit CTE.  For
-        # patches, quoted-printable is safe and mostly human-readable.
-        try:
-            container.replace_header('Content-Transfer-Encoding', 'quoted-printable')
-        except KeyError:
-            msg.add_header('Content-Transfer-Encoding', 'quoted-printable')
-        payload = '\n'.join(mbox_with_tags_iter(payload, set(m.tags).union(series_tags)))
-        payload = quopri.encodestring(payload.encode('utf-8'))
-        container.set_payload(payload, charset='utf-8')
-        return msg.as_bytes(unixfrom=True)
-
     s = api.models.Message.objects.find_message(message_id, project)
     if not s:
         raise Http404("Series not found")
-    if not s.is_patch:
-        if not s.is_complete:
-            raise Http404("Series not complete")
-        messages = s.get_patches()
-        series_tags = set(s.tags)
-    else:
-        messages = [s]
-        series_tags = set()
-
-    mbox_list = []
-    for message in messages:
-        mbox_list.append(get_mbox_with_tags(message, series_tags))
-    mbox = b"\n".join(mbox_list)
+    mbox = s.get_mbox_with_tags()
+    if not mbox:
+        raise Http404("Series not complete")
     return HttpResponse(mbox, content_type="text/plain")
 
 
