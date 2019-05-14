@@ -150,13 +150,21 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
         p.save()
         return p
 
-    def api_login(self):
-        r = self.client.login(username=self.user, password=self.password)
-        self.assertTrue(r)
+    def api_login(self, username=None, password=None):
+        username = username or self.user
+        password = password or self.password
+        user = User.objects.get(username=username)
+        resp = self.api_client.post(
+            self.REST_BASE + "users/login/",
+            {"username": username, "password": password},
+        )
+        self.assertEquals(resp.status_code, 200)
+        self.api_client.force_authenticate(user, resp.data["key"])
 
-    def api_call(self, method, **params):
-        resp = self.client.post("/api/%s/" % method, {"params": json.dumps(params)})
-        return json.loads(resp.content.decode("utf-8")) if resp.content else None
+    def api_logout(self):
+        resp = self.api_client.post(self.REST_BASE + "users/logout/")
+        self.assertEquals(resp.status_code, 200)
+        self.api_client.force_authenticate(None, None)
 
     def apply_and_retrieve(self, mbox, project_id, msgid):
         # TODO: change this to a REST import when it is added
