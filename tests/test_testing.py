@@ -67,25 +67,26 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
             kwargs["status"] = Result.SUCCESS
         self.modify_test_result(obj, **kwargs)
 
-    def do_testing_report(self, **report):
+    def do_testing_report(self, passed=True, log=None, is_timeout=False):
         self.api_login()
-        r = self.api_call(
-            "testing-get", project="QEMU", tester="dummy tester", capabilities=[]
+        resp = self.api_client.post(
+            self.PROJECT_BASE + "get-test/",
+            {"tester": "dummy tester", "capabilities": []},
         )
-        report["project"] = r["project"]
-        report["identity"] = r["identity"]
-        report["test"] = r["test"]["name"]
-        report["tester"] = "dummy_tester"
-        report["head"] = r["head"]
-        report["base"] = r["base"]
-        if "passed" not in report:
-            report["passed"] = True
-        if "log" not in report:
-            report["log"] = None
-        if "is_timeout" not in report:
-            report["is_timeout"] = False
+        self.assertEqual(resp.status_code, 200)
+        r = resp.data
+        data = {
+            "status": "success" if passed else "failure",
+            "data": {
+                "head": r["head"],
+                "is_timeout": is_timeout,
+                "tester": "dummy_tester",
+            },
+        }
+        if log is not None:
+            data["log"] = log
 
-        self.api_call("testing-report", **report)
+        self.api_client.put(r["result_uri"], data, format="json")
         return r["identity"]
 
     @abc.abstractmethod
@@ -98,9 +99,12 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
     def test_basic(self):
         self.api_login()
-        td = self.api_call(
-            "testing-get", project="QEMU", tester="dummy tester", capabilities=[]
+        resp = self.api_client.post(
+            self.PROJECT_BASE + "get-test/",
+            {"tester": "dummy tester", "capabilities": []},
         )
+        self.assertEqual(resp.status_code, 200)
+        td = resp.data
         self.assertIn("head", td)
         resp = self.get_test_result("a")
         self.assertEquals(resp.data["status"], "running")
@@ -108,10 +112,11 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
     def test_done(self):
         self.do_testing_done()
         self.api_login()
-        td = self.api_call(
-            "testing-get", project="QEMU", tester="dummy tester", capabilities=[]
+        resp = self.api_client.post(
+            self.PROJECT_BASE + "get-test/",
+            {"tester": "dummy tester", "capabilities": []},
         )
-        self.assertFalse(td)
+        self.assertEqual(resp.status_code, 204)
 
     def test_rest_basic(self):
         resp = self.get_test_result("a")
