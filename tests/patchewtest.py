@@ -95,11 +95,9 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
         return a, b
 
     def cli_login(self, username=None, password=None):
-        if not username:
-            username = self.user
-        if not password:
-            password = self.password
-        self.check_cli(["login", username or self.user, password or self.password])
+        username = username or self.user
+        password = password or self.password
+        self.check_cli(["login", username, password])
 
     def cli_logout(self):
         self.check_cli(["logout"])
