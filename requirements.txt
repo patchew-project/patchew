@@ -8,4 +8,4 @@ jsonfield2 >= 3.0, < 4.0
 drf-nested-routers
 coreapi-cli
 pyyaml
-psycopg2
+psycopg2-binary
