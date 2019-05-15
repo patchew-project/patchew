@@ -1,5 +1,5 @@
 Django>=1.11, <2.0
-Pillow>=3.2.0
+Pillow>=3.2.0, <6.0
 Markdown>=2.6.6, < 3.0
 django-debug-toolbar==1.8
 gunicorn>=19
