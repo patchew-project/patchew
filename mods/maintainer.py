@@ -189,6 +189,12 @@ class MaintainerModule(PatchewModule):
         urlpatterns.append(url(r"^watch-query/", self.www_view_watch_query))
 
     def prepare_message_hook(self, request, message, detailed):
+        if message.maintainers:
+            message.extra_status.append({
+                "icon": "fa-user",
+                "html": 'Maintainers: %s' % ", ".join(message.maintainers),
+            })
+
         if not detailed or not request.user.is_authenticated:
             return
         if not message.is_series_head:
@@ -203,12 +209,6 @@ class MaintainerModule(PatchewModule):
                                                      kwargs={"message_id": message.message_id}),
                                       "icon": "check",
                                       "title": "Mark series as merged"})
-        if message.maintainers:
-            message.extra_status.append({
-                "icon": "fa-user-o",
-                "html": 'Maintainers: %s' % ", ".join(message.maintainers),
-            })
-
         accepted = False
         rejected = False
         queues = []
