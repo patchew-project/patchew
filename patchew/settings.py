@@ -138,8 +138,9 @@ if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
     INSTALLED_APPS += ['django.contrib.postgres']
 
 # In production environments, we run in a container, behind nginx, which should
-# filter the allowed host names. So be a little flexible here
+# filter the allowed host names and block large requests. So be a little flexible here
 ALLOWED_HOSTS = ["*"]
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
 
 if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR)
