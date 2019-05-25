@@ -21,7 +21,7 @@ import email.utils
 import uuid
 from api.models import Message, Project
 from event import register_handler, get_events_info
-from schema import *
+import schema
 
 _default_config = """
 [smtp]
@@ -52,46 +52,46 @@ Email information is configured in "INI" style:
     default_config = _default_config
 
     email_schema = \
-        ArraySchema("{name}", "Email Notification",
+        schema.ArraySchema("{name}", "Email Notification",
                     desc="Email notification",
                     members=[
-                        EnumSchema("event", "Event",
+                        schema.EnumSchema("event", "Event",
                                    enums=lambda: get_events_info(),
                                    required=True,
                                    desc="Which event to trigger the email notification"),
-                        BooleanSchema("enabled", "Enabled",
+                        schema.BooleanSchema("enabled", "Enabled",
                                       desc="Whether this event is enabled",
                                       default=True),
-                        BooleanSchema("reply_to_all", "Reply to all",
+                        schema.BooleanSchema("reply_to_all", "Reply to all",
                                       desc='If set, Cc all the receipients of the email message associated to the event. Also, if set the original sender of the email message will be a recipient even if the "to" field is nonempty',
                                       default=False),
-                        BooleanSchema("in_reply_to", "Set In-Reply-To",
+                        schema.BooleanSchema("in_reply_to", "Set In-Reply-To",
                                       desc='Whether to set In-Reply-To to the message id, if the event has an associated email message',
                                       default=True),
-                        BooleanSchema("set_reply_to", "Set Reply-To",
+                        schema.BooleanSchema("set_reply_to", "Set Reply-To",
                                       desc='Whether to set Reply-To to the project mailing list, if the event has an associated email message',
                                       default=True),
-                        BooleanSchema("reply_subject", "Set replying subject",
+                        schema.BooleanSchema("reply_subject", "Set replying subject",
                                       desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
                                       default=True),
-                        BooleanSchema("to_user", "Send to user",
+                        schema.BooleanSchema("to_user", "Send to user",
                                       desc='Whether to set To to a user email, if the event has an associated user',
                                       default=False),
-                        StringSchema("to", "To", desc="Send email to"),
-                        StringSchema("cc", "Cc", desc="Cc list"),
-                        StringSchema("subject_template", "Subject template",
+                        schema.StringSchema("to", "To", desc="Send email to"),
+                        schema.StringSchema("cc", "Cc", desc="Cc list"),
+                        schema.StringSchema("subject_template", "Subject template",
                                      desc="""The django template for subject""",
                                      required=True),
-                        StringSchema("body_template", "Body template",
+                        schema.StringSchema("body_template", "Body template",
                                      desc="The django template for email body.",
                                      multiline=True,
                                      required=True),
                     ])
 
     project_config_schema = \
-        ArraySchema("email", desc="Configuration for email module",
+        schema.ArraySchema("email", desc="Configuration for email module",
                     members=[
-                        MapSchema("notifications", "Email notifications",
+                        schema.MapSchema("notifications", "Email notifications",
                                    desc="Email notifications",
                                    item=email_schema),
                    ])

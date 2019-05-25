@@ -15,7 +15,7 @@ from django.conf import settings
 from django.template import Template, Context
 import traceback
 import configparser
-from schema import *
+import schema
 
 class PatchewModule(object):
     """ Module base class """
@@ -103,22 +103,22 @@ class PatchewModule(object):
                                      value=config)
 
     def _build_one(self, request, project, prefix, config, scm):
-        if type(scm) == MapSchema:
+        if type(scm) == schema.MapSchema:
             return self._build_map_scm(request, project, prefix, config, scm)
-        elif type(scm) == StringSchema:
+        elif type(scm) == schema.StringSchema:
             return self._build_string_scm(request, project, prefix, config, scm)
-        elif type(scm) == IntegerSchema:
+        elif type(scm) == schema.IntegerSchema:
             return self._build_integer_scm(request, project, prefix, config, scm)
-        elif type(scm) == BooleanSchema:
+        elif type(scm) == schema.BooleanSchema:
             return self._build_boolean_scm(request, project, prefix, config, scm)
-        elif type(scm) == EnumSchema:
+        elif type(scm) == schema.EnumSchema:
             return self._build_enum_scm(request, project, prefix, config, scm)
-        elif type(scm) == ArraySchema:
+        elif type(scm) == schema.ArraySchema:
             return self._build_array_scm(request, project, prefix, config, scm)
         assert False
 
     def build_config_html(self, request, project):
-        assert isinstance(self.project_config_schema, ArraySchema)
+        assert isinstance(self.project_config_schema, schema.ArraySchema)
         scm = self.project_config_schema
         config = self.get_project_config(project)
         return self._build_one(request, project, scm.name, config, scm)

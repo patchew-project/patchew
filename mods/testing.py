@@ -24,7 +24,7 @@ from api.rest import PluginMethodField, TestPermission, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
 from patchew.logviewer import LogView
-from schema import *
+import schema
 from rest_framework import serializers, generics
 from rest_framework.fields import CharField, BooleanField
 from rest_framework.response import Response
@@ -64,17 +64,17 @@ class TestingModule(PatchewModule):
     result_data_serializer_class = ResultDataSerializer
 
     test_schema = \
-        ArraySchema("{name}", "Test", desc="Test spec",
+        schema.ArraySchema("{name}", "Test", desc="Test spec",
                     members=[
-                        BooleanSchema("enabled", "Enabled",
+                        schema.BooleanSchema("enabled", "Enabled",
                                       desc="Whether this test is enabled",
                                       default=True),
-                        StringSchema("requirements", "Requirements",
+                        schema.StringSchema("requirements", "Requirements",
                                      desc="List of requirements of the test"),
-                        IntegerSchema("timeout", "Timeout",
+                        schema.IntegerSchema("timeout", "Timeout",
                                       default=3600,
                                       desc="Timeout for the test"),
-                        StringSchema("script", "Test script",
+                        schema.StringSchema("script", "Test script",
                                      desc="The testing script",
                                      default=TESTING_SCRIPT_DEFAULT,
                                      multiline=True,
@@ -82,9 +82,9 @@ class TestingModule(PatchewModule):
                     ])
 
     requirement_schema = \
-        ArraySchema("{name}", "Requirement", desc="Test requirement spec",
+        schema.ArraySchema("{name}", "Requirement", desc="Test requirement spec",
                     members=[
-                        StringSchema("script", "Probe script",
+                        schema.StringSchema("script", "Probe script",
                                      desc="The probing script for this requirement",
                                      default="#!/bin/bash\ntrue",
                                      multiline=True,
@@ -92,12 +92,12 @@ class TestingModule(PatchewModule):
                     ])
 
     project_config_schema = \
-        ArraySchema("testing", desc="Configuration for testing module",
+        schema.ArraySchema("testing", desc="Configuration for testing module",
                     members=[
-                        MapSchema("tests", "Tests",
+                        schema.MapSchema("tests", "Tests",
                                    desc="Testing specs",
                                    item=test_schema),
-                        MapSchema("requirements", "Requirements",
+                        schema.MapSchema("requirements", "Requirements",
                                    desc="Requirement specs",
                                    item=requirement_schema),
                    ])

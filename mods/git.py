@@ -25,7 +25,7 @@ from api.models import (Message, Project, Result)
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
-from schema import *
+import schema
 from rest_framework import generics, mixins, serializers
 from rest_framework.fields import CharField, SerializerMethodField
 
@@ -64,14 +64,14 @@ class GitModule(PatchewModule):
     result_data_serializer_class = ResultDataSerializer
 
     project_config_schema = \
-        ArraySchema("git", desc="Configuration for git module",
+        schema.ArraySchema("git", desc="Configuration for git module",
                     members=[
-                        StringSchema("push_to", "Push remote",
+                        schema.StringSchema("push_to", "Push remote",
                                      desc="Remote to push to",
                                      required=True),
-                        StringSchema("public_repo", "Public repo",
+                        schema.StringSchema("public_repo", "Public repo",
                                      desc="Publicly visible repo URL"),
-                        StringSchema("url_template", "URL template",
+                        schema.StringSchema("url_template", "URL template",
                                      desc="Publicly visible URL template for applied branch, where %t will be replaced by the applied tag name",
                                      required=True),
                    ])
