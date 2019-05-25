@@ -1,0 +1,4 @@
+[tool.black]
+target_version = ['py35']
+exclude = '/(?:\.git/|\.tox/|venv/|api/migrations/\d{4}_(?!populate|fix|deblob))'
+include = '^/patchew-cli|\.py$'
