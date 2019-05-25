@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.conf import settings
 from django.db import migrations
-from django.db.models import Count
 from api.migrations import (get_property, get_property_raw,
         load_property, set_property, delete_property_blob)
 

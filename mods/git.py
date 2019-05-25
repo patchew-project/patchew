@@ -10,23 +10,20 @@
 
 import os
 import subprocess
-import hashlib
-import json
 import rest_framework
 from django.conf.urls import url
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
-from django.db.models import Q
 from mod import PatchewModule
-from event import declare_event, register_handler, emit_event
+from event import declare_event, register_handler
 from api.models import (Message, Project, Result)
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
 import schema
-from rest_framework import generics, mixins, serializers
+from rest_framework import generics, serializers
 from rest_framework.fields import CharField, SerializerMethodField
 
 _instance = None

@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.conf import settings
 from django.db import migrations, transaction
-from django.db.models import Q
 
 def do_properties_to_field(obj, propset):
     properties = {}

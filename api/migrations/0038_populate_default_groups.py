@@ -2,8 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-from django.db.models import Count
-import json
 
 
 def populate_default_groups(apps, schema_editor):

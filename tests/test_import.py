@@ -8,7 +8,6 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-import json
 
 from api.models import Message, Project
 

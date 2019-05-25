@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.conf import settings
 from django.db import migrations
-from django.db.models import Count
 
-import json
 from api import blobs
 
 def deblob_properties(apps, schema_editor):

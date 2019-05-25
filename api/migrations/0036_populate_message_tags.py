@@ -2,8 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-from django.db.models import Count
-import json
 
 
 def tags_from_property(apps, schema_editor):
