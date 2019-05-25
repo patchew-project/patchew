@@ -14,7 +14,6 @@ from .patchewtest import PatchewTestCase, main
 
 
 class ImportTest(PatchewTestCase):
-
     def setUp(self):
         self.create_superuser()
         self.cli_login()
@@ -81,5 +80,5 @@ mode change 100644 => 100755 tests/qemu-iotests/205
         self.assertMultiLineEqual(expected.strip(), msg.get_diff_stat())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

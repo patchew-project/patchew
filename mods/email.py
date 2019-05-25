@@ -34,9 +34,11 @@ from = your@email.com
 
 """
 
+
 class DebugSMTP(object):
     def sendmail(*args):
         print("SMPT: debug mode, not sending\n" + "\n".join([str(x) for x in args]))
+
 
 class EmailModule(PatchewModule):
     """
@@ -48,53 +50,84 @@ Email information is configured in "INI" style:
 
 """ + _default_config
 
-    name = "email" # The notify method name
+    name = "email"  # The notify method name
     default_config = _default_config
 
-    email_schema = \
-        schema.ArraySchema("{name}", "Email Notification",
-                    desc="Email notification",
-                    members=[
-                        schema.EnumSchema("event", "Event",
-                                   enums=lambda: get_events_info(),
-                                   required=True,
-                                   desc="Which event to trigger the email notification"),
-                        schema.BooleanSchema("enabled", "Enabled",
-                                      desc="Whether this event is enabled",
-                                      default=True),
-                        schema.BooleanSchema("reply_to_all", "Reply to all",
-                                      desc='If set, Cc all the receipients of the email message associated to the event. Also, if set the original sender of the email message will be a recipient even if the "to" field is nonempty',
-                                      default=False),
-                        schema.BooleanSchema("in_reply_to", "Set In-Reply-To",
-                                      desc='Whether to set In-Reply-To to the message id, if the event has an associated email message',
-                                      default=True),
-                        schema.BooleanSchema("set_reply_to", "Set Reply-To",
-                                      desc='Whether to set Reply-To to the project mailing list, if the event has an associated email message',
-                                      default=True),
-                        schema.BooleanSchema("reply_subject", "Set replying subject",
-                                      desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
-                                      default=True),
-                        schema.BooleanSchema("to_user", "Send to user",
-                                      desc='Whether to set To to a user email, if the event has an associated user',
-                                      default=False),
-                        schema.StringSchema("to", "To", desc="Send email to"),
-                        schema.StringSchema("cc", "Cc", desc="Cc list"),
-                        schema.StringSchema("subject_template", "Subject template",
-                                     desc="""The django template for subject""",
-                                     required=True),
-                        schema.StringSchema("body_template", "Body template",
-                                     desc="The django template for email body.",
-                                     multiline=True,
-                                     required=True),
-                    ])
+    email_schema = schema.ArraySchema(
+        "{name}",
+        "Email Notification",
+        desc="Email notification",
+        members=[
+            schema.EnumSchema(
+                "event",
+                "Event",
+                enums=lambda: get_events_info(),
+                required=True,
+                desc="Which event to trigger the email notification",
+            ),
+            schema.BooleanSchema(
+                "enabled", "Enabled", desc="Whether this event is enabled", default=True
+            ),
+            schema.BooleanSchema(
+                "reply_to_all",
+                "Reply to all",
+                desc='If set, Cc all the receipients of the email message associated to the event. Also, if set the original sender of the email message will be a recipient even if the "to" field is nonempty',
+                default=False,
+            ),
+            schema.BooleanSchema(
+                "in_reply_to",
+                "Set In-Reply-To",
+                desc="Whether to set In-Reply-To to the message id, if the event has an associated email message",
+                default=True,
+            ),
+            schema.BooleanSchema(
+                "set_reply_to",
+                "Set Reply-To",
+                desc="Whether to set Reply-To to the project mailing list, if the event has an associated email message",
+                default=True,
+            ),
+            schema.BooleanSchema(
+                "reply_subject",
+                "Set replying subject",
+                desc='Whether to set Subject to "Re: xxx", if the event has an associated email message',
+                default=True,
+            ),
+            schema.BooleanSchema(
+                "to_user",
+                "Send to user",
+                desc="Whether to set To to a user email, if the event has an associated user",
+                default=False,
+            ),
+            schema.StringSchema("to", "To", desc="Send email to"),
+            schema.StringSchema("cc", "Cc", desc="Cc list"),
+            schema.StringSchema(
+                "subject_template",
+                "Subject template",
+                desc="""The django template for subject""",
+                required=True,
+            ),
+            schema.StringSchema(
+                "body_template",
+                "Body template",
+                desc="The django template for email body.",
+                multiline=True,
+                required=True,
+            ),
+        ],
+    )
 
-    project_config_schema = \
-        schema.ArraySchema("email", desc="Configuration for email module",
-                    members=[
-                        schema.MapSchema("notifications", "Email notifications",
-                                   desc="Email notifications",
-                                   item=email_schema),
-                   ])
+    project_config_schema = schema.ArraySchema(
+        "email",
+        desc="Configuration for email module",
+        members=[
+            schema.MapSchema(
+                "notifications",
+                "Email notifications",
+                desc="Email notifications",
+                item=email_schema,
+            )
+        ],
+    )
 
     def __init__(self):
         register_handler(None, self.on_event)
@@ -123,9 +156,7 @@ Email information is configured in "INI" style:
     def _smtp_send(self, to, cc, message):
         from_addr = self.get_config("smtp", "from")
         message["Resent-From"] = message["From"]
-        for k, v in [("From", from_addr),
-                     ("To", to),
-                     ("Cc", cc)]:
+        for k, v in [("From", from_addr), ("To", to), ("Cc", cc)]:
             if not v:
                 continue
             if isinstance(v, list):
@@ -151,6 +182,7 @@ Email information is configured in "INI" style:
         m = Message.objects.find_series(message_id)
         if not m:
             raise Http404("Series not found: " + message_id)
+
         def send_one(m):
             msg = m.get_mbox()
             message = email.message_from_string(msg)
@@ -160,18 +192,27 @@ Email information is configured in "INI" style:
         return HttpResponse("email bounced")
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^email-bounce/(?P<message_id>.*)/",
-                               self.www_view_email_bounce,
-                               name="email-bounce"))
+        urlpatterns.append(
+            url(
+                r"^email-bounce/(?P<message_id>.*)/",
+                self.www_view_email_bounce,
+                name="email-bounce",
+            )
+        )
 
     def prepare_message_hook(self, request, message, detailed):
         if not detailed:
             return
         if message.is_series_head and request.user.is_authenticated:
-            message.extra_ops.append({"url": reverse("email-bounce",
-                                                     kwargs={"message_id": message.message_id}),
-                                      "icon": "mail-forward",
-                                      "title": "Bounce to me"})
+            message.extra_ops.append(
+                {
+                    "url": reverse(
+                        "email-bounce", kwargs={"message_id": message.message_id}
+                    ),
+                    "icon": "mail-forward",
+                    "title": "Bounce to me",
+                }
+            )
 
     def _sections_by_event(self, event):
         conf = self.get_config_obj()
@@ -196,6 +237,7 @@ Email information is configured in "INI" style:
     def on_event(self, event, **params):
         class EmailCancelled(Exception):
             pass
+
         po = None
         mo = None
         for v in list(params.values()):
@@ -217,6 +259,7 @@ Email information is configured in "INI" style:
 
             def cancel_email():
                 raise EmailCancelled
+
             params["cancel"] = cancel_email
 
             ctx = Context(params, autoescape=False)
@@ -238,9 +281,13 @@ Email information is configured in "INI" style:
             if mo and nt["set_reply_to"]:
                 headers["Reply-To"] = "<%s>" % mo.project.mailing_list
             if nt["reply_subject"] and mo:
-                subject = "Re: " + mo.subject if not mo.subject.startswith("Re:") else mo.subject
-            if nt["to_user"] and 'user' in params and params['user'].email:
-                to += params['user'].email
+                subject = (
+                    "Re: " + mo.subject
+                    if not mo.subject.startswith("Re:")
+                    else mo.subject
+                )
+            if nt["to_user"] and "user" in params and params["user"].email:
+                to += params["user"].email
             if not (subject and body and (to or cc)):
                 continue
             headers["Subject"] = subject
@@ -250,7 +297,10 @@ Email information is configured in "INI" style:
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
             return
-        project.extra_info.append({"title": "Email notifications",
-                                   "class": "info",
-                                   "content_html": self.build_config_html(request,
-                                                                          project)})
+        project.extra_info.append(
+            {
+                "title": "Email notifications",
+                "class": "info",
+                "content_html": self.build_config_html(request, project),
+            }
+        )

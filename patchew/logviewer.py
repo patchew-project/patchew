@@ -15,13 +15,14 @@ from django.views import View
 from django.http import HttpResponse, StreamingHttpResponse, Http404
 from django.utils.safestring import mark_safe
 
+
 class ANSIProcessor(object):
-    RE_STRING = '[^\b\t\n\f\r\x1B]+'
-    RE_NUMS = '[0-9]+(?:;[0-9]+)*'
-    RE_CSI = r'\[\??(?:' + RE_NUMS + ')?[^;0-9]'
-    RE_OSC = r'].*?(?:\x1B\\|\x07)'
-    RE_CONTROL = '\x1B(?:%s|%s|[^][])|\r\n|[\b\t\n\f\r]' % (RE_CSI, RE_OSC)
-    RE = re.compile('(%s)|(%s)' % (RE_STRING, RE_CONTROL))
+    RE_STRING = "[^\b\t\n\f\r\x1B]+"
+    RE_NUMS = "[0-9]+(?:;[0-9]+)*"
+    RE_CSI = r"\[\??(?:" + RE_NUMS + ")?[^;0-9]"
+    RE_OSC = r"].*?(?:\x1B\\|\x07)"
+    RE_CONTROL = "\x1B(?:%s|%s|[^][])|\r\n|[\b\t\n\f\r]" % (RE_CSI, RE_OSC)
+    RE = re.compile("(%s)|(%s)" % (RE_STRING, RE_CONTROL))
 
     def __init__(self):
         self.class_to_id = {}
@@ -45,7 +46,7 @@ class ANSIProcessor(object):
         self.line = []
         self.class_ids = []
         self.pos = 0
-        self.lazy_contents = ''
+        self.lazy_contents = ""
         self.lazy_accumulate = True
 
     # self.line and self.class_ids hold the characters and style respectively
@@ -54,14 +55,14 @@ class ANSIProcessor(object):
     # cursor right can add spaces to the end, but those are never styled.
 
     def _write(self, chars, class_id):
-        assert not self.lazy_accumulate or self.lazy_contents == ''
+        assert not self.lazy_accumulate or self.lazy_contents == ""
         self.lazy_accumulate = False
         classes = [class_id] * len(chars)
         cur_len = len(self.line)
         if self.pos < cur_len:
             last = min(cur_len - self.pos, len(chars))
-            self.line[self.pos:self.pos+last] = list(chars[0:last])
-            self.class_ids[self.pos:self.pos+last] = classes[0:last]
+            self.line[self.pos : self.pos + last] = list(chars[0:last])
+            self.class_ids[self.pos : self.pos + last] = classes[0:last]
         else:
             last = 0
 
@@ -73,10 +74,10 @@ class ANSIProcessor(object):
     def _set_pos(self, pos):
         self.pos = pos
         if self.pos > len(self.line):
-            assert not self.lazy_accumulate or self.lazy_contents == ''
+            assert not self.lazy_accumulate or self.lazy_contents == ""
             self.lazy_accumulate = False
             num = self.pos - len(self.line)
-            self.line += [' '] * num
+            self.line += [" "] * num
             self.class_ids += [0] * num
 
     @abc.abstractmethod
@@ -90,7 +91,7 @@ class ANSIProcessor(object):
         # If the line consists of a single string of text with no escapes or
         # control characters, convert() special cases it and does not call
         # _write.  That simple case is handled with a single _write_span.
-        if self.lazy_contents != '':
+        if self.lazy_contents != "":
             yield from self._write_span(self.lazy_contents, self.cur_class)
             yield suffix
             self._reset()
@@ -148,7 +149,7 @@ class ANSIProcessor(object):
             if next(it) == 5:
                 n = next(it)
                 if n < 256:
-                    self.fg = ('f%d' % n, 'b%d' % n)
+                    self.fg = ("f%d" % n, "b%d" % n)
         elif arg == 39:
             self.fg = None
         elif (arg >= 40 and arg <= 47) or (arg >= 101 and arg <= 106):
@@ -159,7 +160,7 @@ class ANSIProcessor(object):
             if next(it) == 5:
                 n = next(it)
                 if n < 256:
-                    self.bg = ('f%d' % n, 'b%d' % n)
+                    self.bg = ("f%d" % n, "b%d" % n)
         elif arg == 49:
             self.bg = None
         elif arg == 90 or arg == 97:
@@ -206,11 +207,11 @@ class ANSIProcessor(object):
     def _do_csi_K(self, it):
         arg = next(it)
         if arg == 0 or arg == 2:
-            assert not self.lazy_accumulate or self.lazy_contents == ''
+            assert not self.lazy_accumulate or self.lazy_contents == ""
             if self.pos < len(self.line):
                 assert not self.lazy_accumulate
-                del self.line[self.pos:]
-                del self.class_ids[self.pos:]
+                del self.line[self.pos :]
+                del self.class_ids[self.pos :]
                 if self.pos == 0:
                     self.lazy_accumulate = True
                     return
@@ -219,10 +220,10 @@ class ANSIProcessor(object):
             if save_pos > 0:
                 self.pos = 0
                 # clearing to the beginning of the line uses unstyled spaces
-                self._write(' ' * save_pos, 0)
+                self._write(" " * save_pos, 0)
 
     def _parse_csi_with_args(self, csi, func):
-        if (len(csi) <= 3):
+        if len(csi) <= 3:
             func(iter([0]))
         else:
             # thanks to the regular expression, we know arg is a number
@@ -230,21 +231,21 @@ class ANSIProcessor(object):
             func((int(arg) for arg in csi[2:-1].split(";")))
 
     def _parse_csi(self, csi):
-        if csi[1] != '[':
+        if csi[1] != "[":
             return
 
-        if csi[-1] == 'J':
+        if csi[-1] == "J":
             save_pos = self.pos
-            yield from self._write_line('')
+            yield from self._write_line("")
             yield from self._write_form_feed()
             self._set_pos(save_pos)
-        elif csi[-1] == 'K':
+        elif csi[-1] == "K":
             self._parse_csi_with_args(csi, self._do_csi_K)
-        elif csi[-1] == 'C':
+        elif csi[-1] == "C":
             self._parse_csi_with_args(csi, self._do_csi_C)
-        elif csi[-1] == 'D':
+        elif csi[-1] == "D":
             self._parse_csi_with_args(csi, self._do_csi_D)
-        elif csi[-1] == 'm':
+        elif csi[-1] == "m":
             self._parse_csi_with_args(csi, self._do_csi_m)
 
     def convert(self, input):
@@ -258,49 +259,67 @@ class ANSIProcessor(object):
                 seq = m.group(2)
                 # _write_line can deal with lazy storage.  Everything else
                 # must be flushed to self.line with _write.
-                if seq == '\n' or seq == '\r\n':
-                    yield from self._write_line('\n')
+                if seq == "\n" or seq == "\r\n":
+                    yield from self._write_line("\n")
                     continue
-                elif seq == '\f':
-                    yield from self._write_line('\n')
+                elif seq == "\f":
+                    yield from self._write_line("\n")
                     yield from self._write_form_feed()
                     continue
 
-                if self.lazy_contents != '':
+                if self.lazy_contents != "":
                     content = self.lazy_contents
-                    self.lazy_contents = ''
+                    self.lazy_contents = ""
                     self._write(content, self.cur_class)
 
-                if seq == '\b':
+                if seq == "\b":
                     if self.pos > 0:
                         self.pos -= 1
-                elif seq == '\t':
+                elif seq == "\t":
                     self._set_pos(self.pos + (8 - self.pos % 8))
-                elif seq == '\r':
+                elif seq == "\r":
                     self.pos = 0
                 elif len(seq) > 1:
                     yield from self._parse_csi(seq)
 
     def finish(self):
-        yield from self._write_line('')
+        yield from self._write_line("")
         self._reset_attrs()
 
 
 class ANSI2TextConverter(ANSIProcessor):
-    FF = '\u2500' * 72 + '\n'
+    FF = "\u2500" * 72 + "\n"
     SYMBOLS = {
-        '\x00' : '\u2400', '\x01' : '\u2401',      '\x02' : '\u2402',
-        '\x03' : '\u2403', '\x04' : '\u2404',      '\x05' : '\u2405',
-        '\x06' : '\u2406', '\x07' : '\U00001F514', '\x0B' : '\u240B',
-        '\x0E' : '\u240E', '\x0F' : '\u240F',      '\x10' : '\u2410',
-        '\x11' : '\u2411', '\x12' : '\u2412',      '\x13' : '\u2413',
-        '\x14' : '\u2414', '\x15' : '\u2415',      '\x16' : '\u2416',
-        '\x17' : '\u2417', '\x18' : '\u2418',      '\x19' : '\u2419',
-        '\x1A' : '\u241A', '\x1B' : '\u241B',      '\x1C' : '\u241C',
-        '\x1D' : '\u241D', '\x1E' : '\u241E',      '\x1F' : '\u241F',
-        '\x7F' : '\u2326'
+        "\x00": "\u2400",
+        "\x01": "\u2401",
+        "\x02": "\u2402",
+        "\x03": "\u2403",
+        "\x04": "\u2404",
+        "\x05": "\u2405",
+        "\x06": "\u2406",
+        "\x07": "\U00001F514",
+        "\x0B": "\u240B",
+        "\x0E": "\u240E",
+        "\x0F": "\u240F",
+        "\x10": "\u2410",
+        "\x11": "\u2411",
+        "\x12": "\u2412",
+        "\x13": "\u2413",
+        "\x14": "\u2414",
+        "\x15": "\u2415",
+        "\x16": "\u2416",
+        "\x17": "\u2417",
+        "\x18": "\u2418",
+        "\x19": "\u2419",
+        "\x1A": "\u241A",
+        "\x1B": "\u241B",
+        "\x1C": "\u241C",
+        "\x1D": "\u241D",
+        "\x1E": "\u241E",
+        "\x1F": "\u241F",
+        "\x7F": "\u2326",
     }
-    RE_SYMBOLS = re.compile('[\x00-\x1F\x7F]')
+    RE_SYMBOLS = re.compile("[\x00-\x1F\x7F]")
 
     def _write_span(self, text, class_id):
         yield self.RE_SYMBOLS.sub(lambda x: self.SYMBOLS[x.group(0)], text)
@@ -311,22 +330,58 @@ class ANSI2TextConverter(ANSIProcessor):
 
 class ANSI2HTMLConverter(ANSIProcessor):
     ENTITIES = {
-        '\x00' : '&#x2400;', '\x01' : '&#x2401;',  '\x02' : '&#x2402;',
-        '\x03' : '&#x2403;', '\x04' : '&#x2404;',  '\x05' : '&#x2405;',
-        '\x06' : '&#x2406;', '\x07' : '&#x1F514;', '\x0B' : '&#x240B;',
-        '\x0E' : '&#x240E;', '\x0F' : '&#x240F;',  '\x10' : '&#x2410;',
-        '\x11' : '&#x2411;', '\x12' : '&#x2412;',  '\x13' : '&#x2413;',
-        '\x14' : '&#x2414;', '\x15' : '&#x2415;',  '\x16' : '&#x2416;',
-        '\x17' : '&#x2417;', '\x18' : '&#x2418;',  '\x19' : '&#x2419;',
-        '\x1A' : '&#x241A;', '\x1B' : '&#x241B;',  '\x1C' : '&#x241C;',
-        '\x1D' : '&#x241D;', '\x1E' : '&#x241E;',  '\x1F' : '&#x241F;',
-        '<'    : '&lt;',     '>'    : '&gt;',      '&'    : '&amp;',
-        '\x7F' : '&#x2326;'
+        "\x00": "&#x2400;",
+        "\x01": "&#x2401;",
+        "\x02": "&#x2402;",
+        "\x03": "&#x2403;",
+        "\x04": "&#x2404;",
+        "\x05": "&#x2405;",
+        "\x06": "&#x2406;",
+        "\x07": "&#x1F514;",
+        "\x0B": "&#x240B;",
+        "\x0E": "&#x240E;",
+        "\x0F": "&#x240F;",
+        "\x10": "&#x2410;",
+        "\x11": "&#x2411;",
+        "\x12": "&#x2412;",
+        "\x13": "&#x2413;",
+        "\x14": "&#x2414;",
+        "\x15": "&#x2415;",
+        "\x16": "&#x2416;",
+        "\x17": "&#x2417;",
+        "\x18": "&#x2418;",
+        "\x19": "&#x2419;",
+        "\x1A": "&#x241A;",
+        "\x1B": "&#x241B;",
+        "\x1C": "&#x241C;",
+        "\x1D": "&#x241D;",
+        "\x1E": "&#x241E;",
+        "\x1F": "&#x241F;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        "\x7F": "&#x2326;",
     }
-    RE_ENTITIES = re.compile('[\x00-\x1F<>&\x7F]')
+    RE_ENTITIES = re.compile("[\x00-\x1F<>&\x7F]")
 
-    COLORS = [ "BLK", "RED", "GRN", "YEL", "BLU", "MAG", "CYN", "WHI",
-               "HIK", "HIR", "HIG", "HIY", "HIB", "HIM", "HIC", "HIW" ]
+    COLORS = [
+        "BLK",
+        "RED",
+        "GRN",
+        "YEL",
+        "BLU",
+        "MAG",
+        "CYN",
+        "WHI",
+        "HIK",
+        "HIR",
+        "HIG",
+        "HIY",
+        "HIB",
+        "HIM",
+        "HIC",
+        "HIW",
+    ]
 
     def __init__(self, white_bg=False):
         super(ANSI2HTMLConverter, self).__init__()
@@ -335,9 +390,9 @@ class ANSI2HTMLConverter(ANSIProcessor):
         self.prefix = '<pre class="ansi">'
 
     def _write_prefix(self):
-        if self.prefix != '':
+        if self.prefix != "":
             yield self.prefix
-            self.prefix = ''
+            self.prefix = ""
 
     def _map_color(self, color, default, dim):
         # map a color assigned by _do_one_csi_m to an index in the COLORS array
@@ -348,14 +403,14 @@ class ANSI2HTMLConverter(ANSIProcessor):
             if isinstance(color, int):
                 # unlike vte which has a "very dark" grey, for simplicity
                 # dark grey remains dark grey
-                return 8 if color == default or color == 8 else color&~8
+                return 8 if color == default or color == 8 else color & ~8
             else:
-                return ('d' + color[0], 'd' + color[1])
+                return ("d" + color[0], "d" + color[1])
         else:
             if isinstance(color, int):
                 # use light colors by default, except for black and light grey
                 # (but see bold case in _compute_class)
-                return color if color == 0 or color == 7 else color|8
+                return color if color == 0 or color == 7 else color | 8
             else:
                 return color
 
@@ -382,21 +437,21 @@ class ANSI2HTMLConverter(ANSIProcessor):
 
         if isinstance(bg, int):
             if bg != self.default_bg:
-                classes.append('B' + self.COLORS[bg])
+                classes.append("B" + self.COLORS[bg])
         else:
             classes.append(bg[1])
 
         if self.bold:
-            classes.append('BOLD')
+            classes.append("BOLD")
         if self.italic:
-            classes.append('ITA')
+            classes.append("ITA")
 
         if self.underline or self.strike:
-            undstr = ''
+            undstr = ""
             if self.underline:
-                undstr += 'UND'
+                undstr += "UND"
             if self.strike:
-                undstr += 'STR'
+                undstr += "STR"
             classes.append(undstr)
 
         self.cur_class = self._class_to_id(" ".join(classes))
@@ -406,10 +461,10 @@ class ANSI2HTMLConverter(ANSIProcessor):
             yield ('<span class="%s">' % self.id_to_class[class_id])
         yield self.RE_ENTITIES.sub(lambda x: self.ENTITIES[x.group(0)], text)
         if class_id > 0:
-            yield '</span>'
+            yield "</span>"
 
     def _write_form_feed(self):
-        yield '<hr>'
+        yield "<hr>"
 
     def convert(self, input):
         yield from self._write_prefix()
@@ -418,7 +473,7 @@ class ANSI2HTMLConverter(ANSIProcessor):
     def finish(self):
         yield from self._write_prefix()
         yield from super(ANSI2HTMLConverter, self).finish()
-        yield '</pre>'
+        yield "</pre>"
         self.prefix = '<pre class="ansi">'
 
 
@@ -448,7 +503,8 @@ class LogView(View, metaclass=abc.ABCMeta):
     # Putting this in a template would be nice, but it would also
     # consume more memory because we would not be able to just
     # "yield from" into the StreamingHttpResponse.
-    HTML_PROLOG = mark_safe("""<!DOCTYPE html><html><head>
+    HTML_PROLOG = mark_safe(
+        """<!DOCTYPE html><html><head>
 <link rel="stylesheet" href="/static/css/ansi2html.css">
 <style type="text/css">*{margin:0px;padding:0px;background:#333}
 pre { font-size: 13px; line-height: 1.42857143; white-space: pre-wrap; word-wrap: break-word; max-width: 100%;}
@@ -461,7 +517,8 @@ if (parent.jQuery && parent.jQuery.colorbox) {
             parent.jQuery.colorbox.close();
         }
     });
-}</script><body>""")
+}</script><body>"""
+    )
 
     def generate_html(self, log):
         yield self.HTML_PROLOG
@@ -471,16 +528,18 @@ if (parent.jQuery && parent.jQuery.colorbox) {
         result = self.get_result(request, **kwargs)
         if result is None or not result.is_completed() or result.log is None:
             raise Http404("No log found")
-        if request.GET.get('html', None) != '1':
-            return HttpResponse(result.log, content_type='text/plain')
+        if request.GET.get("html", None) != "1":
+            return HttpResponse(result.log, content_type="text/plain")
 
         return StreamingHttpResponse(self.generate_html(result.log))
 
+
 if __name__ == "__main__":
     import io
+
     c = ANSI2HTMLConverter()
     # Never split lines at \r
-    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, newline='\n')
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, newline="\n")
     for line in sys.stdin:
         for output in c.convert(line):
             sys.stdout.write(output)

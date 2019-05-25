@@ -18,13 +18,15 @@ import re
 # The basic implementation uses generators.  The filters simply apply join
 # to the result of the generators.
 
+
 def lines_iter(value):
     if not isinstance(value, io.IOBase):
         # StringIO provides a generator to split lines.
         value = io.StringIO(value)
     # "chomp" the newlines on each line.  Using operator and map does
     # everything in the interpreter, avoiding the overhead of a generator.
-    return map(operator.methodcaller('rstrip', '\r\n'), value)
+    return map(operator.methodcaller("rstrip", "\r\n"), value)
+
 
 # To understand grep_iter, it may help to first study this implementation
 # of a "tail" iterator, which is based on the same circular array idea:
@@ -42,6 +44,7 @@ def lines_iter(value):
 # Basic "grep" prints one line when the match is on the last line, so
 # "grep" is a variation on tail_lines with n=1; likewise, "grep -B1" is
 # a variantion on tail_lines with n=2, etc.
+
 
 def grep_iter(value, regex, n_before, n_after, sep):
     n = n_before + 1
@@ -62,6 +65,7 @@ def grep_iter(value, regex, n_before, n_after, sep):
     for i in range(max(lineno - n, 0), min(stop, lineno)):
         yield lines[i % n]
 
+
 # Similar to sed "/abc/,/def/p" except that the last line can
 # be excluded.
 def lines_between_iter(value, start, stop, include_last=True):
@@ -81,39 +85,47 @@ def lines_between_iter(value, start, stop, include_last=True):
         if inside:
             yield line
 
+
 register = template.Library()
+
 
 @register.simple_tag
 @register.filter
 def ansi2text(value):
-    return ''.join(logviewer.ansi2text(value))
+    return "".join(logviewer.ansi2text(value))
+
 
 @register.simple_tag
 @register.filter
 def tail_lines(value, n):
     lines = deque(lines_iter(value), n)
-    return '\n'.join(lines)
+    return "\n".join(lines)
+
 
 @register.simple_tag
 @register.filter
 def grep(value, regex, sep=None):
-    return '\n'.join(grep_iter(value, regex, 0, 0, sep))
+    return "\n".join(grep_iter(value, regex, 0, 0, sep))
+
 
 @register.simple_tag
 @register.filter
-def grep_A(value, regex, n=3, sep='---'):
-    return '\n'.join(grep_iter(value, regex, 0, n, sep))
+def grep_A(value, regex, n=3, sep="---"):
+    return "\n".join(grep_iter(value, regex, 0, n, sep))
+
 
 @register.simple_tag
 @register.filter
-def grep_B(value, regex, n=3, sep='---'):
-    return '\n'.join(grep_iter(value, regex, n, 0, sep))
+def grep_B(value, regex, n=3, sep="---"):
+    return "\n".join(grep_iter(value, regex, n, 0, sep))
+
 
 @register.simple_tag
 @register.filter
-def grep_C(value, regex, n=3, sep='---'):
-    return '\n'.join(grep_iter(value, regex, n, n, sep))
+def grep_C(value, regex, n=3, sep="---"):
+    return "\n".join(grep_iter(value, regex, n, n, sep))
+
 
 @register.simple_tag
 def lines_between(value, start, stop, include_last=True):
-    return '\n'.join(lines_between_iter(value, start, stop, include_last))
+    return "\n".join(lines_between_iter(value, start, stop, include_last))

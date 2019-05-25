@@ -15,19 +15,22 @@ import datetime
 import re
 from rest_framework.fields import DateTimeField
 
+
 def _parse_header(header):
-    r = ''
+    r = ""
     for h, c in email.header.decode_header(header):
         if isinstance(h, bytes):
-            h = h.decode(c or 'utf-8', 'replace')
+            h = h.decode(c or "utf-8", "replace")
         r += h
-    if '\n' in r:
+    if "\n" in r:
         r = " ".join([x.strip() for x in r.splitlines()])
     return r
+
 
 def parse_address(addr_str):
     name, addr = email.utils.parseaddr(_parse_header(addr_str))
     return name, addr
+
 
 def _addr_fmt_text(name, addr):
     if name:
@@ -35,26 +38,30 @@ def _addr_fmt_text(name, addr):
     else:
         return addr
 
+
 def addr_db_to_rest(obj):
-        if obj[0] != obj[1]:
-            return {"name": obj[0], "address": obj[1]}
-        else:
-            return {"address": obj[1]}
+    if obj[0] != obj[1]:
+        return {"name": obj[0], "address": obj[1]}
+    else:
+        return {"address": obj[1]}
+
 
 def decode_payload(m):
     payload = m.get_payload(decode=True)
     charset = m.get_content_charset()
     try:
-        return payload.decode(charset or 'utf-8', errors='replace')
+        return payload.decode(charset or "utf-8", errors="replace")
     except:
-        if charset != 'utf-8':
+        if charset != "utf-8":
             # Still fall back from non-utf-8 to utf-8
-            return payload.decode('utf-8')
+            return payload.decode("utf-8")
         else:
             raise
 
+
 class MboxMessage(object):
     """ Helper class to process mbox """
+
     def __init__(self, m):
         self._m = email.message_from_string(m)
         self._status = {}
@@ -63,19 +70,22 @@ class MboxMessage(object):
     def get_mbox(self):
         return self._mbox
 
-    def get_subject(self, upper=False, strip_tags=False, suppress_re=None,
-                    strip_re=False):
+    def get_subject(
+        self, upper=False, strip_tags=False, suppress_re=None, strip_re=False
+    ):
         """Process and return subject of the message.
            upper: convert subject to upper case.
            strip_tags: remove all the leading [xxx] tags
            suppress_re: a subject str to compare to, if ours is the same or
            only to prepend Re:, return an empty str
            strip_re: drop leading "Re:" prefixes"""
+
         def do_strip_tags(t):
             while t.startswith("[") and "]" in t:
-                t = t[t.find("]") + 1:].strip()
+                t = t[t.find("]") + 1 :].strip()
             return t
-        r = _parse_header(self._m['subject'])
+
+        r = _parse_header(self._m["subject"])
         if upper:
             r = r.upper()
         if strip_tags:
@@ -91,7 +101,7 @@ class MboxMessage(object):
         return r
 
     def get_from(self, text=False):
-        name, addr = parse_address(self._m['from'])
+        name, addr = parse_address(self._m["from"])
         name = name or addr
         if text:
             return _addr_fmt_text(name, addr)
@@ -122,17 +132,17 @@ class MboxMessage(object):
         if not msgid:
             return msgid
         if msgid.startswith("<"):
-            return msgid[1:msgid.find(">")]
-        for x in msgid.split('\n'):
+            return msgid[1 : msgid.find(">")]
+        for x in msgid.split("\n"):
             if x.startswith("<") and x.endswith(">"):
                 return x[1:-1]
         return msgid
 
     def get_in_reply_to(self):
-        return self.trim_message_id(self._m['in-reply-to'])
+        return self.trim_message_id(self._m["in-reply-to"])
 
     def get_date(self, timestamp=False):
-        tup = email.utils.parsedate_tz(self._m['date'])
+        tup = email.utils.parsedate_tz(self._m["date"])
         if tup:
             stamp = email.utils.mktime_tz(tup)
             if timestamp:
@@ -140,18 +150,18 @@ class MboxMessage(object):
             return datetime.datetime.utcfromtimestamp(stamp)
 
     def get_message_id(self):
-        return self.trim_message_id(self._m['message-id'])
+        return self.trim_message_id(self._m["message-id"])
 
     def get_prefixes(self, upper=False):
         """Return tags extracted from the leading "[XXX] [YYY ZZZ]... in subject"""
         r = []
         s = self.get_subject(upper=upper, strip_re=True)
-        while s.startswith('[') and ']' in s:
-            t = s[1:s.find(']')]
-            for k in t.split(' '):
+        while s.startswith("[") and "]" in s:
+            t = s[1 : s.find("]")]
+            for k in t.split(" "):
                 r.append(k)
-            if ']' in s:
-                s = s[s.find(']') + 1:].strip()
+            if "]" in s:
+                s = s[s.find("]") + 1 :].strip()
         return r
 
     def get_version(self):
@@ -174,13 +184,14 @@ class MboxMessage(object):
     def get_body(self):
         def _get_message_text(m):
             payload = m.get_payload(decode=not self._m.is_multipart())
-            body = ''
+            body = ""
             if m.get_content_type() == "text/plain":
                 body = decode_payload(m)
             elif isinstance(payload, list):
                 for p in payload:
                     body += _get_message_text(p)
             return body
+
         body = _get_message_text(self._m)
         return body
 
@@ -210,16 +221,16 @@ class MboxMessage(object):
         prefix = "Reviewed-by:"
         r = self._find_line("^" + prefix + ".*>$")
         if r:
-            return email.utils.parseaddr(r[len(prefix):].strip())
+            return email.utils.parseaddr(r[len(prefix) :].strip())
         else:
             return None
 
     def get_num(self):
         cur, total = None, None
         for tag in self.get_prefixes():
-            if '/' in tag:
+            if "/" in tag:
                 try:
-                    n, m = tag.split('/')
+                    n, m = tag.split("/")
                     cur, total = int(n), int(m)
                     break
                 except:
@@ -252,9 +263,11 @@ class MboxMessage(object):
         body = self.get_body()
         if self.get_subject().startswith("Re:"):
             return False
-        return self._has_lines(body, "---", "diff ", "index ", "---", "+++", "@@") or \
-               self._has_lines(body, "---", "diff ", "index ", "GIT binary patch") or \
-               self._has_lines(body, "---", "diff ", "old mode ", "new mode ")
+        return (
+            self._has_lines(body, "---", "diff ", "index ", "---", "+++", "@@")
+            or self._has_lines(body, "---", "diff ", "index ", "GIT binary patch")
+            or self._has_lines(body, "---", "diff ", "old mode ", "new mode ")
+        )
 
     def is_series_head(self):
         """Create and return a Series from Message if it is one, otherwise
@@ -271,11 +284,13 @@ class MboxMessage(object):
     def get_json(self):
         """Return the JSON format of the mbox """
         msg = {}
-        msg['message_id'] = self.get_message_id()
-        msg['in_reply_to'] = self.get_in_reply_to() or ""
-        msg['date'] = DateTimeField().to_representation(self.get_date())
-        msg['subject'] = self.get_subject()
-        msg['sender'] = addr_db_to_rest(self.get_from())
-        msg['recipients'] = [addr_db_to_rest(x) for x in (self.get_to() + self.get_cc())]
-        msg['mbox'] = self.get_mbox()
+        msg["message_id"] = self.get_message_id()
+        msg["in_reply_to"] = self.get_in_reply_to() or ""
+        msg["date"] = DateTimeField().to_representation(self.get_date())
+        msg["subject"] = self.get_subject()
+        msg["sender"] = addr_db_to_rest(self.get_from())
+        msg["recipients"] = [
+            addr_db_to_rest(x) for x in (self.get_to() + self.get_cc())
+        ]
+        msg["mbox"] = self.get_mbox()
         return msg

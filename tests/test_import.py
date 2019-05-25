@@ -22,14 +22,17 @@ class ImportTest(PatchewTestCase):
 
     def test_import_one(self):
         self.cli_import("0001-simple-patch.mbox.gz")
-        self.check_cli(["search"],
-                       stdout='[Qemu-devel] [PATCH] quorum: Only compile when supported')
+        self.check_cli(
+            ["search"],
+            stdout="[Qemu-devel] [PATCH] quorum: Only compile when supported",
+        )
 
     def test_import_belong_to_multiple_projects(self):
-        self.check_cli(["project", "add", "QEMU2",
-                       "--mailing-list", "qemu-devel@nongnu.org"])
+        self.check_cli(
+            ["project", "add", "QEMU2", "--mailing-list", "qemu-devel@nongnu.org"]
+        )
         self.cli_import("0001-simple-patch.mbox.gz")
-        a = '[Qemu-devel] [PATCH] quorum: Only compile when supported\n' * 2
+        a = "[Qemu-devel] [PATCH] quorum: Only compile when supported\n" * 2
         self.check_cli(["search"], stdout=a.strip())
 
     def test_non_utf_8(self):
@@ -44,21 +47,29 @@ class ImportTest(PatchewTestCase):
     def test_import_invalid_byte(self):
         self.add_project("EDK2", "edk2-devel@lists.01.org")
         self.cli_import("0010-invalid-byte.mbox.gz")
-        self.check_cli(["search"],
-                       stdout='[edk2] [PATCH 0/3] Revert "ShellPkg: Fix echo to support displaying special characters"')
+        self.check_cli(
+            ["search"],
+            stdout='[edk2] [PATCH 0/3] Revert "ShellPkg: Fix echo to support displaying special characters"',
+        )
 
     def test_import_to_subproject(self):
-        tp = self.add_project("Libvirt", "libvir-list@redhat.com, libvirt-list@redhat.com",
-                              "git://libvirt.org/libvirt.git")
+        tp = self.add_project(
+            "Libvirt",
+            "libvir-list@redhat.com, libvirt-list@redhat.com",
+            "git://libvirt.org/libvirt.git",
+        )
         tp.prefix_tags = "!python"
         tp.save()
-        sp = self.add_project("Libvirt-python", "libvir-list@redhat.com, libvirt-list@redhat.com",
-                              "https://github.com/libvirt/libvirt-python")
+        sp = self.add_project(
+            "Libvirt-python",
+            "libvir-list@redhat.com, libvirt-list@redhat.com",
+            "https://github.com/libvirt/libvirt-python",
+        )
         sp.prefix_tags = "python"
         sp.parent_project = tp
         sp.save()
         self.cli_import("0019-libvirt-python.mbox.gz")
-        subj = '[libvirt] [python PATCH] event-test.py: Remove extra ( in --help output'
+        subj = "[libvirt] [python PATCH] event-test.py: Remove extra ( in --help output"
         self.check_cli(["search", "project:Libvirt"], stdout=subj)
         self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
         sh = Message.objects.series_heads()
@@ -69,8 +80,10 @@ class ImportTest(PatchewTestCase):
         self.cli_import("0020-libvirt.mbox.gz")
         # the order of the search results may change, so we cannot use stdout=...
         a, b = self.check_cli(["search", "project:Libvirt"])
-        self.assertEqual(sorted(a.split('\n')),
-                         ['[libvirt]  [PATCH v2] vcpupin: add clear feature', subj])
+        self.assertEqual(
+            sorted(a.split("\n")),
+            ["[libvirt]  [PATCH v2] vcpupin: add clear feature", subj],
+        )
         self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
 
 
@@ -78,8 +91,9 @@ class UnprivilegedImportTest(ImportTest):
     def setUp(self):
         self.create_superuser()
         self.cli_login()
-        self.check_cli(["project", "add", "QEMU",
-                       "--mailing-list", "qemu-devel@nongnu.org"])
+        self.check_cli(
+            ["project", "add", "QEMU", "--mailing-list", "qemu-devel@nongnu.org"]
+        )
         self.cli_logout()
         self.create_user("importer", "importerpass", groups=["importers"])
         self.cli_login("importer", "importerpass")
@@ -89,8 +103,9 @@ class UnprivilegedImportTest(ImportTest):
     def check_import_should_fail(self):
         self.cli_import("0001-simple-patch.mbox.gz", 1)
         a, b = self.check_cli(["search"])
-        self.assertNotIn('[Qemu-devel] [PATCH] quorum: Only compile when supported',
-                         a.splitlines())
+        self.assertNotIn(
+            "[Qemu-devel] [PATCH] quorum: Only compile when supported", a.splitlines()
+        )
 
     def test_anonymous_import(self):
         self.cli_logout()
@@ -111,5 +126,5 @@ class UnprivilegedImportTest(ImportTest):
         self.check_cli(["project", "update"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

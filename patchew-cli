@@ -26,49 +26,72 @@ import fcntl
 
 COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 
+
 class APIError(Exception):
     pass
 
+
 def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
-    cache_repo = os.path.join(os.path.expanduser("~/.cache/patchew-git-cache"),
-                              "".join([x for x in remote if x.isalnum()]) + "-" + \
-                                      hashlib.sha1(remote.encode("utf-8")).hexdigest())
+    cache_repo = os.path.join(
+        os.path.expanduser("~/.cache/patchew-git-cache"),
+        "".join([x for x in remote if x.isalnum()])
+        + "-"
+        + hashlib.sha1(remote.encode("utf-8")).hexdigest(),
+    )
     if not os.path.isdir(cache_repo) or not os.listdir(cache_repo):
         # Clone upstream to local cache
         subprocess.check_call(["mkdir", "-p", cache_repo])
-        subprocess.check_output(["git", "init", "--bare",
-                                 cache_repo])
+        subprocess.check_output(["git", "init", "--bare", cache_repo])
     remote_name = hashlib.sha1(remote.encode("utf-8")).hexdigest()
-    subprocess.call(["git", "remote", "remove", remote_name],
-                    cwd=cache_repo,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE)
-    subprocess.check_call(["git", "remote", "add",
-                          remote_name, remote], cwd=cache_repo,
-                          stdout=logf, stderr=logf)
-    subprocess.check_call(["git", "config",
-                           "remote.%s.fetch" % (remote_name,),
-                           "+refs/heads/*:refs/heads/*"], cwd=cache_repo,
-                          stdout=logf, stderr=logf)
-    subprocess.check_call(["git", "fetch", remote_name], cwd=cache_repo,
-                          stdout=logf, stderr=logf)
+    subprocess.call(
+        ["git", "remote", "remove", remote_name],
+        cwd=cache_repo,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    subprocess.check_call(
+        ["git", "remote", "add", remote_name, remote],
+        cwd=cache_repo,
+        stdout=logf,
+        stderr=logf,
+    )
+    subprocess.check_call(
+        [
+            "git",
+            "config",
+            "remote.%s.fetch" % (remote_name,),
+            "+refs/heads/*:refs/heads/*",
+        ],
+        cwd=cache_repo,
+        stdout=logf,
+        stderr=logf,
+    )
+    subprocess.check_call(
+        ["git", "fetch", remote_name], cwd=cache_repo, stdout=logf, stderr=logf
+    )
     if head.startswith("refs/tags/"):
-        subprocess.check_call(["git", "fetch", remote_name, "+%s:%s" % (head, head)],
-                              cwd=cache_repo, stdout=logf, stderr=logf)
+        subprocess.check_call(
+            ["git", "fetch", remote_name, "+%s:%s" % (head, head)],
+            cwd=cache_repo,
+            stdout=logf,
+            stderr=logf,
+        )
     clone_cmd = ["git", "clone", "-q"]
     if recursive:
         clone_cmd += ["--recursive"]
     clone_cmd += [cache_repo, clone]
     subprocess.check_call(clone_cmd, stderr=logf, stdout=logf)
     if checkout:
-        subprocess.check_call(["git", "checkout", head, "-b", "test"],
-                              stderr=logf, stdout=logf,
-                              cwd=clone)
+        subprocess.check_call(
+            ["git", "checkout", head, "-b", "test"], stderr=logf, stdout=logf, cwd=clone
+        )
+
 
 class SubCommand(object):
     """ Base class of subcommand"""
+
     help = ""
-    want_argv = False # Whether the command accepts extra arguments
+    want_argv = False  # Whether the command accepts extra arguments
 
     def api_do(self, cmd, **data):
         """Do server api call"""
@@ -105,27 +128,28 @@ class SubCommand(object):
         """Do command"""
         print("Not implemented")
 
+
 class LoginCommand(SubCommand):
     name = "login"
 
     def arguments(self, parser):
         parser.add_argument("username", type=str, help="username for login")
-        parser.add_argument("password", nargs="?",
-                            type=str, help="password for login")
+        parser.add_argument("password", nargs="?", type=str, help="password for login")
 
     def do(self, args, argv):
         import getpass
+
         try:
             if not args.password:
                 args.password = getpass.getpass("Password: ")
             if not args.password:
                 return 1
-            self.api_do("login", username=args.username,
-                                 password=args.password)
+            self.api_do("login", username=args.username, password=args.password)
         except Exception as e:
             print("Login failed:", e)
             return 1
         return 0
+
 
 class LogoutCommand(SubCommand):
     name = "logout"
@@ -133,6 +157,7 @@ class LogoutCommand(SubCommand):
     def do(self, args, argv):
         self.api_do("logout")
         return 0
+
 
 class APICommand(SubCommand):
     name = "api"
@@ -144,13 +169,15 @@ class APICommand(SubCommand):
         self.api_do(args.method)
         return 0
 
+
 class DeleteCommand(SubCommand):
     name = "delete"
     want_argv = True
 
     def arguments(self, parser):
-        parser.add_argument("--all", "-a", action="store_true",
-                            help="Delete all messages")
+        parser.add_argument(
+            "--all", "-a", action="store_true", help="Delete all messages"
+        )
 
     def do(self, args, argv):
         if not argv and not args.all:
@@ -159,15 +186,20 @@ class DeleteCommand(SubCommand):
         self.api_do("delete", terms=argv)
         return 0
 
+
 class ImportCommand(SubCommand):
     name = "import"
     want_argv = True
 
     def arguments(self, parser):
         parser.add_argument("file", nargs="*", type=str, help="object to list")
-        parser.add_argument("--known-flag-dir", "-k", type=str,
-                            help="""a directory to store "known flag files"
-                            to mark messages as 'imported' and skip them next time""")
+        parser.add_argument(
+            "--known-flag-dir",
+            "-k",
+            type=str,
+            help="""a directory to store "known flag files"
+                            to mark messages as 'imported' and skip them next time""",
+        )
 
     def do(self, args, argv):
         projects = set()
@@ -176,8 +208,10 @@ class ImportCommand(SubCommand):
         def call_import(mo):
             ff = None
             if args.known_flag_dir:
-                ff = os.path.join(args.known_flag_dir,
-                                  hashlib.sha1(mo["Message-ID"].encode('utf-8')).hexdigest())
+                ff = os.path.join(
+                    args.known_flag_dir,
+                    hashlib.sha1(mo["Message-ID"].encode("utf-8")).hexdigest(),
+                )
                 if os.path.exists(ff):
                     print("[OLD] " + mo["Subject"])
                     return
@@ -203,11 +237,12 @@ class ImportCommand(SubCommand):
                     except KeyboardInterrupt:
                         raise
                     except Exception as e:
-                        print("Error in importing:", m['subject'], str(e))
+                        print("Error in importing:", m["subject"], str(e))
             else:
                 f.seek(0)
                 mo = email.message_from_bytes(f.read())
                 call_import(mo)
+
         r = 0
         for f in args.file:
             try:
@@ -219,16 +254,17 @@ class ImportCommand(SubCommand):
                 pass
         return r
 
+
 class ProjectCommand(SubCommand):
     name = "project"
     want_argv = True
 
     def list_projects(self, argv):
         parser = argparse.ArgumentParser()
-        parser.add_argument("--raw", action="store_true",
-                            help="Show raw json string")
-        parser.add_argument("--verbose", "-v", action="store_true",
-                            help="Show details about projects")
+        parser.add_argument("--raw", action="store_true", help="Show raw json string")
+        parser.add_argument(
+            "--verbose", "-v", action="store_true", help="Show details about projects"
+        )
         args = parser.parse_args(argv)
         r = self.api_do("get-projects")
         if args.raw:
@@ -245,8 +281,7 @@ class ProjectCommand(SubCommand):
 
     def show_project(self, argv):
         parser = argparse.ArgumentParser()
-        parser.add_argument("name", nargs="+",
-                            help="The name of project to show info")
+        parser.add_argument("name", nargs="+", help="The name of project to show info")
         args = parser.parse_args(argv)
         r = self.api_do("get-projects")
         for p in r:
@@ -263,25 +298,25 @@ class ProjectCommand(SubCommand):
     def add_project(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("name", help="Name of the project")
-        parser.add_argument("--mailing-list", "-l", default="",
-                            help="Mailing list")
-        parser.add_argument("--url", "-u", default="",
-                            help="Project URL")
-        parser.add_argument("--git", "-g", default="",
-                            help="Project git repo")
-        parser.add_argument("--desc", "-d", default="",
-                            help="Project short discription")
+        parser.add_argument("--mailing-list", "-l", default="", help="Mailing list")
+        parser.add_argument("--url", "-u", default="", help="Project URL")
+        parser.add_argument("--git", "-g", default="", help="Project git repo")
+        parser.add_argument(
+            "--desc", "-d", default="", help="Project short discription"
+        )
         args = parser.parse_args(argv)
-        self.api_do("add-project",
-                    name=args.name,
-                    mailing_list=args.mailing_list,
-                    url=args.url,
-                    git=args.git,
-                    description=args.desc)
+        self.api_do(
+            "add-project",
+            name=args.name,
+            mailing_list=args.mailing_list,
+            url=args.url,
+            git=args.git,
+            description=args.desc,
+        )
 
     def update_one_project(self, wd, project):
         logging.info("Updating project '%s'", project["name"])
-        clone = os.path.join('/var/tmp/patchew-project-update', project["name"])
+        clone = os.path.join("/var/tmp/patchew-project-update", project["name"])
         if " " in project["git"]:
             repo, branch = project["git"].split(" ", 2)
         else:
@@ -289,11 +324,15 @@ class ProjectCommand(SubCommand):
         if not os.path.isdir(clone):
             subprocess.check_output(["git", "clone", "--mirror", repo, clone])
         else:
-            subprocess.check_call(["git", "remote", "set-url", "origin", repo],
-                                  cwd=clone)
+            subprocess.check_call(
+                ["git", "remote", "set-url", "origin", repo], cwd=clone
+            )
             subprocess.check_call(["git", "fetch", "origin"], cwd=clone)
-        new_head = subprocess.check_output(["git", "rev-parse", branch],
-                                            cwd=clone).decode().strip()
+        new_head = (
+            subprocess.check_output(["git", "rev-parse", branch], cwd=clone)
+            .decode()
+            .strip()
+        )
         logging.debug("new head: %s", new_head)
         try:
             old_head = project["properties"]["git.head"].strip()
@@ -304,34 +343,45 @@ class ProjectCommand(SubCommand):
             old_head = "%s~100" % new_head
 
         try:
-            new_commits = subprocess.check_output(["git", "rev-list",
-                                                  "%s..%s" % (old_head, new_head)],
-                                                  cwd=clone).decode().splitlines()
+            new_commits = (
+                subprocess.check_output(
+                    ["git", "rev-list", "%s..%s" % (old_head, new_head)], cwd=clone
+                )
+                .decode()
+                .splitlines()
+            )
         except:
             new_commits = [new_head]
         logging.debug("old head: %s", old_head)
-        logging.debug("new commits: \n%s" % \
-                "\n".join(["  " + x for x in new_commits]))
-        output = subprocess.check_output("""git show --format=%%b %s |
+        logging.debug("new commits: \n%s" % "\n".join(["  " + x for x in new_commits]))
+        output = subprocess.check_output(
+            """git show --format=%%b %s |
                 awk 'BEGIN{IGNORECASE=1} /^message-id:/{print}'
-                """% \
-                ' '.join(new_commits), shell=True, cwd=clone).decode()
-        msgids = [x[len("message-id:"):].strip() for x in output.splitlines()]
-        logging.debug("message ids: \n%s" % \
-                "\n".join(["  " + x for x in msgids]))
+                """
+            % " ".join(new_commits),
+            shell=True,
+            cwd=clone,
+        ).decode()
+        msgids = [x[len("message-id:") :].strip() for x in output.splitlines()]
+        logging.debug("message ids: \n%s" % "\n".join(["  " + x for x in msgids]))
         push_to = project["properties"].get("git.push_to")
         if push_to:
             try:
-                subprocess.check_call(["git", "push", "--force", push_to,
-                                       "%s:%s" % (new_head, branch)],
-                                      cwd=clone)
+                subprocess.check_call(
+                    ["git", "push", "--force", push_to, "%s:%s" % (new_head, branch)],
+                    cwd=clone,
+                )
             except Exception as e:
-                logging.warn("Failed to push the new head to patchew mirror: %s",
-                             str(e))
-        self.api_do("update-project-head", project=project["name"],
-                                           old_head=old_head,
-                                           new_head=new_head,
-                                           message_ids=msgids)
+                logging.warn(
+                    "Failed to push the new head to patchew mirror: %s", str(e)
+                )
+        self.api_do(
+            "update-project-head",
+            project=project["name"],
+            old_head=old_head,
+            new_head=new_head,
+            message_ids=msgids,
+        )
 
     def update_project(self, argv):
         parser = argparse.ArgumentParser()
@@ -356,18 +406,21 @@ class ProjectCommand(SubCommand):
                 return self.update_project(argv[1:])
         return self.list_projects(argv)
 
+
 class SearchCommand(SubCommand):
     name = "search"
 
     def arguments(self, parser):
-        parser.add_argument("--output", "-o", default="subject", type=str,
-                            help="Output fields")
-        parser.add_argument("--raw", "-r", action="store_true",
-                            help="Output raw response")
+        parser.add_argument(
+            "--output", "-o", default="subject", type=str, help="Output fields"
+        )
+        parser.add_argument(
+            "--raw", "-r", action="store_true", help="Output raw response"
+        )
         parser.add_argument("term", nargs="*", type=str)
 
     def do(self, args, argv):
-        r = self.api_do("search", terms=args.term, fields=args.output.split(','))
+        r = self.api_do("search", terms=args.term, fields=args.output.split(","))
         if not r:
             return 0
         if args.raw:
@@ -377,6 +430,7 @@ class SearchCommand(SubCommand):
                 for a in args.output.split(","):
                     print(x[a])
         return 0
+
 
 class UntestCommand(SubCommand):
     name = "untest"
@@ -388,25 +442,43 @@ class UntestCommand(SubCommand):
         self.api_do("untest", terms=args.term)
         return 0
 
+
 class TesterCommand(SubCommand):
     name = "tester"
     want_argv = True
 
     def arguments(self, parser):
-        parser.add_argument("--print-capabilities", action="store_true",
-                            help="print capabilities for the current machine")
-        parser.add_argument("--singleton", "-S", action="store_true",
-                            help="quit if another singleton mode tester is running")
-        parser.add_argument("--project", "-p", required=True,
-                            help="comma separated project names to run test")
-        parser.add_argument("--name", "-n",
-                            help="name of this tester (default is the logged in username)")
-        parser.add_argument("--num", "-N", type=int, default=-1,
-                            help="max number of tests to run")
-        parser.add_argument("--no-clean-up", action="store_true",
-                            help="skip cleaning up after finish")
-        parser.add_argument("--no-wait", action="store_true",
-                            help="don't wait if nothing to test")
+        parser.add_argument(
+            "--print-capabilities",
+            action="store_true",
+            help="print capabilities for the current machine",
+        )
+        parser.add_argument(
+            "--singleton",
+            "-S",
+            action="store_true",
+            help="quit if another singleton mode tester is running",
+        )
+        parser.add_argument(
+            "--project",
+            "-p",
+            required=True,
+            help="comma separated project names to run test",
+        )
+        parser.add_argument(
+            "--name",
+            "-n",
+            help="name of this tester (default is the logged in username)",
+        )
+        parser.add_argument(
+            "--num", "-N", type=int, default=-1, help="max number of tests to run"
+        )
+        parser.add_argument(
+            "--no-clean-up", action="store_true", help="skip cleaning up after finish"
+        )
+        parser.add_argument(
+            "--no-wait", action="store_true", help="don't wait if nothing to test"
+        )
 
     def _make_script(self, wd, name, content):
         filename = os.path.join(wd, name)
@@ -418,26 +490,25 @@ class TesterCommand(SubCommand):
 
     def _refresh_capabilities(self, project, name):
         wd = tempfile.mkdtemp()
-        r = self.api_do("testing-capabilities",
-                        project=project,
-                        tester=name)
+        r = self.api_do("testing-capabilities", project=project, tester=name)
         if not r:
             return []
         ret = []
         for name, val in r.items():
             script = self._make_script(wd, "probe", val)
             try:
-                if 0 == subprocess.call(script,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE):
+                if 0 == subprocess.call(
+                    script, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                ):
                     ret.append(name)
             except:
                 pass
         return ret
 
     def test_one(self, name, project, no_clean_up, capabilities):
-        r = self.api_do("testing-get", project=project, tester=name,
-                        capabilities=capabilities)
+        r = self.api_do(
+            "testing-get", project=project, tester=name, capabilities=capabilities
+        )
         if not r:
             return False
         print("Running test '%s'" % r["test"]["name"])
@@ -449,8 +520,9 @@ class TesterCommand(SubCommand):
         print("  Project:", r["project"])
         print("  Identity:", str(r["identity"]))
         sys.stdout.flush()
-        logf = open(os.path.join(wd, "log"), "w+", encoding="utf-8",
-                    newline='', errors="ignore")
+        logf = open(
+            os.path.join(wd, "log"), "w+", encoding="utf-8", newline="", errors="ignore"
+        )
         test_cmd = r["test"]["script"]
         script = r["test"]["script"].strip() + "\n"
         test_script = self._make_script(wd, "run", script)
@@ -469,16 +541,26 @@ class TesterCommand(SubCommand):
             git_clone_repo(clone, r["repo"], r["head"], logf, True)
             base = r["base"]
             if base:
-                subprocess.check_call(["git", "branch", "base", base],
-                                      cwd=clone, stdout=logf, stderr=logf)
-                subprocess.check_call(["git", "log", "--oneline", "%s.." % (base)],
-                                      cwd=clone, stdout=logf, stderr=logf)
+                subprocess.check_call(
+                    ["git", "branch", "base", base], cwd=clone, stdout=logf, stderr=logf
+                )
+                subprocess.check_call(
+                    ["git", "log", "--oneline", "%s.." % (base)],
+                    cwd=clone,
+                    stdout=logf,
+                    stderr=logf,
+                )
             logf.write("\n")
             logf.write("=== OUTPUT BEGIN ===\n")
             logf.flush()
             start_time = time.time()
-            tp = subprocess.Popen(["/usr/bin/script", "-qefc", test_script + "< /dev/null", "/dev/null"],
-                                  cwd=clone, stdin=subprocess.PIPE, stdout=logf, stderr=logf)
+            tp = subprocess.Popen(
+                ["/usr/bin/script", "-qefc", test_script + "< /dev/null", "/dev/null"],
+                cwd=clone,
+                stdin=subprocess.PIPE,
+                stdout=logf,
+                stderr=logf,
+            )
             rc = None
             timeout = r["test"]["timeout"]
             while timeout <= 0 or time.time() - start_time < timeout:
@@ -520,27 +602,32 @@ class TesterCommand(SubCommand):
                 orig_log_size = len(log)
                 while max_size > 100000:
                     try:
-                        self.api_do("testing-report", project=r["project"],
-                                                      identity=r["identity"],
-                                                      test=r["test"]["name"],
-                                                      tester=name,
-                                                      head=r["head"],
-                                                      base=r["base"],
-                                                      passed=passed,
-                                                      log=log,
-                                                      is_timeout=is_timeout)
+                        self.api_do(
+                            "testing-report",
+                            project=r["project"],
+                            identity=r["identity"],
+                            test=r["test"]["name"],
+                            tester=name,
+                            head=r["head"],
+                            base=r["base"],
+                            passed=passed,
+                            log=log,
+                            is_timeout=is_timeout,
+                        )
                     except urllib.error.HTTPError as e:
                         if e.code != 413:
                             raise e
                         if not prefixed:
                             prefixed = True
-                            log = 'WARNING: Log truncated!\n\n' + log
+                            log = "WARNING: Log truncated!\n\n" + log
                         log = log[:max_size]
                         max_size = max_size // 10
                     else:
                         break
                 if prefixed:
-                    print("Log truncated from %d to %d bytes" % (orig_log_size, len(log)))
+                    print(
+                        "Log truncated from %d to %d bytes" % (orig_log_size, len(log))
+                    )
                 logf.close()
             finally:
                 if not no_clean_up:
@@ -581,8 +668,9 @@ class TesterCommand(SubCommand):
                 if count % cap_refresh == 0:
                     for sp in projects:
                         capabilities[sp] = self._refresh_capabilities(sp, args.name)
-                if self.test_one(args.name, p, args.no_clean_up,
-                                 capabilities=capabilities[p]):
+                if self.test_one(
+                    args.name, p, args.no_clean_up, capabilities=capabilities[p]
+                ):
                     progress = True
                     count += 1
                 if count == args.num:
@@ -595,60 +683,94 @@ class TesterCommand(SubCommand):
                 time.sleep(60)
         return 0
 
+
 class ApplyFailedException(Exception):
     pass
+
 
 class ApplyCommand(SubCommand):
     name = "apply"
 
     def arguments(self, parser):
         parser.add_argument("term", nargs="*", type=str)
-        parser.add_argument("-C", dest="repo",
-                            help="The path to the git repo")
-        parser.add_argument("--any", "-a", action="store_true",
-                            help="""Apply any applicable series (e.g. the
-                            first) even if there are more than one matches""")
-        parser.add_argument("--signoff", "-s", action="store_true",
-                            help="""Sign off the applied patch""")
-        parser.add_argument("--branch", "-b",
-                            help="""Create a branch at current HEAD before
+        parser.add_argument("-C", dest="repo", help="The path to the git repo")
+        parser.add_argument(
+            "--any",
+            "-a",
+            action="store_true",
+            help="""Apply any applicable series (e.g. the
+                            first) even if there are more than one matches""",
+        )
+        parser.add_argument(
+            "--signoff",
+            "-s",
+            action="store_true",
+            help="""Sign off the applied patch""",
+        )
+        parser.add_argument(
+            "--branch",
+            "-b",
+            help="""Create a branch at current HEAD before
                             applying, with '%%m' replaced with the series'
-                            message id""")
-        parser.add_argument("--force-branch", "-B",
-                            help="""Create a branch, overwrite even if a branch
+                            message id""",
+        )
+        parser.add_argument(
+            "--force-branch",
+            "-B",
+            help="""Create a branch, overwrite even if a branch
                             with the same name already exists, and point to
                             current HEAD before applying, with '%%m' replaced
-                            with the series' message id""")
-        parser.add_argument("--tag", "-t",
-                            help="""Create a tag after applying, with '%%m'
+                            with the series' message id""",
+        )
+        parser.add_argument(
+            "--tag",
+            "-t",
+            help="""Create a tag after applying, with '%%m'
                             replaced with the series' message id. If a tag with
                             the same name already exists, it will be
-                            updated""")
-        parser.add_argument("--applier-mode", action="store_true",
-                            help="""Useful for an applier worker of patchew.
+                            updated""",
+        )
+        parser.add_argument(
+            "--applier-mode",
+            action="store_true",
+            help="""Useful for an applier worker of patchew.
                             Clone and checkout a temporary repo, and apply the
                             patch there. Implies --any, conflicts with -C, -b,
-                            -B and -t.""")
-        parser.add_argument("--applier-target",
-                            help="""Restricts the applier to destination repositories
-                            that start with the content of the argument.""")
+                            -B and -t.""",
+        )
+        parser.add_argument(
+            "--applier-target",
+            help="""Restricts the applier to destination repositories
+                            that start with the content of the argument.""",
+        )
 
     def _get_maintainers(self, repo, fname):
         script = os.path.join(repo, "scripts/get_maintainer.pl")
         if not os.access(script, os.X_OK):
             return []
         try:
-            lines = subprocess.check_output([script, "--noroles", "--norolestats",
-                                           "--nogit", "--nogit-fallback", fname],
-                    cwd=repo).decode('utf-8').splitlines()
+            lines = (
+                subprocess.check_output(
+                    [
+                        script,
+                        "--noroles",
+                        "--norolestats",
+                        "--nogit",
+                        "--nogit-fallback",
+                        fname,
+                    ],
+                    cwd=repo,
+                )
+                .decode("utf-8")
+                .splitlines()
+            )
             # Only return entries in the form of "First Last <email@address.com>",
             # excluding list addresses
-            return [x for x in lines if '<' in x and '>' in x]
+            return [x for x in lines if "<" in x and ">" in x]
         except:
             return []
 
-    def _apply(self, repo, s, branch, force_branch, tag, logf=None,
-               signoff=False):
+    def _apply(self, repo, s, branch, force_branch, tag, logf=None, signoff=False):
         msgid = s["message-id"]
         bn = None
         if force_branch:
@@ -659,28 +781,36 @@ class ApplyCommand(SubCommand):
             bo = "-b"
         if bn:
             bn = bn.replace("%m", msgid)
-            subprocess.check_call(["git", "checkout", bo, bn], cwd=repo,
-                                  stdout=logf, stderr=logf)
+            subprocess.check_call(
+                ["git", "checkout", bo, bn], cwd=repo, stdout=logf, stderr=logf
+            )
         maintainers = set()
         apply_failed = False
         for p in s["patches"]:
             patchf = tempfile.NamedTemporaryFile()
-            patchf.write(p["mbox"].encode('utf-8'))
+            patchf.write(p["mbox"].encode("utf-8"))
             patchf.flush()
             maintainers = maintainers.union(self._get_maintainers(repo, patchf.name))
             if apply_failed:
                 continue
-            if 0 != subprocess.call(["git", "am", "-m", "-3", patchf.name],
-                                    cwd=repo, stdout=logf, stderr=logf):
+            if 0 != subprocess.call(
+                ["git", "am", "-m", "-3", patchf.name],
+                cwd=repo,
+                stdout=logf,
+                stderr=logf,
+            ):
                 logf.flush()
                 logf.write("Failed to apply patch:\n%s" % p["subject"])
                 apply_failed = True
                 continue
             filter_cmd = ""
-            commit_message_lines = \
-                    subprocess.check_output(["git", "log", "-n", "1",
-                                             "--format=%b"], cwd=repo) \
-                                           .decode('utf-8').splitlines()
+            commit_message_lines = (
+                subprocess.check_output(
+                    ["git", "log", "-n", "1", "--format=%b"], cwd=repo
+                )
+                .decode("utf-8")
+                .splitlines()
+            )
             for t in set(p.get("tags", []) + s.get("tags", [])):
                 if t in commit_message_lines:
                     continue
@@ -691,31 +821,51 @@ class ApplyCommand(SubCommand):
                 email = subprocess.check_output(["git", "config", "user.email"])
                 if not (name and email):
                     raise Exception("Git user info not set")
-                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % \
-                        (name.decode().strip(), email.decode().strip())
+                filter_cmd += "echo 'Signed-off-by: %s <%s>'" % (
+                    name.decode().strip(),
+                    email.decode().strip(),
+                )
             if filter_cmd:
-                subprocess.check_output(["git", "filter-branch", "-f",
-                                         "--msg-filter", "cat; " + filter_cmd,
-                                         "HEAD~1.."], cwd=repo)
+                subprocess.check_output(
+                    [
+                        "git",
+                        "filter-branch",
+                        "-f",
+                        "--msg-filter",
+                        "cat; " + filter_cmd,
+                        "HEAD~1..",
+                    ],
+                    cwd=repo,
+                )
         if apply_failed:
             raise ApplyFailedException()
         elif tag:
-            subprocess.check_call(["git", "tag", "-f",
-                                  tag.replace("%m", msgid)], cwd=repo,
-                                  stdout=logf, stderr=logf)
+            subprocess.check_call(
+                ["git", "tag", "-f", tag.replace("%m", msgid)],
+                cwd=repo,
+                stdout=logf,
+                stderr=logf,
+            )
         return list(maintainers)
 
     def _push(self, repo, remote, tag, logf):
-        subprocess.check_call(["git", "remote", "add", "push_to", remote],
-                              cwd=repo, stdout=logf, stderr=logf)
-        subprocess.check_call(["git", "push", "-f", "push_to",
-                               "%s:refs/tags/%s" % (tag, tag)],
-                              cwd=repo, stdout=logf, stderr=logf)
+        subprocess.check_call(
+            ["git", "remote", "add", "push_to", remote],
+            cwd=repo,
+            stdout=logf,
+            stderr=logf,
+        )
+        subprocess.check_call(
+            ["git", "push", "-f", "push_to", "%s:refs/tags/%s" % (tag, tag)],
+            cwd=repo,
+            stdout=logf,
+            stderr=logf,
+        )
 
     def _applier_mode(self, args):
         applier_get_args = {}
         if args.applier_target:
-            applier_get_args['target_repo'] = args.applier_target
+            applier_get_args["target_repo"] = args.applier_target
         toapply = self.api_do("applier-get", **applier_get_args)
         if not toapply:
             print("No series need apply")
@@ -738,9 +888,11 @@ class ApplyCommand(SubCommand):
             branch = toapply["message-id"]
             force_branch = None
             tag = "patchew/" + toapply["message-id"]
-            base = subprocess.check_output(["git", "rev-parse", "HEAD"],
-                                           cwd=wd).decode('utf-8') \
-                    .strip()
+            base = (
+                subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=wd)
+                .decode("utf-8")
+                .strip()
+            )
             maintainers = self._apply(wd, toapply, branch, force_branch, tag, logf)
             if push_repo:
                 self._push(wd, push_repo, tag, logf)
@@ -753,11 +905,17 @@ class ApplyCommand(SubCommand):
             if push_repo:
                 log = log.replace(push_repo, public_repo)
             print(log)
-            self.api_do("applier-report",
-                        project=toapply["project"],
-                        message_id=toapply["message-id"],
-                        tag=None, url=None, base=None, repo=None,
-                        failed=True, log=log)
+            self.api_do(
+                "applier-report",
+                project=toapply["project"],
+                message_id=toapply["message-id"],
+                tag=None,
+                url=None,
+                base=None,
+                repo=None,
+                failed=True,
+                log=log,
+            )
             return 1
         finally:
             shutil.rmtree(wd)
@@ -765,11 +923,18 @@ class ApplyCommand(SubCommand):
         log = logf.read()
         if push_repo:
             log = log.replace(push_repo, public_repo)
-        self.api_do("applier-report",
-                    project=toapply["project"],
-                    message_id=toapply["message-id"],
-                    tag=tag, url=url, base=base, repo=public_repo,
-                    failed=False, log=log, maintainers=maintainers)
+        self.api_do(
+            "applier-report",
+            project=toapply["project"],
+            message_id=toapply["message-id"],
+            tag=tag,
+            url=url,
+            base=base,
+            repo=public_repo,
+            failed=False,
+            log=log,
+            maintainers=maintainers,
+        )
         return 0
 
     def do(self, args, argv):
@@ -792,14 +957,19 @@ class ApplyCommand(SubCommand):
         if not r[0]["is_complete"]:
             print("Series not complete")
             return 1
+
         def mformat(a):
             return a.replace("%m", r[0]["message-id"]) if a else a
+
         try:
-            self._apply(args.repo, r[0],
-                        mformat(args.branch),
-                        mformat(args.force_branch),
-                        mformat(args.tag),
-                        signoff=args.signoff)
+            self._apply(
+                args.repo,
+                r[0],
+                mformat(args.branch),
+                mformat(args.force_branch),
+                mformat(args.tag),
+                signoff=args.signoff,
+            )
             return 0
         except:
             traceback.print_exc()
@@ -807,15 +977,24 @@ class ApplyCommand(SubCommand):
 
 
 def global_args(parser):
-    parser.add_argument("-d", "--debug", action="store_true", default=None,
-                        help="Enable debug output")
-    parser.add_argument("-D", "--nodebug", action="store_false", dest="debug",
-                        help="Disable debug output")
-    parser.add_argument("-s", "--server",
-                        help="Base URL for patchew server")
-    parser.add_argument("-c", "--config",
-                        help="""Config file to use. Default is to look up
-                        .patchew.cfg under current directory and $HOME""")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", default=None, help="Enable debug output"
+    )
+    parser.add_argument(
+        "-D",
+        "--nodebug",
+        action="store_false",
+        dest="debug",
+        help="Disable debug output",
+    )
+    parser.add_argument("-s", "--server", help="Base URL for patchew server")
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="""Config file to use. Default is to look up
+                        .patchew.cfg under current directory and $HOME""",
+    )
+
 
 def args_merge_config(args):
     if not args.config:
@@ -831,6 +1010,7 @@ def args_merge_config(args):
         args.debug = cp.getboolean("general", "debug")
     if args.server == None:
         args.server = cp.get("general", "server")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -863,6 +1043,6 @@ def main():
     except KeyboardInterrupt:
         raise
 
-if __name__ == '__main__':
-    sys.exit(main())
 
+if __name__ == "__main__":
+    sys.exit(main())

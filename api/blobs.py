@@ -21,13 +21,13 @@ def save_blob(data, name=None):
     if not name:
         name = str(uuid.uuid4())
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
-    lzma.open(fn, 'w').write(data.encode("utf-8"))
+    lzma.open(fn, "w").write(data.encode("utf-8"))
     return name
 
 
 def load_blob(name):
     fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
-    return lzma.open(fn, 'r').read().decode("utf-8")
+    return lzma.open(fn, "r").read().decode("utf-8")
 
 
 def delete_blob(name):

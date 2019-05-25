@@ -28,17 +28,17 @@ from api.admin import admin_site
 from django.conf.urls.static import static
 from django.conf import settings
 
-urlpatterns = [
-    url(r'^admin/', admin_site.urls),
-    url(r'^api/', include('api.urls')),
-    url(r'^', include('www.urls')),
-] + static(settings.STATIC_URL,
-           document_root=settings.STATIC_ROOT) \
-  + static(settings.MEDIA_URL,
-           document_root=settings.MEDIA_ROOT)
+urlpatterns = (
+    [
+        url(r"^admin/", admin_site.urls),
+        url(r"^api/", include("api.urls")),
+        url(r"^", include("www.urls")),
+    ]
+    + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+)
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns = [
-        url(r'^__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+
+    urlpatterns = [url(r"^__debug__/", include(debug_toolbar.urls))] + urlpatterns

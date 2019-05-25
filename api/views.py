@@ -64,8 +64,7 @@ class APILoginRequiredView(APIView):
         if request.user.is_superuser:
             return
         for grp in request.user.groups.all():
-            if grp.name in self.allowed_groups or \
-                    self.check_permission(request):
+            if grp.name in self.allowed_groups or self.check_permission(request):
                 return
         raise PermissionDenied()
 
@@ -86,8 +85,9 @@ def prepare_project(p):
         "description": p.description,
         "properties": {},
     }
-    dispatch_module_hook("get_projects_prepare_hook", project=p,
-                         response=ret['properties'])
+    dispatch_module_hook(
+        "get_projects_prepare_hook", project=p, response=ret["properties"]
+    )
 
     return ret
 
@@ -96,8 +96,11 @@ class ListProjectView(APIView):
     name = "get-projects"
 
     def handle(self, request, name=None):
-        r = [prepare_project(x) for x in Project.objects.all()
-             if name is None or name == x.name]
+        r = [
+            prepare_project(x)
+            for x in Project.objects.all()
+            if name is None or name == x.name
+        ]
         return r
 
 
@@ -107,11 +110,13 @@ class AddProjectView(APILoginRequiredView):
     def handle(self, request, name, mailing_list, url, git, description):
         if Project.objects.filter(name=name):
             raise Exception("Project already exists")
-        p = Project(name=name,
-                    mailing_list=mailing_list,
-                    url=url,
-                    git=git,
-                    description=description)
+        p = Project(
+            name=name,
+            mailing_list=mailing_list,
+            url=url,
+            git=git,
+            description=description,
+        )
         p.save()
 
 
@@ -130,12 +135,13 @@ class UpdateProjectHeadView(APILoginRequiredView):
 
 
 def prepare_patch(p):
-    r = {"subject": p.subject,
-         "message-id": p.message_id,
-         "mbox": p.get_mbox(),
-         # For backwards compatibility with old clients
-         "properties": {}
-         }
+    r = {
+        "subject": p.subject,
+        "message-id": p.message_id,
+        "mbox": p.get_mbox(),
+        # For backwards compatibility with old clients
+        "properties": {},
+    }
     return r
 
 
@@ -182,10 +188,14 @@ class ImportView(APILoginRequiredView):
         projects = set()
         for mbox in mboxes:
             try:
-                projects = projects.union([
-                    x.name for x in
-                    Message.objects.add_message_from_mbox(mbox, request.user)
-                ])
+                projects = projects.union(
+                    [
+                        x.name
+                        for x in Message.objects.add_message_from_mbox(
+                            mbox, request.user
+                        )
+                    ]
+                )
             except Message.objects.DuplicateMessageError:
                 pass
         return list(projects)
@@ -193,6 +203,7 @@ class ImportView(APILoginRequiredView):
 
 class DeleteView(APILoginRequiredView):
     """ Delete messages """
+
     name = "delete"
 
     def handle(self, request, terms=[]):
@@ -224,4 +235,4 @@ class LoginCommand(APIView):
             else:
                 raise Exception("User is disabled")
         else:
-                raise PermissionDenied("Wrong user name or password")
+            raise PermissionDenied("Wrong user name or password")

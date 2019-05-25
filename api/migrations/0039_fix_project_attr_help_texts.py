@@ -8,34 +8,53 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('api', '0038_populate_default_groups'),
-    ]
+    dependencies = [("api", "0038_populate_default_groups")]
 
     operations = [
         migrations.AlterField(
-            model_name='project',
-            name='display_order',
-            field=models.IntegerField(default=0, help_text='Order number of the project to display, higher number first'),
+            model_name="project",
+            name="display_order",
+            field=models.IntegerField(
+                default=0,
+                help_text="Order number of the project to display, higher number first",
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='git',
-            field=models.CharField(blank=True, help_text="The git repo of the project. If a branch other than 'master' is desired, add it to the end after a whitespace", max_length=4096),
+            model_name="project",
+            name="git",
+            field=models.CharField(
+                blank=True,
+                help_text="The git repo of the project. If a branch other than 'master' is desired, add it to the end after a whitespace",
+                max_length=4096,
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='mailing_list',
-            field=models.CharField(blank=True, help_text='The mailing list of the project. Will be used to verify if a message belongs to this project', max_length=4096),
+            model_name="project",
+            name="mailing_list",
+            field=models.CharField(
+                blank=True,
+                help_text="The mailing list of the project. Will be used to verify if a message belongs to this project",
+                max_length=4096,
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='parent_project',
-            field=models.ForeignKey(blank=True, help_text='Parent project which this project belongs to. The parent must be a top project which has parent_project=NULL', null=True, on_delete=django.db.models.deletion.CASCADE, to='api.Project'),
+            model_name="project",
+            name="parent_project",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Parent project which this project belongs to. The parent must be a top project which has parent_project=NULL",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="api.Project",
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='prefix_tags',
-            field=models.CharField(blank=True, help_text="Whitespace separated tags that are required to be present messages' prefix. Tags led by '/' are treated with python regex match. Tags led by '!' mean these mustn't exist.", max_length=1024),
+            model_name="project",
+            name="prefix_tags",
+            field=models.CharField(
+                blank=True,
+                help_text="Whitespace separated tags that are required to be present messages' prefix. Tags led by '/' are treated with python regex match. Tags led by '!' mean these mustn't exist.",
+                max_length=1024,
+            ),
         ),
     ]

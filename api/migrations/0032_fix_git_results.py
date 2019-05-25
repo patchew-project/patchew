@@ -7,14 +7,14 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('api', '0031_auto_20180520_1654'),
-    ]
+    dependencies = [("api", "0031_auto_20180520_1654")]
 
     operations = [
         # Due to an error in the migration to populate Results for git, the data
         # field was set to an empty string rather than an empty dictionary.  This
         # has been fixed now in the migration, but the fix is also included as a
         # separate migration in case the buggy data is found in the database.
-        migrations.RunSQL("update api_result set data = '{}' where name='git' and data = '\"\"'")
+        migrations.RunSQL(
+            "update api_result set data = '{}' where name='git' and data = '\"\"'"
+        )
     ]

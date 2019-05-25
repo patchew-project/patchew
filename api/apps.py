@@ -11,9 +11,10 @@ from django.apps import AppConfig
 
 
 class ApiConfig(AppConfig):
-    name = 'api'
+    name = "api"
     verbose_name = "Patchew Core"
 
     def ready(self):
         from mod import load_modules
+
         load_modules()

@@ -26,6 +26,7 @@ tags = Tested-by, Reported-by, Acked-by, Suggested-by
 
 BUILT_IN_TAGS = [REV_BY_PREFIX, BASED_ON_PREFIX]
 
+
 class SeriesTagsModule(PatchewModule):
     """
 
@@ -44,6 +45,7 @@ that should be treated as meaningful patch status tags, and picked up from
 series cover letter, patch mail body and their replies.
 
 """
+
     name = "tags"
     default_config = _default_config
 
@@ -52,9 +54,12 @@ series cover letter, patch mail body and their replies.
         declare_event("TagsUpdate", series="message object that is updated")
 
         # XXX: get this list through module config?
+
     def get_tag_prefixes(self):
         tagsconfig = self.get_config("default", "tags", default="")
-        return set([x.strip() for x in tagsconfig.split(",") if x.strip()] + BUILT_IN_TAGS)
+        return set(
+            [x.strip() for x in tagsconfig.split(",") if x.strip()] + BUILT_IN_TAGS
+        )
 
     def update_tags(self, s):
         old = s.tags
@@ -71,6 +76,7 @@ series cover letter, patch mail body and their replies.
 
         def newer_than(m1, m2):
             return m1.version > m2.version and m1.date >= m2.date
+
         for m in series.get_alternative_revisions():
             if newer_than(m, series):
                 series.is_obsolete = True
@@ -88,11 +94,15 @@ series cover letter, patch mail body and their replies.
 
         reviewers = set()
         num_reviewed = 0
+
         def _find_reviewers(what):
             ret = set()
-            for rev_tag in [x for x in what.tags if x.lower().startswith(REV_BY_PREFIX.lower())]:
-                ret.add(parse_address(rev_tag[len(REV_BY_PREFIX):]))
+            for rev_tag in [
+                x for x in what.tags if x.lower().startswith(REV_BY_PREFIX.lower())
+            ]:
+                ret.add(parse_address(rev_tag[len(REV_BY_PREFIX) :]))
             return ret
+
         for p in series.get_patches():
             first = True
             this_reviewers = _find_reviewers(p)
@@ -132,36 +142,43 @@ series cover letter, patch mail body and their replies.
             return
         if message.get_property("reviewed"):
             reviewers = message.get_property("reviewers")
-            message.status_tags.append({
-                "title": "Reviewed by " + ", ".join([x for x, y in reviewers]),
-                "type": "success",
-                "char": "R",
-                })
+            message.status_tags.append(
+                {
+                    "title": "Reviewed by " + ", ".join([x for x, y in reviewers]),
+                    "type": "success",
+                    "char": "R",
+                }
+            )
         ob = message.get_property("obsoleted-by")
         if ob:
             new = Message.objects.find_series(ob, message.project.name)
             if new is not None:
-                message.status_tags.append({
-                    "title": "Has a newer version: " + new.subject,
-                    "type": "default",
-                    "char": "O",
-                    "row_class": "obsolete"
-                    })
+                message.status_tags.append(
+                    {
+                        "title": "Has a newer version: " + new.subject,
+                        "type": "default",
+                        "char": "O",
+                        "row_class": "obsolete",
+                    }
+                )
 
     def get_obsoleted_by(self, message, request, format):
         obsoleted_by = message.get_property("obsoleted-by")
         if not obsoleted_by:
             return None
-        return rest_framework.reverse.reverse("series-detail",
-                     kwargs={'projects_pk': message.project.id, 'message_id': obsoleted_by},
-                     request=request, format=format)
+        return rest_framework.reverse.reverse(
+            "series-detail",
+            kwargs={"projects_pk": message.project.id, "message_id": obsoleted_by},
+            request=request,
+            format=format,
+        )
 
     def get_reviewers(self, message, request, format):
         reviewers = message.get_property("reviewers", [])
         return [addr_db_to_rest(x) for x in reviewers]
 
     def rest_message_fields_hook(self, request, fields):
-        fields['reviewers'] = PluginMethodField(obj=self, required=False)
+        fields["reviewers"] = PluginMethodField(obj=self, required=False)
 
     def rest_series_fields_hook(self, request, fields, detailed):
-        fields['obsoleted_by'] = PluginMethodField(obj=self, required=False)
+        fields["obsoleted_by"] = PluginMethodField(obj=self, required=False)

@@ -12,7 +12,6 @@ from .patchewtest import PatchewTestCase, main
 
 
 class ProjectTest(PatchewTestCase):
-
     def setUp(self):
         self.admin_user = self.create_superuser()
 
@@ -62,8 +61,8 @@ class ProjectTest(PatchewTestCase):
 
     def test_maintainers(self):
         p = self.add_project("TestProject")
-        u1 = self.create_user(username='buddy', password='abc')
-        u2 = self.create_user(username='mirage', password='def')
+        u1 = self.create_user(username="buddy", password="abc")
+        u2 = self.create_user(username="mirage", password="def")
         u2.is_staff = True
         u2.save()
         p.maintainers.add(u1)
@@ -79,5 +78,5 @@ class ProjectTest(PatchewTestCase):
         self.assertFalse(p.maintained_by(u2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

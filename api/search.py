@@ -21,30 +21,31 @@ from django.db.models.fields import Field
 
 @Field.register_lookup
 class NotEqual(Lookup):
-    lookup_name = 'ne'
+    lookup_name = "ne"
 
     def as_sql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = lhs_params + rhs_params
-        return '%s <> %s' % (lhs, rhs), params
+        return "%s <> %s" % (lhs, rhs), params
 
 
 class InvalidSearchTerm(Exception):
     pass
 
+
 # Hack alert: Django wraps each argument to to_tsvector with a COALESCE function,
 # and that causes postgres not to use the index.  Monkeypatch the constructor
 # to skip that step, which we do not need since the subject field is not nullable.
 class NonNullSearchVector(SearchVector):
-    function = 'to_tsvector'
+    function = "to_tsvector"
     arg_joiner = " || ' ' || "
     _output_field = SearchVectorField()
     config = None
 
     def __init__(self, *expressions, **extra):
         super(SearchVector, self).__init__(*expressions, **extra)
-        self.config = self.extra.get('config', self.config)
+        self.config = self.extra.get("config", self.config)
         self.weight = None
 
 
@@ -202,12 +203,13 @@ Search text keyword in the email message. Example:
     regression
 
 """
+
     def _make_filter_subquery(self, model, q):
-        message_ids = model.objects.filter(q).values('message_id')
+        message_ids = model.objects.filter(q).values("message_id")
         return Q(id__in=message_ids)
 
     def _make_filter_result(self, term, **kwargs):
-        q = Q(name=term, **kwargs) | Q(name__startswith=term + '.', **kwargs)
+        q = Q(name=term, **kwargs) | Q(name__startswith=term + ".", **kwargs)
         return self._make_filter_subquery(MessageResult, q)
 
     def _make_filter_age(self, cond):
@@ -251,14 +253,16 @@ Search text keyword in the email message. Example:
         if cond == "complete":
             return Q(is_complete=True)
         elif cond == "pull":
-            self._add_to_keywords('PULL')
-            return Q(subject__contains='[PULL') | Q(subject__contains='[GIT PULL')
+            self._add_to_keywords("PULL")
+            return Q(subject__contains="[PULL") | Q(subject__contains="[GIT PULL")
         elif cond == "reviewed":
             return Q(is_reviewed=True)
         elif cond in ("obsoleted", "old"):
             return Q(is_obsolete=True)
         elif cond == "applied":
-            return self._make_filter_subquery(MessageResult, Q(name="git", status=Result.SUCCESS))
+            return self._make_filter_subquery(
+                MessageResult, Q(name="git", status=Result.SUCCESS)
+            )
         elif cond == "tested":
             return Q(is_tested=True)
         elif cond == "merged":
@@ -277,21 +281,21 @@ Search text keyword in the email message. Example:
 
     def _make_filter(self, term, user):
         if term.startswith("age:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             return self._make_filter_age(cond)
         elif term[0] in "<>" and len(term) > 1:
             return self._make_filter_age(term)
         elif term.startswith("from:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             return Q(sender__icontains=cond)
         elif term.startswith("to:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             return Q(recipients__icontains=cond)
         elif term.startswith("subject:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             return self._add_to_keywords(cond)
         elif term.startswith("id:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             if cond[0] == "<" and cond[-1] == ">":
                 cond = cond[1:-1]
             return Q(message_id=cond)
@@ -300,7 +304,7 @@ Search text keyword in the email message. Example:
         elif term.startswith("not:"):
             return ~self._make_filter_is(term[4:]) or self._add_to_keywords(term)
         elif term.startswith("has:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             if cond == "replies":
                 return Q(last_comment_date__isnull=False)
             else:
@@ -310,30 +314,41 @@ Search text keyword in the email message. Example:
         elif term.startswith("success:"):
             # What we want is "all results are successes", but the only way to
             # express it is "there is a result and not (any result is not a success)".
-            return self._make_filter_result(term[8:]) \
-                & ~self._make_filter_result(term[8:], status__ne=Result.SUCCESS)
+            return self._make_filter_result(term[8:]) & ~self._make_filter_result(
+                term[8:], status__ne=Result.SUCCESS
+            )
         elif term.startswith("pending:"):
             return self._make_filter_result(term[8:], status=Result.PENDING)
         elif term.startswith("running:"):
             return self._make_filter_result(term[8:], status=Result.RUNNING)
-        elif term.startswith("ack:") or term.startswith("accept:") or term.startswith("accepted:"):
-            username = term[term.find(":") + 1:]
+        elif (
+            term.startswith("ack:")
+            or term.startswith("accept:")
+            or term.startswith("accepted:")
+        ):
+            username = term[term.find(":") + 1 :]
             return self._make_filter_queue(username, user, name="accept")
-        elif term.startswith("nack:") or term.startswith("reject:") or term.startswith("rejected:"):
-            username = term[term.find(":") + 1:]
+        elif (
+            term.startswith("nack:")
+            or term.startswith("reject:")
+            or term.startswith("rejected:")
+        ):
+            username = term[term.find(":") + 1 :]
             return self._make_filter_queue(username, user, name="reject")
         elif term.startswith("review:") or term.startswith("reviewed:"):
-            username = term[term.find(":") + 1:]
-            return self._make_filter_queue(username, user, name__in=["accept", "reject"])
+            username = term[term.find(":") + 1 :]
+            return self._make_filter_queue(
+                username, user, name__in=["accept", "reject"]
+            )
         elif term.startswith("watch:") or term.startswith("watched:"):
-            username = term[term.find(":") + 1:]
+            username = term[term.find(":") + 1 :]
             return self._make_filter_queue(username, user, name="watched")
         elif term.startswith("project:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             self._projects.add(cond)
             return Q(project__name=cond) | Q(project__parent_project__name=cond)
         elif term.startswith("maintained-by:") or term.startswith("maint:"):
-            cond = term[term.find(":") + 1:]
+            cond = term[term.find(":") + 1 :]
             if cond == "me" and user:
                 cond = user.email
             return Q(maintainers__icontains=cond)
@@ -345,8 +360,8 @@ Search text keyword in the email message. Example:
         """ Return a Q object that will be applied to the query """
         is_plusminus = neg = False
         if term[0] in "+-!":
-            neg = (term[0] != "+")
-            is_plusminus = (term[0] != "!")
+            neg = term[0] != "+"
+            is_plusminus = term[0] != "!"
             term = term[1:]
 
         if is_plusminus and ":" not in term:
@@ -368,21 +383,26 @@ Search text keyword in the email message. Example:
         self._last_keywords = []
         self._projects = set()
         q = reduce(
-            lambda x, y: x & y,
-            map(lambda t: self._process_term(t, user), terms),
-            Q()
+            lambda x, y: x & y, map(lambda t: self._process_term(t, user), terms), Q()
         )
         if queryset is None:
             queryset = Message.objects.series_heads()
         if self._last_keywords:
-            if connection.vendor == 'postgresql':
-                queryset = queryset.annotate(subjsearch=NonNullSearchVector('subject', config='english'))
-                searchq = reduce(lambda x, y: x & y,
-                                 map(lambda x: SearchQuery(x, config='english'), self._last_keywords))
+            if connection.vendor == "postgresql":
+                queryset = queryset.annotate(
+                    subjsearch=NonNullSearchVector("subject", config="english")
+                )
+                searchq = reduce(
+                    lambda x, y: x & y,
+                    map(
+                        lambda x: SearchQuery(x, config="english"), self._last_keywords
+                    ),
+                )
                 q = q & Q(subjsearch=searchq)
             else:
-                q = reduce(lambda x, y: x & Q(subject__icontains=y),
-                           self._last_keywords, q)
+                q = reduce(
+                    lambda x, y: x & Q(subject__icontains=y), self._last_keywords, q
+                )
 
         return queryset.filter(q)
 
@@ -390,4 +410,3 @@ Search text keyword in the email message. Example:
         queryset = Message.objects.filter(id=message.id)
         terms = [x.strip() for x in query.split() if x.strip()]
         return self.search_series(*terms, queryset=queryset).first()
-

@@ -17,10 +17,12 @@ import traceback
 import configparser
 import schema
 
+
 class PatchewModule(object):
     """ Module base class """
-    name = None # The name of the module, must be unique
-    default_config = "" # The default config string
+
+    name = None  # The name of the module, must be unique
+    default_config = ""  # The default config string
     project_config_schema = None
 
     def get_model(self):
@@ -53,54 +55,81 @@ class PatchewModule(object):
         schema_html = self._build_one(request, project, "", {}, scm.item)
         item = {"html": schema_html}
         config = config or {}
-        items = [{
-            "name": name,
-            "html": self._build_one(request, project, prefix + "." + name,
-                                    value, scm.item)} for name, value in config.items()]
-        return self._render_template(request, project, TMPL_MAP,
-                                     schema=scm,
-                                     item_schema=scm.item,
-                                     prefix=prefix,
-                                     items=items,
-                                     item=item)
+        items = [
+            {
+                "name": name,
+                "html": self._build_one(
+                    request, project, prefix + "." + name, value, scm.item
+                ),
+            }
+            for name, value in config.items()
+        ]
+        return self._render_template(
+            request,
+            project,
+            TMPL_MAP,
+            schema=scm,
+            item_schema=scm.item,
+            prefix=prefix,
+            items=items,
+            item=item,
+        )
 
     def _build_array_scm(self, request, project, prefix, config, scm):
         config = config or {}
-        members = [self._build_one(request, project,
-                                   prefix + "." + x.name,
-                                   config.get(x.name), x) for x in scm.members]
-        return self._render_template(request, project, TMPL_ARRAY,
-                                     schema=scm,
-                                     members=members,
-                                     prefix=prefix)
+        members = [
+            self._build_one(
+                request, project, prefix + "." + x.name, config.get(x.name), x
+            )
+            for x in scm.members
+        ]
+        return self._render_template(
+            request, project, TMPL_ARRAY, schema=scm, members=members, prefix=prefix
+        )
 
     def _build_string_scm(self, request, project, prefix, config, scm):
-        return self._render_template(request, project, TMPL_STRING,
-                                     schema=scm,
-                                     name=scm.name,
-                                     prefix=prefix,
-                                     value=config or '')
+        return self._render_template(
+            request,
+            project,
+            TMPL_STRING,
+            schema=scm,
+            name=scm.name,
+            prefix=prefix,
+            value=config or "",
+        )
 
     def _build_integer_scm(self, request, project, prefix, config, scm):
-        return self._render_template(request, project, TMPL_INTEGER,
-                                     schema=scm,
-                                     name=scm.name,
-                                     prefix=prefix,
-                                     value=config or 0)
+        return self._render_template(
+            request,
+            project,
+            TMPL_INTEGER,
+            schema=scm,
+            name=scm.name,
+            prefix=prefix,
+            value=config or 0,
+        )
 
     def _build_boolean_scm(self, request, project, prefix, config, scm):
-        return self._render_template(request, project, TMPL_BOOLEAN,
-                                     schema=scm,
-                                     name=scm.name,
-                                     prefix=prefix,
-                                     value=config or False)
+        return self._render_template(
+            request,
+            project,
+            TMPL_BOOLEAN,
+            schema=scm,
+            name=scm.name,
+            prefix=prefix,
+            value=config or False,
+        )
 
     def _build_enum_scm(self, request, project, prefix, config, scm):
-        return self._render_template(request, project, TMPL_ENUM,
-                                     schema=scm,
-                                     name=scm.name,
-                                     prefix=prefix,
-                                     value=config)
+        return self._render_template(
+            request,
+            project,
+            TMPL_ENUM,
+            schema=scm,
+            name=scm.name,
+            prefix=prefix,
+            value=config,
+        )
 
     def _build_one(self, request, project, prefix, config, scm):
         if type(scm) == schema.MapSchema:
@@ -126,20 +155,25 @@ class PatchewModule(object):
     def get_project_config(self, project):
         return project.config.get(self.project_config_schema.name, {})
 
+
 _loaded_modules = {}
+
 
 def _module_init_config(cls):
     from api.models import Module
-    mod, _ = Module.objects.get_or_create(name=cls.name,
-                 defaults={ 'config': cls.default_config.strip() })
+
+    mod, _ = Module.objects.get_or_create(
+        name=cls.name, defaults={"config": cls.default_config.strip()}
+    )
     return mod
+
 
 def load_modules():
     _module_path = settings.MODULE_DIR
     sys.path.append(_module_path)
     for f in os.listdir(_module_path):
         if f.endswith(".py"):
-            pn = f[:-len(".py")]
+            pn = f[: -len(".py")]
             try:
                 imp.load_source(pn, os.path.join(_module_path, f))
             except:
@@ -148,6 +182,7 @@ def load_modules():
         if cls.name not in _loaded_modules:
             _loaded_modules[cls.name] = cls()
             print("Loaded module:", cls.name)
+
 
 def dispatch_module_hook(hook_name, **params):
     for i in _loaded_modules.values():
@@ -158,8 +193,10 @@ def dispatch_module_hook(hook_name, **params):
                 print("Cannot invoke module hook: %s.%s" % (i, hook_name))
                 traceback.print_exc()
 
+
 def get_module(name):
     return _loaded_modules.get(name)
+
 
 TMPL_STRING = """
 <div class="form-group">
@@ -222,7 +259,8 @@ TMPL_ENUM_DESC = """
 </div>
 """
 
-TMPL_ENUM = """
+TMPL_ENUM = (
+    """
 <div class="form-group">
     <label for="{{ module.name }}-input-{{ schema.name }}">{{ schema.title }}</label>
     <select class="form-control project-property"
@@ -243,17 +281,22 @@ TMPL_ENUM = """
     <div class="form-group enum-desc">
     {% for opt, desc in schema.enums.items %}
       {% if opt == value %}
-""" + TMPL_ENUM_DESC + """
+"""
+    + TMPL_ENUM_DESC
+    + """
       {% endif %}
     {% endfor %}
     </div>
     {% for opt, desc in schema.enums.items %}
         <div class="hidden enum-desc-{{ opt }}">
-""" + TMPL_ENUM_DESC + """
+"""
+    + TMPL_ENUM_DESC
+    + """
         </div>
     {% endfor %}
 </div>
 """
+)
 
 TMPL_ARRAY = """
 {% for schema in members %}
@@ -279,14 +322,19 @@ TMPL_MAP_ITEM = """
 </div>
 """
 
-TMPL_MAP = """
+TMPL_MAP = (
+    """
 <div>
     <script class="item-template" type="text/x-custom-template">
-    """ + TMPL_MAP_ITEM + """
+    """
+    + TMPL_MAP_ITEM
+    + """
     </script>
     <div class="items">
         {% for item in items %}
-        """ + TMPL_MAP_ITEM + """
+        """
+    + TMPL_MAP_ITEM
+    + """
         {% endfor %}
     </div>
     <div class="form-group">
@@ -297,3 +345,4 @@ TMPL_MAP = """
     </div>
 </div>
 """
+)

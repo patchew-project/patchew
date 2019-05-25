@@ -7,17 +7,18 @@ import email.header
 
 
 def _parse_header(header):
-    r = ''
+    r = ""
     for h, c in email.header.decode_header(header):
         if isinstance(h, bytes):
-            h = h.decode(c or 'utf-8', 'replace')
+            h = h.decode(c or "utf-8", "replace")
         r += h
     return r
+
 
 def fix_utf8_recipients(apps, schema_editor):
     # We can't import the models directly as they may be a newer
     # version than this migration expects. We use the historical version.
-    Message = apps.get_model('api', 'Message')
+    Message = apps.get_model("api", "Message")
     msgs = Message.objects.all()
     msgs = msgs.filter(recipients__contains="?")
     for m in msgs:
@@ -26,13 +27,13 @@ def fix_utf8_recipients(apps, schema_editor):
         m.recipients = json.dumps(recipients)
         m.save()
 
+
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('api', '0020_auto_20180204_0647'),
-    ]
+    dependencies = [("api", "0020_auto_20180204_0647")]
 
     operations = [
-        migrations.RunPython(fix_utf8_recipients,
-                             reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            fix_utf8_recipients, reverse_code=migrations.RunPython.noop
+        )
     ]

@@ -15,12 +15,12 @@ from .patchewtest import PatchewTestCase, main
 
 
 class ProjectTest(PatchewTestCase):
-
     def setUp(self):
         self.create_superuser()
 
     def test_0_second(self):
         from api.models import Message
+
         message = Message()
         message.date = datetime.datetime.utcnow()
         age = message.get_age()
@@ -28,6 +28,7 @@ class ProjectTest(PatchewTestCase):
 
     def test_now(self):
         from api.models import Message
+
         message = Message()
         dt = datetime.datetime.fromtimestamp(time.time() + 100)
         message.date = dt
@@ -36,6 +37,7 @@ class ProjectTest(PatchewTestCase):
 
     def test_1_day(self):
         from api.models import Message
+
         message = Message()
         dt = datetime.datetime.fromtimestamp(time.time() - 3600 * 25)
         message.date = dt
@@ -44,6 +46,7 @@ class ProjectTest(PatchewTestCase):
 
     def test_asctime(self):
         from api.models import Message
+
         message = Message()
         dt = datetime.datetime(2016, 10, 22, 10, 16, 40)
         message.date = dt
@@ -57,5 +60,5 @@ class ProjectTest(PatchewTestCase):
         self.assertEqual(asctime, "Sat Oct 22 9:06:04 2016")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

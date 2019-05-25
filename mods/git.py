@@ -18,7 +18,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
 from mod import PatchewModule
 from event import declare_event, register_handler
-from api.models import (Message, Project, Result)
+from api.models import Message, Project, Result
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
 from patchew.logviewer import LogView
@@ -28,21 +28,25 @@ from rest_framework.fields import CharField, SerializerMethodField
 
 _instance = None
 
+
 def _get_git_result(msg):
     try:
         return msg.results.get(name="git")
     except:
         return None
+
+
 Message.git_result = property(_get_git_result)
 
 
 class GitLogViewer(LogView):
     def get_result(self, request, **kwargs):
-        series = kwargs['series']
+        series = kwargs["series"]
         obj = Message.objects.find_series(series)
         if not obj:
             raise Http404("Object not found: " + series)
         return obj.git_result
+
 
 class ResultDataSerializer(serializers.Serializer):
     # TODO: should be present iff the result is success or failure
@@ -53,25 +57,32 @@ class ResultDataSerializer(serializers.Serializer):
     url = CharField(required=False)
     tag = CharField(required=False)
 
+
 class GitModule(PatchewModule):
     """Git module"""
 
     name = "git"
-    allowed_groups = ('importers', )
+    allowed_groups = ("importers",)
     result_data_serializer_class = ResultDataSerializer
 
-    project_config_schema = \
-        schema.ArraySchema("git", desc="Configuration for git module",
-                    members=[
-                        schema.StringSchema("push_to", "Push remote",
-                                     desc="Remote to push to",
-                                     required=True),
-                        schema.StringSchema("public_repo", "Public repo",
-                                     desc="Publicly visible repo URL"),
-                        schema.StringSchema("url_template", "URL template",
-                                     desc="Publicly visible URL template for applied branch, where %t will be replaced by the applied tag name",
-                                     required=True),
-                   ])
+    project_config_schema = schema.ArraySchema(
+        "git",
+        desc="Configuration for git module",
+        members=[
+            schema.StringSchema(
+                "push_to", "Push remote", desc="Remote to push to", required=True
+            ),
+            schema.StringSchema(
+                "public_repo", "Public repo", desc="Publicly visible repo URL"
+            ),
+            schema.StringSchema(
+                "url_template",
+                "URL template",
+                desc="Publicly visible URL template for applied branch, where %t will be replaced by the applied tag name",
+                required=True,
+            ),
+        ],
+    )
 
     def __init__(self):
         global _instance
@@ -85,7 +96,7 @@ class GitModule(PatchewModule):
         register_handler("TagsUpdate", self.on_series_update)
 
     def mark_as_pending_apply(self, series):
-        r = series.git_result or series.create_result(name='git')
+        r = series.git_result or series.create_result(name="git")
         r.log = None
         r.status = Result.PENDING
         r.data = {}
@@ -98,9 +109,12 @@ class GitModule(PatchewModule):
     def _is_repo(self, path):
         if not os.path.isdir(path):
             return False
-        if 0 != subprocess.call(["git", "rev-parse", "--is-bare-repository"],
-                                cwd=path,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+        if 0 != subprocess.call(
+            ["git", "rev-parse", "--is-bare-repository"],
+            cwd=path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ):
             return False
         return True
 
@@ -121,10 +135,10 @@ class GitModule(PatchewModule):
         return response
 
     def rest_project_fields_hook(self, request, fields):
-        fields['mirror'] = PluginMethodField(obj=self, required=False)
+        fields["mirror"] = PluginMethodField(obj=self, required=False)
 
     def rest_series_fields_hook(self, request, fields, detailed):
-        fields['based_on'] = PluginMethodField(obj=self, required=False)
+        fields["based_on"] = PluginMethodField(obj=self, required=False)
 
     def get_projects_prepare_hook(self, project, response):
         response["git.head"] = project.get_property("git.head")
@@ -139,36 +153,42 @@ class GitModule(PatchewModule):
         if r and r.is_completed():
             if r.is_failure():
                 title = "Failed in applying to current master"
-                message.status_tags.append({
-                    "title": title,
-                    "type": "default",
-                    "char": "G",
-                    })
+                message.status_tags.append(
+                    {"title": title, "type": "default", "char": "G"}
+                )
             else:
-                git_url = r.data.get('url')
+                git_url = r.data.get("url")
                 if git_url:
-                    git_repo = r.data['repo']
-                    git_tag = r.data['tag']
-                    message.status_tags.append({
-                        "url": git_url,
-                        "title": format_html("Applied as tag {} in repo {}", git_tag, git_repo),
-                        "type": "info",
-                        "char": "G",
-                        })
+                    git_repo = r.data["repo"]
+                    git_tag = r.data["tag"]
+                    message.status_tags.append(
+                        {
+                            "url": git_url,
+                            "title": format_html(
+                                "Applied as tag {} in repo {}", git_tag, git_repo
+                            ),
+                            "type": "info",
+                            "char": "G",
+                        }
+                    )
                 else:
-                    message.status_tags.append({
-                        "title": format_html("Patches applied successfully"),
-                        "type": "info",
-                        "char": "G",
-                        })
+                    message.status_tags.append(
+                        {
+                            "title": format_html("Patches applied successfully"),
+                            "type": "info",
+                            "char": "G",
+                        }
+                    )
             if request.user.is_authenticated:
-                url = reverse("git_reset",
-                              kwargs={"series": message.message_id})
-                message.extra_ops.append({"url": url,
-                                          "icon": "refresh",
-                                          "title": "Git reset",
-                                          "class": "warning",
-                                         })
+                url = reverse("git_reset", kwargs={"series": message.message_id})
+                message.extra_ops.append(
+                    {
+                        "url": url,
+                        "icon": "refresh",
+                        "title": "Git reset",
+                        "class": "warning",
+                    }
+                )
 
     def render_result(self, result):
         if not result.is_completed():
@@ -176,44 +196,55 @@ class GitModule(PatchewModule):
 
         log_url = result.get_log_url()
         html_log_url = log_url + "?html=1"
-        colorbox_a = format_html('<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
-                                 html_log_url, log_url)
+        colorbox_a = format_html(
+            '<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
+            html_log_url,
+            log_url,
+        )
         if result.is_failure():
-            return format_html('Failed in applying to current master ({})', colorbox_a)
+            return format_html("Failed in applying to current master ({})", colorbox_a)
         else:
-            if 'url' in result.data:
-                s = format_html('<a href="{}">tree</a>, {}', result.data['url'], colorbox_a)
+            if "url" in result.data:
+                s = format_html(
+                    '<a href="{}">tree</a>, {}', result.data["url"], colorbox_a
+                )
             else:
                 s = colorbox_a
-            s = format_html('Patches applied successfully ({})', s)
-            if 'repo' in result.data and 'tag' in result.data:
-                git_repo = result.data['repo']
-                git_tag = result.data['tag']
-                if git_tag.startswith('refs/tags/'):
+            s = format_html("Patches applied successfully ({})", s)
+            if "repo" in result.data and "tag" in result.data:
+                git_repo = result.data["repo"]
+                git_tag = result.data["tag"]
+                if git_tag.startswith("refs/tags/"):
                     git_tag = git_tag[5:]
-                s += format_html('<br/><samp>git fetch {} {}</samp>', git_repo, git_tag)
+                s += format_html("<br/><samp>git fetch {} {}</samp>", git_repo, git_tag)
             return s
 
     def get_result_log_url(self, result):
-        return reverse("git-log", kwargs={'series': result.obj.message_id})
+        return reverse("git-log", kwargs={"series": result.obj.message_id})
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
             return
-        project.extra_info.append({"title": "Git configuration",
-                                   "class": "info",
-                                   "content_html": self.build_config_html(request,
-                                                                          project)})
+        project.extra_info.append(
+            {
+                "title": "Git configuration",
+                "class": "info",
+                "content_html": self.build_config_html(request, project),
+            }
+        )
 
     def get_base(self, series):
         for tag in series.tags:
             if not tag.startswith("Based-on:"):
                 continue
-            base_id = tag[len("Based-on:"):].strip()
+            base_id = tag[len("Based-on:") :].strip()
             if base_id.startswith("<") and base_id.endswith(">"):
                 base_id = base_id[1:-1]
-            base = Message.objects.series_heads().\
-                    filter(project=series.project, message_id=base_id).first()
+            base = (
+                Message.objects.series_heads()
+                .filter(project=series.project, message_id=base_id)
+                .first()
+            )
             if not base:
                 return None
             r = base.git_result
@@ -226,39 +257,52 @@ class GitModule(PatchewModule):
         if not obj:
             raise Http404("Not found: " + series)
         self.mark_as_pending_apply(obj)
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def www_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^git-reset/(?P<series>.*)/",
-                               self.www_view_git_reset,
-                               name="git_reset"))
-        urlpatterns.append(url(r"^logs/(?P<series>.*)/git/",
-                               GitLogViewer.as_view(),
-                               name="git-log"))
+        urlpatterns.append(
+            url(
+                r"^git-reset/(?P<series>.*)/", self.www_view_git_reset, name="git_reset"
+            )
+        )
+        urlpatterns.append(
+            url(r"^logs/(?P<series>.*)/git/", GitLogViewer.as_view(), name="git-log")
+        )
 
     def api_url_hook(self, urlpatterns):
-        urlpatterns.append(url(r"^v1/series/unapplied/$",
-                               UnappliedSeriesView.as_view(),
-                               name="unapplied"))
+        urlpatterns.append(
+            url(
+                r"^v1/series/unapplied/$",
+                UnappliedSeriesView.as_view(),
+                name="unapplied",
+            )
+        )
 
     def pending_series(self, target_repo):
         q = Message.objects.filter(results__name="git", results__status="pending")
-        if target_repo is not None and target_repo != '':
+        if target_repo is not None and target_repo != "":
             # Postgres could use JSON fields instead.  Fortunately projects are
             # few so this is cheap
             def match_target_repo(config, target_repo):
-                push_to = config.get('git', {}).get('push_to')
+                push_to = config.get("git", {}).get("push_to")
                 if push_to is None:
                     return False
-                if target_repo[-1] != '/':
-                    return push_to == target_repo or push_to.startswith(target_repo + '/')
+                if target_repo[-1] != "/":
+                    return push_to == target_repo or push_to.startswith(
+                        target_repo + "/"
+                    )
                 else:
                     return push_to.startswith(target_repo)
 
-            projects = Project.objects.values_list('id', 'config').all()
-            projects = [pid for pid, config in projects if match_target_repo(config, target_repo)]
+            projects = Project.objects.values_list("id", "config").all()
+            projects = [
+                pid
+                for pid, config in projects
+                if match_target_repo(config, target_repo)
+            ]
             q = q.filter(project__pk__in=projects)
         return q
+
 
 class ApplierGetView(APILoginRequiredView):
     name = "applier-get"
@@ -269,8 +313,11 @@ class ApplierGetView(APILoginRequiredView):
         if not m:
             return None
 
-        response = prepare_series(request, m, fields=["project", "message-id", "patches",
-                                                      "properties", "tags"])
+        response = prepare_series(
+            request,
+            m,
+            fields=["project", "message-id", "patches", "properties", "tags"],
+        )
 
         po = m.project
         config = _instance.get_project_config(po)
@@ -281,12 +328,11 @@ class ApplierGetView(APILoginRequiredView):
             response["git.repo"] = base.data["repo"]
             response["git.base"] = base.data["tag"]
         response["project.git"] = po.git
-        response["mbox_uri"] = rest_framework.reverse.reverse("series-mbox",
-                                                              kwargs={
-                                                                  'projects_pk': m.project_id,
-                                                                  'message_id': m.message_id,
-                                                              },
-                                                              request=request)
+        response["mbox_uri"] = rest_framework.reverse.reverse(
+            "series-mbox",
+            kwargs={"projects_pk": m.project_id, "message_id": m.message_id},
+            request=request,
+        )
         response["result_uri"] = reverse_detail(m.git_result, request)
         return response
 
@@ -294,20 +340,21 @@ class ApplierGetView(APILoginRequiredView):
 class UnappliedSeriesSerializer(SeriesSerializer):
     class Meta:
         model = Message
-        fields = SeriesSerializer.Meta.fields + ('mirror', 'result_uri')
+        fields = SeriesSerializer.Meta.fields + ("mirror", "result_uri")
 
     mirror = SerializerMethodField()
     result_uri = SerializerMethodField()
 
     def get_result_uri(self, obj):
-        request = self.context['request']
+        request = self.context["request"]
         return reverse_detail(obj.git_result, request)
 
     def get_mirror(self, obj):
-        request = self.context['request']
+        request = self.context["request"]
         mirror = _instance.get_mirror(obj.project, request, None)
-        mirror['source'] = obj.project.git
+        mirror["source"] = obj.project.git
         return mirror
+
 
 class UnappliedSeriesView(generics.ListAPIView):
     name = "unapplied"
@@ -316,15 +363,30 @@ class UnappliedSeriesView(generics.ListAPIView):
     def get_queryset(self, target_repo=None):
         return _instance.pending_series(target_repo)
 
+
 class ApplierReportView(APILoginRequiredView):
     name = "applier-report"
     allowed_groups = ["importers"]
 
-    def handle(self, request, project, message_id, tag, url, base, repo,
-               failed, log, maintainers=[]):
+    def handle(
+        self,
+        request,
+        project,
+        message_id,
+        tag,
+        url,
+        base,
+        repo,
+        failed,
+        log,
+        maintainers=[],
+    ):
         p = Project.objects.get(name=project)
-        r = Message.objects.series_heads().get(project=p,
-                                               message_id=message_id).git_result
+        r = (
+            Message.objects.series_heads()
+            .get(project=p, message_id=message_id)
+            .git_result
+        )
         r.log = log
         r.message.maintainers = maintainers
         r.message.save()
@@ -332,17 +394,17 @@ class ApplierReportView(APILoginRequiredView):
         if failed:
             r.status = Result.FAILURE
         else:
-            data['repo'] = repo
-            data['tag'] = 'refs/tags/' + tag
+            data["repo"] = repo
+            data["tag"] = "refs/tags/" + tag
             if url:
-                data['url'] = url
+                data["url"] = url
             elif tag:
                 config = _instance.get_project_config(p)
                 url_template = config.get("url_template")
                 if url_template:
-                    data['url'] = url_template.replace("%t", tag)
+                    data["url"] = url_template.replace("%t", tag)
             if base:
-                data['base'] = base
+                data["base"] = base
             r.status = Result.SUCCESS
         r.data = data
         r.save()

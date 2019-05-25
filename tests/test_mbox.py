@@ -14,7 +14,6 @@ from .patchewtest import PatchewTestCase, main
 
 
 class MboxTest(PatchewTestCase):
-
     def test_multipart_in_multipart(self):
         expected = """
 On 07/25/2017 10:57 AM, Jeff Cody wrote:
@@ -55,21 +54,24 @@ Virtualization:  qemu.org | libvirt.org
         dp = self.get_data_path("0001-simple-patch.mbox.gz")
         with open(dp, "r") as f:
             content = f.read()
-            expected = {'message_id': '20160628014747.20971-1-famz@redhat.com',
-                        'in_reply_to': '',
-                        'date': '2016-06-28T01:47:47',
-                        'subject': '[Qemu-devel] [PATCH] quorum: Only compile when supported',
-                        'sender': {'name': 'Fam Zheng', 'address': 'famz@redhat.com'},
-                        'recipients': [{'address': 'qemu-devel@nongnu.org'},
-                                       {'name': 'Kevin Wolf', 'address': 'kwolf@redhat.com'},
-                                       {'name': 'Alberto Garcia', 'address': 'berto@igalia.com'},
-                                       {'address': 'qemu-block@nongnu.org'},
-                                       {'name': 'Max Reitz', 'address': 'mreitz@redhat.com'}],
-                        'mbox': content
-                        }
+            expected = {
+                "message_id": "20160628014747.20971-1-famz@redhat.com",
+                "in_reply_to": "",
+                "date": "2016-06-28T01:47:47",
+                "subject": "[Qemu-devel] [PATCH] quorum: Only compile when supported",
+                "sender": {"name": "Fam Zheng", "address": "famz@redhat.com"},
+                "recipients": [
+                    {"address": "qemu-devel@nongnu.org"},
+                    {"name": "Kevin Wolf", "address": "kwolf@redhat.com"},
+                    {"name": "Alberto Garcia", "address": "berto@igalia.com"},
+                    {"address": "qemu-block@nongnu.org"},
+                    {"name": "Max Reitz", "address": "mreitz@redhat.com"},
+                ],
+                "mbox": content,
+            }
             msg = mbox.MboxMessage(content).get_json()
         self.assertEqual(msg, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

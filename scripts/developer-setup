@@ -27,6 +27,7 @@ else
   export PYTHONPATH=.
   run tar xf patchew-db-small.tar.xz
   run pip install -r requirements.txt
+  run pip install black
   run easy_install gunicorn
   run ./manage.py migrate --noinput
   run ./manage.py collectstatic --noinput

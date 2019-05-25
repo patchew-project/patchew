@@ -15,6 +15,7 @@ _default_config = """
 
 """
 
+
 class FooterModule(PatchewModule):
     """
 
@@ -27,6 +28,7 @@ useful to add statistic code, etc..
 The config is the raw HTML code to inject.
 
 """
+
     name = "footer"
     default_config = _default_config
 
