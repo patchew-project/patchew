@@ -50,7 +50,7 @@ def result_from_properties(apps, schema_editor):
                 r.status = api.models.Result.SUCCESS
             r.data = data
         else:
-            status = api.models.Result.PENDING
+            r.status = api.models.Result.PENDING
         r.last_update = datetime.datetime.utcnow()
         r.save()
     messages = Message.objects.filter(properties__name='git.apply-log', properties__blob=True)
@@ -64,7 +64,6 @@ def result_to_properties(apps, schema_editor):
     Message = apps.get_model('api', 'Message')
     MessageProperty = apps.get_model('api', 'MessageProperty')
     MessageResult = apps.get_model('api', 'MessageResult')
-    LogEntry = apps.get_model('api', 'LogEntry')
     messages = Message.objects.filter(results__name='git')
     for m in messages:
         r = MessageResult.objects.get(name='git', message=m)

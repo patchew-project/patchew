@@ -27,7 +27,6 @@ def maintainers_to_property(apps, schema_editor):
     # version than this migration expects. We use the historical version.
     Project = apps.get_model('api', 'Project')
     ProjectProperty = apps.get_model('api', 'ProjectProperty')
-    User = apps.get_model('auth', 'User')
     projects = Project.objects. \
         annotate(maintainer_count=Count('maintainers')). \
         filter(maintainer_count__gt=0)

@@ -302,7 +302,6 @@ class TestingModule(PatchewModule):
                     html_log_url=html_log_url, is_timeout=is_timeout)
 
     def get_tests(self, obj):
-        ret = {}
         if isinstance(obj, Message):
             obj = obj.project
         return self.get_project_config(obj).get("tests", {})

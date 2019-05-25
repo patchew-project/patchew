@@ -72,7 +72,6 @@ class MboxMessage(object):
            only to prepend Re:, return an empty str
            strip_re: drop leading "Re:" prefixes"""
         def do_strip_tags(t):
-            diff_stats = t.strip()
             while t.startswith("[") and "]" in t:
                 t = t[t.find("]") + 1:].strip()
             return t
