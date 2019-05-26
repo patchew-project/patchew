@@ -241,16 +241,14 @@ class MaintainerModule(PatchewModule):
                 if q.query == context_data.get("search"):
                     context_data["is_watched_query"] = True
 
+    @method_decorator(www_authenticated_op)
     def www_view_watch_query(self, request):
-        if not request.user.is_authenticated:
-            raise PermissionDenied()
-        query = request.GET.get("q")
+        query = request.POST.get("q")
         if not query:
             return HttpResponseBadRequest("Invalid query")
         WatchedQuery.objects.update_or_create(
             defaults={"query": query}, user=request.user
         )
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(
