@@ -41,7 +41,7 @@ def git_head():
     return a or subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
 
 
-def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
+def git_fetch_into_cache(remote, head, logf=sys.stdout):
     cache_repo = os.path.join(
         os.path.expanduser("~/.cache/patchew-git-cache"),
         "".join([x for x in remote if x.isalnum()])
@@ -86,10 +86,12 @@ def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
             stdout=logf,
             stderr=logf,
         )
-    clone_cmd = ["git", "clone", "-q"]
-    if recursive:
-        clone_cmd += ["--recursive"]
-    clone_cmd += [cache_repo, clone]
+    return cache_repo
+
+
+def git_clone_repo(clone, remote, head, logf=sys.stdout):
+    cache_repo = git_fetch_into_cache(remote, head, logf)
+    clone_cmd = ["git", "clone", "-q", cache_repo, clone]
     subprocess.check_call(clone_cmd, stderr=logf, stdout=logf)
     subprocess.check_call(
         [
@@ -113,10 +115,9 @@ def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
         stdout=logf,
         stderr=logf,
     )
-    if checkout:
-        subprocess.check_call(
-            ["git", "checkout", head, "-b", "test"], stderr=logf, stdout=logf, cwd=clone
-        )
+    subprocess.check_call(
+        ["git", "checkout", head, "-b", "test"], stderr=logf, stdout=logf, cwd=clone
+    )
 
 
 def http_get(url):
@@ -684,7 +685,7 @@ class TesterCommand(SubCommand):
         is_timeout = False
         try:
             clone = os.path.join(wd, "src")
-            git_clone_repo(clone, r["repo"], r["head"], logf, True)
+            git_clone_repo(clone, r["repo"], r["head"], logf)
             base = r["base"]
             if base:
                 subprocess.check_call(
@@ -1085,14 +1086,14 @@ class ApplyCommand(SubCommand):
             based_on = toapply.get("based_on") or {}
             if based_on.get("repo"):
                 remote, head = based_on["repo"], based_on["tag"]
-                git_clone_repo(wd, remote, head, sys.stdout)
+                git_clone_repo(wd, remote, head)
             else:
                 project_git = toapply["mirror"]["source"]
                 if " " in project_git:
                     remote, head = project_git.split(" ", 2)
                 else:
                     remote, head = project_git, "master"
-                git_clone_repo(wd, remote, "origin/" + head, sys.stdout)
+                git_clone_repo(wd, remote, "origin/" + head)
             branch = message_id
             force_branch = None
             tag = "patchew/" + message_id
