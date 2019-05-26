@@ -246,17 +246,28 @@ class TestingModule(PatchewModule):
                 r.delete()
         self.recalc_pending_tests(obj)
 
-    def www_view_testing_reset(self, request, project_or_series):
+    def www_view_project_testing_reset(self, request, project):
         if not request.user.is_authenticated:
             return HttpResponseForbidden()
-        if request.GET.get("type") == "project":
-            obj = Project.objects.filter(name=project_or_series).first()
-            if not obj.maintained_by(request.user):
-                raise PermissionDenied()
-        else:
-            obj = Message.objects.find_series(project_or_series)
+        obj = Project.objects.filter(name=project).first()
+        if not obj.maintained_by(request.user):
+            raise PermissionDenied()
         if not obj:
-            raise Http404("Not found: " + project_or_series)
+            raise Http404("Not found: " + project)
+        self.clear_and_start_testing(obj, request.GET.get("test", ""))
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+
+    def www_view_series_testing_reset(self, request, project, series):
+        if not request.user.is_authenticated:
+            return HttpResponseForbidden()
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Http404("Not found: " + project)
+        if not po.maintained_by(request.user):
+            raise PermissionDenied()
+        obj = Message.objects.find_series(series, project)
+        if not obj:
+            raise Http404("Not found: " + series)
         self.clear_and_start_testing(obj, request.GET.get("test", ""))
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
@@ -274,9 +285,16 @@ class TestingModule(PatchewModule):
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(
             url(
-                r"^testing-reset/(?P<project_or_series>.*)/",
-                self.www_view_testing_reset,
-                name="testing-reset",
+                r"^(?P<project>[^/]*)/testing-reset/",
+                self.www_view_project_testing_reset,
+                name="project-testing-reset",
+            )
+        )
+        urlpatterns.append(
+            url(
+                r"^(?P<project>[^/]*)/(?P<series>.*)/testing-reset/",
+                self.www_view_series_testing_reset,
+                name="series-testing-reset",
             )
         )
         urlpatterns.append(
@@ -387,13 +405,13 @@ class TestingModule(PatchewModule):
 
     def _build_reset_ops(self, obj):
         if isinstance(obj, Message):
-            typearg = "type=message"
-            url = reverse("testing-reset", kwargs={"project_or_series": obj.message_id})
+            url = reverse(
+                "series-testing-reset",
+                kwargs={"project": obj.project.name, "series": obj.message_id},
+            )
         else:
             assert isinstance(obj, Project)
-            url = reverse("testing-reset", kwargs={"project_or_series": obj.name})
-            typearg = "type=project"
-        url += "?" + typearg
+            url = reverse("project-testing-reset", kwargs={"project": obj.name})
         ret = [
             {
                 "url": url,
@@ -406,7 +424,7 @@ class TestingModule(PatchewModule):
             tn = self.get_test_name(r)
             ret.append(
                 {
-                    "url": url + "&test=" + tn,
+                    "url": url + "?test=" + tn,
                     "title": format_html("Reset <b>{}</b> testing state", tn),
                     "class": "warning",
                     "icon": "sync",
