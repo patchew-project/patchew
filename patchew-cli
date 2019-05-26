@@ -810,35 +810,11 @@ class ApplyCommand(SubCommand):
             help="""Sign off the applied patch""",
         )
         parser.add_argument(
-            "--branch",
-            "-b",
-            help="""Create a branch at current HEAD before
-                            applying, with '%%m' replaced with the series'
-                            message id""",
-        )
-        parser.add_argument(
-            "--force-branch",
-            "-B",
-            help="""Create a branch, overwrite even if a branch
-                            with the same name already exists, and point to
-                            current HEAD before applying, with '%%m' replaced
-                            with the series' message id""",
-        )
-        parser.add_argument(
-            "--tag",
-            "-t",
-            help="""Create a tag after applying, with '%%m'
-                            replaced with the series' message id. If a tag with
-                            the same name already exists, it will be
-                            updated""",
-        )
-        parser.add_argument(
             "--applier-mode",
             action="store_true",
             help="""Useful for an applier worker of patchew.
                             Clone and checkout a temporary repo, and apply the
-                            patch there. Implies --any, conflicts with -C, -b,
-                            -B and -t.""",
+                            patch there. Implies --any, conflicts with -C.""",
         )
         parser.add_argument(
             "--applier-target",
@@ -872,25 +848,12 @@ class ApplyCommand(SubCommand):
         except:
             return []
 
-    def _apply(self, repo, s, branch, force_branch, tag, logf=None, signoff=False):
-        msgid = s["message_id"]
-        bn = None
-        if force_branch:
-            bn = force_branch
-            bo = "-B"
-        elif branch:
-            bn = branch
-            bo = "-b"
-        if bn:
-            bn = bn.replace("%m", msgid)
-            subprocess.check_call(
-                ["git", "checkout", bo, bn], cwd=repo, stdout=logf, stderr=logf
-            )
+    def _apply(self, repo, uri, logf=None, signoff=False):
         args = ["git", "am", "-m", "-3"]
         if signoff:
             args += ["-s"]
         maintainers = set()
-        req = urllib.request.Request(s["mbox_uri"])
+        req = urllib.request.Request(uri)
         resp = urllib.request.urlopen(req)
         respdata = resp.read()
         patchf = tempfile.NamedTemporaryFile()
@@ -900,13 +863,6 @@ class ApplyCommand(SubCommand):
             args + [patchf.name], cwd=repo, stdout=logf, stderr=logf
         ):
             raise ApplyFailedException()
-        elif tag:
-            subprocess.check_call(
-                ["git", "tag", "-f", tag.replace("%m", msgid)],
-                cwd=repo,
-                stdout=logf,
-                stderr=logf,
-            )
         return patchf
 
     def _push(self, repo, remote, tag, logf):
@@ -954,15 +910,25 @@ class ApplyCommand(SubCommand):
                 else:
                     remote, head = project_git, "master"
                 git_clone_repo(wd, remote, "origin/" + head)
-            branch = message_id
-            force_branch = None
             tag = "patchew/" + message_id
+            subprocess.check_call(
+                ["git", "checkout", "-b", message_id],
+                cwd=repo,
+                stdout=logf,
+                stderr=logf,
+            )
             data["base"] = (
                 subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=wd)
                 .decode("utf-8")
                 .strip()
             )
-            patchf = self._apply(wd, toapply, branch, force_branch, tag, logf)
+            patchf = self._apply(wd, toapply["mbox_uri"], logf)
+            subprocess.check_call(
+                ["git", "tag", "-f", tag.replace("%m", message_id)],
+                cwd=repo,
+                stdout=logf,
+                stderr=logf,
+            )
             maintainers = self._get_maintainers(repo, patchf.name)
             if push_repo:
                 self._push(wd, push_repo, tag, logf)
@@ -1008,8 +974,8 @@ class ApplyCommand(SubCommand):
 
     def do(self, args, argv):
         if args.applier_mode:
-            if args.repo or args.branch or args.force_branch or args.tag:
-                print("--applier-mode conflicts with -C, -b, -B and -t")
+            if args.repo:
+                print("--applier-mode conflicts with -C")
                 return 1
             return self._applier_mode(args)
         if args.applier_target:
@@ -1034,14 +1000,7 @@ class ApplyCommand(SubCommand):
             return a.replace("%m", r[0]["message-id"]) if a else a
 
         try:
-            self._apply(
-                args.repo,
-                r[0],
-                mformat(args.branch),
-                mformat(args.force_branch),
-                mformat(args.tag),
-                signoff=args.signoff,
-            )
+            self._apply(args.repo, r[0]["mbox_uri"], signoff=args.signoff)
             return 0
         except:
             traceback.print_exc()
