@@ -23,7 +23,6 @@ from api.models import Message, Project, Result
 import api.rest
 from api.rest import PluginMethodField, SeriesSerializer, reverse_detail
 from api.views import APILoginRequiredView, prepare_series
-from patchew.logviewer import LogView
 import schema
 from rest_framework import generics, serializers
 from rest_framework.fields import CharField, SerializerMethodField
@@ -39,15 +38,6 @@ def _get_git_result(msg):
 
 
 Message.git_result = property(_get_git_result)
-
-
-class GitLogViewer(LogView):
-    def get_result(self, request, **kwargs):
-        series = kwargs["series"]
-        obj = Message.objects.find_series(series)
-        if not obj:
-            raise Http404("Object not found: " + series)
-        return obj.git_result
 
 
 class ResultDataSerializer(api.rest.ResultDataSerializer):
@@ -220,7 +210,7 @@ class GitModule(PatchewModule):
             return None
 
         log_url = result.get_log_url()
-        html_log_url = log_url + "?html=1"
+        html_log_url = result.get_log_url(html=True)
         colorbox_a = format_html(
             '<a class="cbox-log" data-link="{}" href="{}">apply log</a>',
             html_log_url,
@@ -243,9 +233,6 @@ class GitModule(PatchewModule):
                     git_tag = git_tag[5:]
                 s += format_html("<br/><samp>git fetch {} {}</samp>", git_repo, git_tag)
             return s
-
-    def get_result_log_url(self, result):
-        return reverse("git-log", kwargs={"series": result.obj.message_id})
 
     def prepare_project_hook(self, request, project):
         if not project.maintained_by(request.user):
@@ -280,9 +267,6 @@ class GitModule(PatchewModule):
             url(
                 r"^git-reset/(?P<series>.*)/", self.www_view_git_reset, name="git_reset"
             )
-        )
-        urlpatterns.append(
-            url(r"^logs/(?P<series>.*)/git/", GitLogViewer.as_view(), name="git-log")
         )
 
     def api_url_hook(self, urlpatterns):

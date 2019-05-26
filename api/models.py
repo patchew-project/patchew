@@ -134,13 +134,8 @@ class Result(models.Model):
         if self.log_entry is None:
             self.log_entry = entry
 
-    def get_log_url(self, request=None):
-        if not self.is_completed() or self.renderer is None:
-            return None
-        log_url = self.renderer.get_result_log_url(self)
-        if log_url is not None and request is not None:
-            log_url = request.build_absolute_uri(log_url)
-        return log_url
+    def get_log_url(self, request=None, html=False):
+        return None
 
     def __str__(self):
         return "%s (%s)" % (self.name, self.status)
@@ -344,6 +339,18 @@ class ProjectResult(Result):
     @property
     def obj(self):
         return self.project
+
+    def get_log_url(self, request=None, html=False):
+        if not self.is_completed():
+            return None
+        log_url = reverse(
+            "project-result-log", kwargs={"project": self.obj.name, "name": self.name}
+        )
+        if log_url is not None and request is not None:
+            log_url = request.build_absolute_uri(log_url)
+        if html:
+            log_url += "?html=1"
+        return log_url
 
 
 declare_event(
@@ -956,6 +963,23 @@ class MessageResult(Result):
     @property
     def obj(self):
         return self.message
+
+    def get_log_url(self, request=None, html=False):
+        if not self.is_completed():
+            return None
+        log_url = reverse(
+            "series-result-log",
+            kwargs={
+                "project": self.obj.project,
+                "message_id": self.obj.message_id,
+                "name": self.name,
+            },
+        )
+        if log_url is not None and request is not None:
+            log_url = request.build_absolute_uri(log_url)
+        if html:
+            log_url += "?html=1"
+        return log_url
 
 
 class Module(models.Model):

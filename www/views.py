@@ -15,8 +15,10 @@ from django.db.models import Exists, F, OuterRef
 from django.urls import reverse
 from django.utils.html import format_html
 from django.conf import settings
+from api.models import Project, Message
 import api
 from mod import dispatch_module_hook
+from patchew.logviewer import LogView
 import subprocess
 
 PAGE_SIZE = 50
@@ -403,3 +405,25 @@ def view_series_message(request, project, thread_id, message_id):
         patches=prepare_patches(request, s),
         messages=messages,
     )
+
+
+class ProjectLogViewer(LogView):
+    def get_result(self, request, **kwargs):
+        project = kwargs["project"]
+        obj = Project.objects.filter(name=project).first()
+        if not obj:
+            raise Http404("Project not found: " + series)
+        return obj.results.filter(name=kwargs["name"]).first()
+
+
+class SeriesLogViewer(LogView):
+    def get_result(self, request, **kwargs):
+        project = kwargs["project"]
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Http404("Project not found: " + series)
+        series = kwargs["message_id"]
+        obj = Message.objects.find_series(series, project)
+        if not obj:
+            raise Http404("Message not found: " + series)
+        return obj.results.filter(name=kwargs["name"]).first()

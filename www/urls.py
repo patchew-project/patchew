@@ -40,6 +40,16 @@ urlpatterns += [
     url(r"^(?P<project>[^/]*)/$", views.view_series_list, name="series_list"),
     url(r"^(?P<project>[^/]*)/info$", views.view_project_detail, name="project_detail"),
     url(
+        r"^(?P<project>[^/]*)/logs/(?P<name>.*)/",
+        views.ProjectLogViewer.as_view(),
+        name="project-result-log",
+    ),
+    url(
+        r"^(?P<project>[^/]*)/(?P<message_id>.*)/logs/(?P<name>[^/]*)/",
+        views.SeriesLogViewer.as_view(),
+        name="series-result-log",
+    ),
+    url(
         r"^(?P<project>[^/]*)/(?P<message_id>[^/]*)/$",
         views.view_series_detail,
         name="series_detail",

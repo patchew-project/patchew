@@ -25,7 +25,6 @@ import api.rest
 from api.rest import PluginMethodField, TestPermission, reverse_detail
 from api.search import SearchEngine
 from event import emit_event, declare_event, register_handler
-from patchew.logviewer import LogView
 import schema
 from rest_framework import serializers, generics
 from rest_framework.fields import CharField, BooleanField
@@ -39,19 +38,6 @@ TESTING_SCRIPT_DEFAULT = """#!/bin/bash
 # branch
 exit 0
 """
-
-
-class TestingLogViewer(LogView):
-    def get_result(self, request, **kwargs):
-        project_or_series = kwargs["project_or_series"]
-        testing_name = kwargs["testing_name"]
-        if request.GET.get("type") == "project":
-            obj = Project.objects.filter(name=project_or_series).first()
-        else:
-            obj = Message.objects.find_series(project_or_series)
-        if not obj:
-            raise Http404("Object not found: " + project_or_series)
-        return _instance.get_testing_result(obj, testing_name)
 
 
 class ResultDataSerializer(api.rest.ResultDataSerializer):
@@ -296,13 +282,6 @@ class TestingModule(PatchewModule):
         )
         urlpatterns.append(
             url(
-                r"^logs/(?P<project_or_series>.*)/testing.(?P<testing_name>.*)/",
-                TestingLogViewer.as_view(),
-                name="testing-log",
-            )
-        )
-        urlpatterns.append(
-            url(
                 r"^(?P<project>[^/]*)/badge.(?P<ext>svg|png)$",
                 self.www_view_badge,
                 name="testing-badge",
@@ -317,32 +296,6 @@ class TestingModule(PatchewModule):
                 name="get-test",
             )
         )
-
-    def reverse_testing_log(self, obj, test, request=None, html=False):
-        if isinstance(obj, Message):
-            log_url = (
-                reverse(
-                    "testing-log",
-                    kwargs={"project_or_series": obj.message_id, "testing_name": test},
-                )
-                + "?type=message"
-            )
-        else:
-            assert isinstance(obj, Project)
-            log_url = (
-                reverse(
-                    "testing-log",
-                    kwargs={"project_or_series": obj.name, "testing_name": test},
-                )
-                + "?type=project"
-            )
-        if html:
-            log_url += "&html=1"
-        # Generate a full URL, including the host and port, for use in
-        # email notifications
-        if request:
-            log_url = request.build_absolute_uri(log_url)
-        return log_url
 
     def add_test_report(
         self,
@@ -380,8 +333,8 @@ class TestingModule(PatchewModule):
         r.status = Result.SUCCESS if passed else Result.FAILURE
         r.save()
 
-        log_url = self.reverse_testing_log(obj, test, request=request)
-        html_log_url = self.reverse_testing_log(obj, test, request=request, html=True)
+        log_url = r.get_log_url(request)
+        html_log_url = r.get_log_url(request, html=True)
         emit_event(
             "TestingReport",
             tester=tester,
@@ -470,17 +423,13 @@ class TestingModule(PatchewModule):
                 }
             )
 
-    def get_result_log_url(self, result):
-        tn = result.name[len("testing.") :]
-        return self.reverse_testing_log(result.obj, tn, html=False)
-
     def render_result(self, result):
         if not result.is_completed():
             return None
         pn = result.name
         tn = pn[len("testing.") :]
         log_url = result.get_log_url()
-        html_log_url = log_url + "&html=1"
+        html_log_url = result.get_log_url(html=True)
         passed_str = "failed" if result.is_failure() else "passed"
         return format_html(
             'Test <b>{}</b> <a class="cbox-log" data-link="{}" href="{}">{}</a>',
