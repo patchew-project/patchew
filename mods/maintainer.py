@@ -261,49 +261,49 @@ class MaintainerModule(PatchewModule):
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-merged/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/mark-as-merged/",
                 self.www_view_mark_as_merged,
                 name="mark-as-merged",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/clear-merged/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/clear-merged/",
                 self.www_view_clear_merged,
                 name="clear-merged",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-accepted/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/mark-as-accepted/",
                 self.www_view_mark_accepted,
                 name="mark-as-accepted",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-rejected/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/mark-as-rejected/",
                 self.www_view_mark_rejected,
                 name="mark-as-rejected",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/clear-reviewed/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/clear-reviewed/",
                 self.www_view_clear_reviewed,
                 name="clear-reviewed",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/add-to-queue/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/add-to-queue/",
                 self.www_view_add_to_queue,
                 name="add-to-queue",
             )
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/drop-from-queue/(?P<queue>[^/]*)/",
+                r"^(?P<project>[^/]*)/(?P<message_id>.*)/drop-from-queue/(?P<queue>[^/]*)/",
                 self.www_view_drop_from_queue,
                 name="drop-from-queue",
             )
