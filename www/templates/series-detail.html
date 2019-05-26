@@ -40,38 +40,36 @@
 <div id="detail-ops">
   <ul>
     {% for op in series.extra_ops %}
-    <li>
-      {% if op.get_prompt %}
-          {% for k, v in op.get_prompt.items %}
+    <li><form method="post" action="{{ op.url }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">{% csrf_token %}
+      {% if op.args %}
+          {% for k, v in op.args.items %}
             <input type="hidden" name="{{ k }}" value="{{ v }}" />
           {% endfor %}
       {% endif %}
-      <span class="fa fa-{{ op.icon | default:"question" }}"></span><a
-        {% if op.get_prompt %}
-         href="#"
-         onclick="prompt_and_open(this, '{{ op.url }}')"
-        {% else %}
-         href="{{ op.url }}"
-        {% endif %}">{{ op.title }}</a></li>
+      {% if op.get_prompt %}
+          {% for k, v in op.get_prompt.items %}
+            <input type="text" name="{{ k }}" data-prompt="{{ v }}" />
+          {% endfor %}
+      {% endif %}
+     <button type="submit" class="btn btn-link" {% if op.get_prompt %}onclick="return prompt_and_submit(this)"{% endif %}><span
+       class="fa fa-{{ op.icon | default:"question" }}"></span>{{ op.title }}</button></form></li>
     {% endfor %}
   </ul>
 </div>
 <script type="text/javascript">
-function prompt_and_open(obj, url) {
+function prompt_and_submit(obj) {
     params = {};
-    cancel = false;
-    $(obj).parent().find("input").each(function() {
-            field = this.name;
-            val = prompt(this.value);
+    form = $(obj).closest("form");
+    $(form).find("input[type=text]").each(function() {
+	    field = $(this);
+            val = prompt(field.data('prompt'));
             if (!val) {
-                cancel = true;
                 return false;
             }
-            params[field] = val;
+            field.attr('value', val);
     });
-    if (!cancel) {
-        window.location.href = url + "?" + $.param(params);
-    }
+    return true;
 }
 </script>
 {% endif %}

@@ -62,7 +62,7 @@ class MaintainerQueueTest(PatchewTestCase):
 
         # TODO: support and use REST API
         self.client.post("/login/", {"username": "test", "password": "1234"})
-        self.client.get("/QEMU/" + msg.message_id + "/mark-as-rejected/")
+        self.client.post("/QEMU/" + msg.message_id + "/mark-as-rejected/", {"next": "/"})
         query = QueuedSeries.objects.filter(user=self.testuser, name="reject")
         q = query.first()
         assert q
@@ -78,7 +78,7 @@ class MaintainerQueueTest(PatchewTestCase):
 
         # TODO: support and use REST API; same below
         self.client.post("/login/", {"username": "test", "password": "1234"})
-        self.client.get("/QEMU/" + msg.message_id + "/mark-as-rejected/")
+        self.client.post("/QEMU/" + msg.message_id + "/mark-as-rejected/", {"next": "/"})
         query = QueuedSeries.objects.filter(user=self.testuser, name="reject")
         q = query.first()
         assert q
@@ -88,7 +88,7 @@ class MaintainerQueueTest(PatchewTestCase):
             user=self.testuser, query="to:qemu-block@nongnu.org -nack:test"
         )
         wq.save()
-        self.client.get("/QEMU/" + msg.message_id + "/clear-reviewed/")
+        self.client.post("/QEMU/" + msg.message_id + "/clear-reviewed/", {"next": "/"})
         query = QueuedSeries.objects.filter(user=self.testuser, name="watched")
         q = query.first()
         assert q
@@ -106,7 +106,7 @@ class MaintainerQueueTest(PatchewTestCase):
 
         # TODO: support and use REST API
         self.client.post("/login/", {"username": "test", "password": "1234"})
-        self.client.get("/QEMU/" + msg.message_id + "/mark-as-rejected/")
+        self.client.post("/QEMU/" + msg.message_id + "/mark-as-rejected/", {"next": "/"})
         query = QueuedSeries.objects.filter(user=self.testuser, name="reject")
         q = query.first()
         assert q

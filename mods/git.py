@@ -16,7 +16,8 @@ from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.html import format_html
-from mod import PatchewModule
+from django.utils.decorators import method_decorator
+from mod import PatchewModule, www_authenticated_op
 from event import declare_event, register_handler
 from api.models import Message, Project, Result
 import api.rest
@@ -267,14 +268,12 @@ class GitModule(PatchewModule):
             r = base.git_result
             return r if r and r.data.get("repo") else None
 
+    @method_decorator(www_authenticated_op)
     def www_view_git_reset(self, request, series):
-        if not request.user.is_authenticated:
-            raise PermissionDenied
         obj = Message.objects.find_series(series)
         if not obj:
             raise Http404("Not found: " + series)
         self.mark_as_pending_apply(obj)
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(

@@ -12,10 +12,27 @@ import imp
 import os
 import sys
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseRedirect
 from django.template import Template, Context
+from django.views.decorators.http import require_POST
 import traceback
 import configparser
 import schema
+
+
+class HttpResponseSeeOther(HttpResponseRedirect):
+    status_code = 303
+
+
+def www_authenticated_op(func):
+    def inner(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            raise PermissionDenied
+        func(request, *args, **kwargs)
+        return HttpResponseSeeOther(request.POST["next"])
+
+    return require_POST(inner)
 
 
 class PatchewModule(object):

@@ -374,7 +374,7 @@ class TestingResetTest(PatchewTestCase):
 
         self.api_login()
         self.client.post("/login/", {"username": self.user, "password": self.password})
-        self.client.get("/QEMU/%s/testing-reset/?test=a" % msg.message_id)
+        self.client.post("/QEMU/%s/testing-reset/" % msg.message_id, {"test": "a", "next": "/"})
 
         msg = Message.objects.all()[0]
         self.verify_results(
@@ -388,8 +388,8 @@ class TestingResetTest(PatchewTestCase):
         )
         self.assertFalse(msg.is_tested)
 
-        self.client.get("/QEMU/%s/testing-reset/?test=b" % msg.message_id)
-        self.client.get("/QEMU/%s/testing-reset/?test=c" % msg.message_id)
+        self.client.post("/QEMU/%s/testing-reset/" % msg.message_id, {"test": "b", "next": "/"})
+        self.client.post("/QEMU/%s/testing-reset/" % msg.message_id, {"test": "c", "next": "/"})
         self.verify_results(
             msg,
             {

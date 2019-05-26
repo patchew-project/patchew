@@ -183,17 +183,26 @@ h1, h2, h3, .h1, .h2, .h3 {
     color: #11708f;
     background-color: #d9edf7;
     border-radius: 4px;
-    padding: 0px 1em 0px 2em;
+    padding: 0px 1em 0px 1em;
     border: 1px solid #dddddd;
 }
 #detail-ops > ul > li {
     margin: 1em 0.5em;
     padding: 0em;
 }
-#detail-ops > ul > li > .fa, #detail-ops > ul > li > .fab, #detail-ops > ul > li > .far {
+#detail-ops input[type=text] {
+    display: none;
+}
+#detail-ops button {
+    margin: 0em;
+    padding: 0em;
+    border: 0em;
+    display: inline;
+}
+#detail-ops button > .fa, #detail-ops button > .fab, #detail-ops button > .far {
     position: relative;
-    left: -1em;
-    width: 1em;
+    padding-right: 1em;
+    width: 2em;
     text-align: center;
     display: inline-block;
 }

@@ -14,11 +14,11 @@ from django.core.exceptions import PermissionDenied
 from django.http import (
     Http404,
     HttpResponse,
-    HttpResponseRedirect,
     HttpResponseBadRequest,
 )
 from django.urls import reverse
-from mod import PatchewModule
+from django.utils.decorators import method_decorator
+from mod import PatchewModule, www_authenticated_op
 from api.models import Message, QueuedSeries, Project, WatchedQuery
 from django.shortcuts import render
 from api.search import SearchEngine
@@ -109,8 +109,6 @@ class MaintainerModule(PatchewModule):
         self._update_watch_queue(series)
 
     def _update_review_state(self, request, project, message_id, accept):
-        if not request.user.is_authenticated:
-            return HttpResponseForbidden()
         msg = Message.objects.find_series(message_id, project)
         if not msg:
             raise Http404("Series not found")
@@ -120,11 +118,8 @@ class MaintainerModule(PatchewModule):
             to_create, to_delete = "reject", "accept"
         self._drop_from_queue(request.user, msg, to_delete)
         self._add_to_queue(request.user, msg, to_create)
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def _delete_review(self, request, project, message_id):
-        if not request.user.is_authenticated:
-            return HttpResponseForbidden()
         msg = Message.objects.find_series(message_id, project)
         if not msg:
             raise Http404("Series not found")
@@ -132,7 +127,6 @@ class MaintainerModule(PatchewModule):
             user=request.user, message=msg, name__in=["accept", "reject"]
         )
         self._drop_all_from_queue(r)
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def _update_merge_state(self, request, project, message_id, is_merged):
         s = Message.objects.find_series(message_id, project)
@@ -142,43 +136,43 @@ class MaintainerModule(PatchewModule):
             return HttpResponseForbidden()
         s.is_merged = is_merged
         s.save()
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
+    @method_decorator(www_authenticated_op)
     def www_view_mark_as_merged(self, request, project, message_id):
         return self._update_merge_state(request, project, message_id, True)
 
+    @method_decorator(www_authenticated_op)
     def www_view_clear_merged(self, request, project, message_id):
         return self._update_merge_state(request, project, message_id, False)
 
+    @method_decorator(www_authenticated_op)
     def www_view_mark_accepted(self, request, project, message_id):
         return self._update_review_state(request, project, message_id, True)
 
+    @method_decorator(www_authenticated_op)
     def www_view_mark_rejected(self, request, project, message_id):
         return self._update_review_state(request, project, message_id, False)
 
+    @method_decorator(www_authenticated_op)
     def www_view_clear_reviewed(self, request, project, message_id):
         return self._delete_review(request, project, message_id)
 
+    @method_decorator(www_authenticated_op)
     def www_view_add_to_queue(self, request, project, message_id):
-        if not request.user.is_authenticated:
-            raise PermissionDenied()
         m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
-        queue = request.GET.get("queue")
+        queue = request.POST.get("queue")
         if not queue or re.match(r"[^_a-zA-Z0-9\-]", queue):
             return HttpResponseBadRequest("Invalid queue name")
         self._add_to_queue(request.user, m, queue)
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
+    @method_decorator(www_authenticated_op)
     def www_view_drop_from_queue(self, request, queue, project, message_id):
-        if not request.user.is_authenticated:
-            raise PermissionDenied()
         m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
         self._drop_from_queue(request.user, m, queue)
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def query_queue(self, request, project, name):
         if not request.user.is_authenticated:

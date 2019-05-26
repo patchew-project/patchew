@@ -14,7 +14,8 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import format_html
-from mod import PatchewModule
+from django.utils.decorators import method_decorator
+from mod import PatchewModule, www_authenticated_op
 import datetime
 import time
 import math
@@ -246,20 +247,17 @@ class TestingModule(PatchewModule):
                 r.delete()
         self.recalc_pending_tests(obj)
 
+    @method_decorator(www_authenticated_op)
     def www_view_project_testing_reset(self, request, project):
-        if not request.user.is_authenticated:
-            return HttpResponseForbidden()
         obj = Project.objects.filter(name=project).first()
         if not obj.maintained_by(request.user):
             raise PermissionDenied()
         if not obj:
             raise Http404("Not found: " + project)
-        self.clear_and_start_testing(obj, request.GET.get("test", ""))
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+        self.clear_and_start_testing(obj, request.POST.get("test", ""))
 
+    @method_decorator(www_authenticated_op)
     def www_view_series_testing_reset(self, request, project, series):
-        if not request.user.is_authenticated:
-            return HttpResponseForbidden()
         po = Project.objects.filter(name=project).first()
         if not po:
             raise Http404("Not found: " + project)
@@ -268,8 +266,7 @@ class TestingModule(PatchewModule):
         obj = Message.objects.find_series(series, project)
         if not obj:
             raise Http404("Not found: " + series)
-        self.clear_and_start_testing(obj, request.GET.get("test", ""))
-        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
+        self.clear_and_start_testing(obj, request.POST.get("test", ""))
 
     def www_view_badge(self, request, project, ext):
         po = Project.objects.filter(name=project).first()
@@ -424,10 +421,11 @@ class TestingModule(PatchewModule):
             tn = self.get_test_name(r)
             ret.append(
                 {
-                    "url": url + "?test=" + tn,
+                    "url": url,
                     "title": format_html("Reset <b>{}</b> testing state", tn),
                     "class": "warning",
                     "icon": "sync",
+                    "args": {"test": tn},
                 }
             )
         return ret

@@ -19,8 +19,14 @@
   <ul>
     {% for op in project.extra_ops %}
     <li>
-      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span><a
-        href="{{ op.url }}">{{ op.title }}</a></li>
+      <form method="post" action="{{ op.url }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">{% csrf_token %}
+        {% if op.args %}
+          {% for k, v in op.args.items %}
+            <input type="hidden" name="{{ k }}" value="{{ v }}" />
+          {% endfor %}
+        {% endif %}
+        <button type="submit" class="btn btn-link"><span class="fa fa-{{ op.icon | default:"question" }}"></span>{{ op.title }}</button></form></li>
     {% endfor %}
   </ul>
 </div>

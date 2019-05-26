@@ -13,6 +13,8 @@ from django.http import HttpResponse, Http404
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.template import Template, Context
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
 from django.conf import settings
 from mod import PatchewModule
 import smtplib
@@ -179,6 +181,7 @@ Email information is configured in "INI" style:
                 recipients += x
         smtp.sendmail(from_addr, recipients, message.as_string())
 
+    @method_decorator(require_POST)
     def www_view_email_bounce(self, request, message_id):
         if not request.user.is_authenticated:
             raise PermissionDenied()
