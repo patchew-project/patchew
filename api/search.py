@@ -101,7 +101,7 @@ Filter by age of the message. Supports "d" (day), "w" (week), "m" (month) and "y
 Syntax:
 
  - is:reviewed - all the patches in the series is reviewed
- - is:obsolete or is:old - the series has newer version
+ - is:obsolete, is:obsoleted, is:old - the series has newer version
  - is:complete - the series has all the patches it contains
  - is:merged - the series is included in the project's git tree
  - is:pull - the series is a pull request
@@ -257,7 +257,7 @@ Search text keyword in the email message. Example:
             return Q(subject__contains="[PULL") | Q(subject__contains="[GIT PULL")
         elif cond == "reviewed":
             return Q(is_reviewed=True)
-        elif cond in ("obsoleted", "old"):
+        elif cond in ("obsoleted", "old", "obsolete"):
             return Q(is_obsolete=True)
         elif cond == "applied":
             return self._make_filter_subquery(
