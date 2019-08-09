@@ -45,7 +45,7 @@ SEARCH_PARAM = "q"
 
 
 class StaticTextRenderer(renderers.BaseRenderer):
-    media_type = "text/plain"
+    media_type = "text/plain; charset=utf-8"
     format = "mbox"
 
     def render(self, data, accepted_media_type=None, renderer_context=None):

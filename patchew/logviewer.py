@@ -529,7 +529,7 @@ if (parent.jQuery && parent.jQuery.colorbox) {
         if result is None or not result.is_completed() or result.log is None:
             raise Http404("No log found")
         if request.GET.get("html", None) != "1":
-            return HttpResponse(result.log, content_type="text/plain")
+            return HttpResponse(result.log, content_type="text/plain; charset=utf-8")
 
         return StreamingHttpResponse(self.generate_html(result.log))
 
