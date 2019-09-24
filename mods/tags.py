@@ -177,8 +177,6 @@ series cover letter, patch mail body and their replies.
         reviewers = message.get_property("reviewers", [])
         return [addr_db_to_rest(x) for x in reviewers]
 
-    def rest_message_fields_hook(self, request, fields):
-        fields["reviewers"] = PluginMethodField(obj=self, required=False)
-
     def rest_series_fields_hook(self, request, fields, detailed):
         fields["obsoleted_by"] = PluginMethodField(obj=self, required=False)
+        fields["reviewers"] = PluginMethodField(obj=self, required=False)
