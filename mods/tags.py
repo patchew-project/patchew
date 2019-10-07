@@ -52,6 +52,7 @@ series cover letter, patch mail body and their replies.
     def __init__(self):
         register_handler("MessageAdded", self.on_message_added)
         declare_event("TagsUpdate", series="message object that is updated")
+        declare_event("SeriesReviewed", series="message object that got Reviewed-by tags for all patches")
 
         # XXX: get this list through module config?
 
@@ -114,9 +115,12 @@ series cover letter, patch mail body and their replies.
         series_reviewers = _find_reviewers(series)
         reviewers = reviewers.union(series_reviewers)
         if num_reviewed == series.get_num()[1] or series_reviewers:
+            need_event = not series.is_reviewed
             series.is_reviewed = True
             series.save()
             series.set_property("reviewers", list(reviewers))
+            if need_event:
+                emit_event("SeriesReviewed", series=series)
         if updated:
             emit_event("TagsUpdate", series=series)
 
