@@ -82,7 +82,7 @@ class ImportTest(PatchewTestCase):
         self.cli_import("0002-unusual-cased-tags.mbox.gz")
         self.cli_logout()
         MESSAGE_ID = "20160628014747.20971-1-famz@redhat.com"
-        resp = self.api_client.get(self.PROJECT_BASE + "messages/" + MESSAGE_ID + "/")
+        resp = self.api_client.get(self.PROJECT_BASE + "series/" + MESSAGE_ID + "/")
         self.assertEqual(
             {"name": "Fam Zheng", "address": "famz@redhat.com"},
             resp.data["reviewers"][0],
