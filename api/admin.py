@@ -18,7 +18,6 @@ class ProjectAdmin(admin.ModelAdmin):
 
 
 class MessageAdmin(admin.ModelAdmin):
-    list_filter = [("is_series_head")]
     search_fields = ["message_id", "subject", "sender"]
 
 

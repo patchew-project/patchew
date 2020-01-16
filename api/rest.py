@@ -526,7 +526,7 @@ class PatchewSearchFilter(filters.BaseFilterBackend):
 
 class SeriesViewSet(BaseMessageViewSet):
     serializer_class = SeriesSerializer
-    queryset = Message.objects.filter(is_series_head=True).order_by("-last_reply_date")
+    queryset = Message.objects.filter(topic__isnull=False).order_by("-last_reply_date")
     filter_backends = (PatchewSearchFilter,)
     search_fields = (SEARCH_PARAM,)
 

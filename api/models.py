@@ -387,7 +387,7 @@ class MessageManager(models.Manager):
         if po is None:
             return None
 
-        q = super(MessageManager, self).get_queryset()
+        q = self.get_queryset()
         q = q.filter(project=po) | q.filter(project__parent_project=po)
         return q
 
@@ -397,8 +397,8 @@ class MessageManager(models.Manager):
             if q is None:
                 return None
         else:
-            q = super(MessageManager, self).get_queryset()
-        return q.filter(is_series_head=True).prefetch_related("project")
+            q = self.get_queryset()
+        return q.filter(topic__isnull=False).prefetch_related("project")
 
     def find_series(self, message_id, project_name=None):
         heads = self.series_heads(project_name)
@@ -413,7 +413,7 @@ class MessageManager(models.Manager):
         return messages.filter(message_id=message_id).first()
 
     def patches(self):
-        return super(MessageManager, self).get_queryset().filter(is_patch=True)
+        return self.get_queryset().filter(is_patch=True)
 
     def update_series(self, msg):
         """Update the series' record to which @msg is replying"""
@@ -458,7 +458,6 @@ class MessageManager(models.Manager):
         msg.version = m.get_version()
         msg.prefixes = m.get_prefixes()
         if m.is_series_head():
-            msg.is_series_head = True
             msg.topic = Topic.objects.for_stripped_subject(msg.stripped_subject)
 
         msg.is_patch = m.is_patch()
@@ -493,7 +492,6 @@ class MessageManager(models.Manager):
                 sender=m.get_from(),
                 recipients=m.get_to() + m.get_cc(),
                 prefixes=m.get_prefixes(),
-                is_series_head=is_series_head,
                 topic=(
                     Topic.objects.for_stripped_subject(stripped_subject)
                     if is_series_head
@@ -577,7 +575,6 @@ class Message(models.Model):
     recipients = jsonfield.JSONField()
     tags = jsonfield.JSONField(default=[])
     prefixes = jsonfield.JSONField(blank=True)
-    is_series_head = models.BooleanField(default=False)
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
     is_merged = models.BooleanField(default=False, blank=True)
@@ -593,7 +590,7 @@ class Message(models.Model):
     # patch index number if is_patch
     patch_num = models.PositiveSmallIntegerField(null=True, blank=True)
 
-    # number of patches we've got if is_series_head
+    # number of patches we've got if series head (non-null topic)
     num_patches = models.IntegerField(null=False, default=-1, blank=True)
 
     queues = models.ManyToManyField(User, blank=True, through=QueuedSeries)
@@ -705,6 +702,10 @@ class Message(models.Model):
         return Message.objects.filter(
             project_id=self.project_id, message_id=self.in_reply_to
         ).first()
+
+    @property
+    def is_series_head(self):
+        return self.topic is not None
 
     def get_series_head(self):
         s = self
