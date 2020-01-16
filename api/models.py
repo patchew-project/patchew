@@ -457,7 +457,11 @@ class MessageManager(models.Manager):
         msg.stripped_subject = m.get_subject(strip_tags=True)
         msg.version = m.get_version()
         msg.prefixes = m.get_prefixes()
-        msg.is_series_head = m.is_series_head()
+        msg.is_series_head = False
+        if m.is_series_head():
+            msg.is_series_head = True
+            msg.topic = Topic.objects.for_stripped_subject(msg.stripped_subject)
+
         msg.is_patch = m.is_patch()
         msg.patch_num = m.get_num()[0]
         msg.project = project
@@ -477,18 +481,25 @@ class MessageManager(models.Manager):
             projects = [Project.object.get(name=project_name)]
         else:
             projects = find_message_projects(m)
+        stripped_subject = m.get_subject(strip_tags=True)
+        is_series_head = m.is_series_head()
         for p in projects:
             msg = Message(
                 message_id=msgid,
                 in_reply_to=m.get_in_reply_to() or "",
                 date=m.get_date(),
                 subject=m.get_subject(),
-                stripped_subject=m.get_subject(strip_tags=True),
+                stripped_subject=stripped_subject,
                 version=m.get_version(),
                 sender=m.get_from(),
                 recipients=m.get_to() + m.get_cc(),
                 prefixes=m.get_prefixes(),
-                is_series_head=m.is_series_head(),
+                is_series_head=is_series_head,
+                topic=(
+                    Topic.objects.for_stripped_subject(stripped_subject)
+                    if is_series_head
+                    else None
+                ),
                 is_patch=m.is_patch(),
                 patch_num=m.get_num()[0],
             )
@@ -518,6 +529,26 @@ class QueuedSeries(models.Model):
     class Meta:
         unique_together = ("user", "message", "name")
         index_together = [("user", "message")]
+
+
+class TopicManager(models.Manager):
+    def for_stripped_subject(self, stripped_subject):
+        q = (
+            Message.objects.filter(stripped_subject=stripped_subject)
+            .order_by("date")
+            .reverse()[:1]
+            .values("topic")
+        )
+        if q:
+            topic = self.get(pk=q[0]["topic"])
+        else:
+            topic = Topic()
+            topic.save()
+        return topic
+
+
+class Topic(models.Model):
+    objects = TopicManager()
 
 
 class Message(models.Model):
@@ -554,6 +585,11 @@ class Message(models.Model):
     is_obsolete = models.BooleanField(default=False)
     is_tested = models.BooleanField(default=False)
     is_reviewed = models.BooleanField(default=False)
+
+    # is series head if not Null
+    topic = models.ForeignKey(
+        "Topic", on_delete=models.CASCADE, null=True, db_index=True
+    )
 
     # patch index number if is_patch
     patch_num = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -854,9 +890,7 @@ class Message(models.Model):
 
     def get_alternative_revisions(self):
         assert self.is_series_head
-        return Message.objects.series_heads().filter(
-            project=self.project, stripped_subject=self.stripped_subject
-        )
+        return Message.objects.filter(project=self.project, topic=self.topic)
 
     def set_complete(self):
         if self.is_complete:

@@ -20,6 +20,7 @@ from api.models import Message
 class MessageTest(PatchewTestCase):
     def setUp(self):
         self.create_superuser()
+        self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
 
     def test_0_second(self):
         message = Message()
@@ -53,6 +54,35 @@ class MessageTest(PatchewTestCase):
         message.date = dt
         asctime = message.get_asctime()
         self.assertEqual(asctime, "Sat Oct 22 9:06:04 2016")
+
+    def test_topic_on_series_head(self):
+        self.cli_login()
+        self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
+        m1 = Message.objects.get(
+            message_id="1469192015-16487-1-git-send-email-berrange@redhat.com"
+        )
+        assert m1.is_series_head
+        assert m1.topic is not None
+        m2 = Message.objects.get(
+            message_id="1469192015-16487-2-git-send-email-berrange@redhat.com"
+        )
+        assert not m2.is_series_head
+        assert m2.topic is None
+
+    def test_topic_assignment(self):
+        self.cli_login()
+        self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
+        self.cli_import("0009-obsolete-by.mbox.gz")
+
+        m1 = Message.objects.get(message_id="20160628014747.20971-1-famz@redhat.com")
+        m2 = Message.objects.get(message_id="20160628014747.20971-2-famz@redhat.com")
+        m3 = Message.objects.get(message_id="20160628014747.20971-3-famz@redhat.com")
+        self.assertEqual(m1.topic, m2.topic)
+        self.assertEqual(m1.topic, m3.topic)
+        n = Message.objects.get(
+            message_id="1469192015-16487-1-git-send-email-berrange@redhat.com"
+        )
+        self.assertNotEqual(m1.topic, n.topic)
 
 
 if __name__ == "__main__":
