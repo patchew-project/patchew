@@ -79,17 +79,11 @@ series cover letter, patch mail body and their replies.
             return
 
         def newer_than(m1, m2):
-            return m1.version > m2.version and m1.date >= m2.date
-
-        for m in series.get_alternative_revisions():
-            if newer_than(m, series):
-                series.is_obsolete = True
-                series.save()
-                series.set_property("obsoleted-by", m.message_id)
-            elif newer_than(series, m):
-                m.is_obsolete = True
-                m.save()
-                m.set_property("obsoleted-by", series.message_id)
+            if m1.version > m2.version:
+                return m1.date >= m2.date
+            if m1.version < m2.version:
+                return False
+            return m1.date > m2.date
 
         updated = self.update_tags(series)
 
@@ -127,6 +121,14 @@ series cover letter, patch mail body and their replies.
         if updated:
             emit_event("TagsUpdate", series=series)
 
+        if not series.topic.latest or newer_than(series, series.topic.latest):
+            series.topic.latest = series
+            series.topic.save()
+        for m in series.get_alternative_revisions():
+            if not m.is_obsolete and m.topic.latest != m:
+                m.is_obsolete = True
+                m.save()
+
     def parse_message_tags(self, m):
         r = []
         for l in m.get_body().splitlines():
@@ -156,29 +158,25 @@ series cover letter, patch mail body and their replies.
                     "char": "R",
                 }
             )
-        ob = message.get_property("obsoleted-by")
-        if ob:
-            new = Message.objects.find_series(ob, message.project.name)
-            if new is not None:
-                message.status_tags.append(
-                    {
-                        "title": "Has a newer version: " + new.subject,
-                        "type": "default",
-                        "char": "O",
-                        "row_class": "obsolete",
-                    }
-                )
+        if message.is_obsolete:
+            message.status_tags.append(
+                {
+                    "title": "Has a newer version: " + message.topic.latest.subject,
+                    "type": "default",
+                    "char": "O",
+                    "row_class": "obsolete",
+                }
+            )
 
     def get_obsoleted_by(self, message, request, format):
-        obsoleted_by = message.get_property("obsoleted-by")
-        if not obsoleted_by:
-            return None
-        return rest_framework.reverse.reverse(
-            "series-detail",
-            kwargs={"projects_pk": message.project.id, "message_id": obsoleted_by},
-            request=request,
-            format=format,
-        )
+        if message.is_obsolete:
+            obsoleted_by = message.topic.latest.message_id
+            return rest_framework.reverse.reverse(
+                "series-detail",
+                kwargs={"projects_pk": message.project.id, "message_id": obsoleted_by},
+                request=request,
+                format=format,
+            )
 
     def get_reviewers(self, message, request, format):
         reviewers = message.get_property("reviewers", [])

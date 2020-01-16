@@ -12,6 +12,7 @@ import email
 import email.parser
 import email.policy
 from mbox import decode_payload
+from api.models import Message
 
 from .patchewtest import PatchewTestCase, main
 
@@ -90,18 +91,40 @@ class ImportTest(PatchewTestCase):
         self.assertIn("Reviewed-By: Fam Zheng <famz@redhat.com>", resp.data["tags"])
         self.assertIn("tESTed-bY: Fam Zheng <famz@redhat.com>", resp.data["tags"])
 
-    def test_obsoleted_by(self):
+    def do_test_obsoleted_by(self, old_id, new_id):
+        m1 = Message.objects.find_series(old_id, self.p.name)
+        m2 = Message.objects.find_series(new_id, self.p.name)
+        self.assertEqual(m1.topic, m2.topic)
+
+        resp = self.api_client.get(self.PROJECT_BASE + "series/" + old_id + "/")
+        self.assertEqual(
+            self.PROJECT_BASE + "series/" + new_id + "/", resp.data["obsoleted_by"]
+        )
+        resp = self.api_client.get(self.PROJECT_BASE + "series/" + new_id + "/")
+        self.assertEqual(None, resp.data["obsoleted_by"])
+
+    def test_obsoleted_by_date_out_of_order(self):
         self.cli_login()
         self.cli_import("0009-obsolete-by.mbox.gz")
         self.cli_logout()
-        OLD_ID = "20160628014747.20971-1-famz@redhat.com"
-        NEW_ID = "20160628014747.20971-2-famz@redhat.com"
-        resp = self.api_client.get(self.PROJECT_BASE + "series/" + OLD_ID + "/")
-        self.assertEqual(
-            self.PROJECT_BASE + "series/" + NEW_ID + "/", resp.data["obsoleted_by"]
+        # note that the "v3" actually has an older date than v2 in the testcase
+        self.do_test_obsoleted_by(
+            "20160628014747.20971-1-famz@redhat.com",
+            "20160628014747.20971-2-famz@redhat.com",
         )
-        resp = self.api_client.get(self.PROJECT_BASE + "series/" + NEW_ID + "/")
-        self.assertEqual(None, resp.data["obsoleted_by"])
+
+    def test_obsoleted_by_v3(self):
+        self.cli_login()
+        self.cli_import("0030-obsolete-by-v3.mbox.gz")
+        self.cli_logout()
+        self.do_test_obsoleted_by(
+            "20160628014747.20971-2-famz@redhat.com",
+            "20160628014747.20971-3-famz@redhat.com",
+        )
+        self.do_test_obsoleted_by(
+            "20160628014747.20971-1-famz@redhat.com",
+            "20160628014747.20971-3-famz@redhat.com",
+        )
 
 
 if __name__ == "__main__":

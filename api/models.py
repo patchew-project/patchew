@@ -546,6 +546,9 @@ class TopicManager(models.Manager):
 
 class Topic(models.Model):
     objects = TopicManager()
+    latest = models.ForeignKey(
+        "Message", on_delete=models.SET_NULL, null=True, related_name="+"
+    )
 
 
 class Message(models.Model):
