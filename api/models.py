@@ -730,7 +730,7 @@ class Message(models.Model):
 
     @property
     def is_series_head(self):
-        return self.topic is not None
+        return self.topic_id is not None
 
     def get_series_head(self):
         s = self

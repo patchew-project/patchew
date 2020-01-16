@@ -184,6 +184,7 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
         order_by_reply = False
     if sortfield:
         query = query.order_by(sortfield)
+    query = query.prefetch_related("topic")
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
     series = query[start : start + PAGE_SIZE]
