@@ -52,7 +52,10 @@ series cover letter, patch mail body and their replies.
     def __init__(self):
         register_handler("MessageAdded", self.on_message_added)
         declare_event("TagsUpdate", series="message object that is updated")
-        declare_event("SeriesReviewed", series="message object that got Reviewed-by tags for all patches")
+        declare_event(
+            "SeriesReviewed",
+            series="message object that got Reviewed-by tags for all patches",
+        )
 
         # XXX: get this list through module config?
 
