@@ -84,6 +84,7 @@ crossorigin="anonymous"/>
                     <li><a href="/admin" target="blank">Admin</a></li>
                     {% endif %}
                     <li role="separator" class="divider"></li>
+                    <li><a href="{% url "password_change" %}?next={{ request.path }}">Change password</a></li>
                     <li><a href="{% url "logout" %}?next={{ request.path }}">Logout</a></li>
                 </ul>
                 {% else %}
