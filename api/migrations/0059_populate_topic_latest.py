@@ -11,6 +11,7 @@ def topic_fill_latest(apps, schema_editor):
     series = Message.objects.filter(topic__isnull=False)
     for m in series.filter(is_obsolete=False):
         m.topic.latest = m
+        m.save()
     for m in series.filter(is_obsolete=True):
         if "obsoleted-by" in m.properties:
             del m.properties["obsoleted-by"]
