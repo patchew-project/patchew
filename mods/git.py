@@ -237,14 +237,7 @@ class GitModule(PatchewModule):
         for tag in series.tags:
             if not tag.startswith("Based-on:"):
                 continue
-            base_id = tag[len("Based-on:") :].strip()
-            if base_id.startswith("<") and base_id.endswith(">"):
-                base_id = base_id[1:-1]
-            base = (
-                Message.objects.series_heads()
-                .filter(project=series.project, message_id=base_id)
-                .first()
-            )
+            base = Message.objects.find_series_from_tag(tag, series.project)
             if not base:
                 return None
             r = base.git_result
