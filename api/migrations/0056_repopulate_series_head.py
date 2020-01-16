@@ -13,6 +13,4 @@ def series_head_fill(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [("api", "0055_auto_20200116_1034")]
 
-    operations = [
-        migrations.RunPython(migrations.RunPython.noop, reverse_code=series_head_fill)
-    ]
+    operations = [migrations.RunPython(migrations.RunPython.noop, reverse_code=series_head_fill)]

@@ -635,7 +635,7 @@ class Message(models.Model):
 
             # If no --- line, tags go at the end as there's no better place
             for tag in sorted(tags):
-                if tag not in old_tags:
+                if tag not in old_tags and not tag.startswith("Based-on"):
                     yield tag
             if need_minusminusminus:
                 yield line
