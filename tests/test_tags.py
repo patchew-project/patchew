@@ -126,6 +126,24 @@ class ImportTest(PatchewTestCase):
             "20160628014747.20971-3-famz@redhat.com",
         )
 
+    def test_supersedes_embedded(self):
+        self.cli_login()
+        self.cli_import("0031-supersedes-embedded.mbox.gz")
+        self.cli_logout()
+        self.do_test_obsoleted_by(
+            "20200110173215.3865-1-quintela@redhat.com",
+            "20200114092606.1761-1-quintela@redhat.com",
+        )
+
+    def test_supersedes_separate(self):
+        self.cli_login()
+        self.cli_import("0032-supersedes-separate.mbox.gz")
+        self.cli_logout()
+        self.do_test_obsoleted_by(
+            "20191128104129.250206-1-slp@redhat.com",
+            "20200108143138.129909-1-slp@redhat.com",
+        )
+
 
 if __name__ == "__main__":
     main()

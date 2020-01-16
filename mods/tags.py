@@ -17,6 +17,7 @@ import rest_framework
 
 REV_BY_PREFIX = "Reviewed-by:"
 BASED_ON_PREFIX = "Based-on:"
+SUPERSEDES_PREFIX = "Supersedes:"
 
 _default_config = """
 [default]
@@ -24,7 +25,7 @@ tags = Tested-by, Reported-by, Acked-by, Suggested-by
 
 """
 
-BUILT_IN_TAGS = [REV_BY_PREFIX, BASED_ON_PREFIX]
+BUILT_IN_TAGS = [REV_BY_PREFIX, BASED_ON_PREFIX, SUPERSEDES_PREFIX]
 
 
 class SeriesTagsModule(PatchewModule):
@@ -67,7 +68,7 @@ series cover letter, patch mail body and their replies.
 
     def update_tags(self, s):
         old = s.tags
-        new = self.look_for_tags(s)
+        new = self.look_for_tags(s, s)
         if set(old) != set(new):
             s.tags = list(set(new))
             s.save()
@@ -79,9 +80,16 @@ series cover letter, patch mail body and their replies.
             return
 
         def newer_than(m1, m2):
-            if m1.version > m2.version:
-                return m1.date >= m2.date
-            if m1.version < m2.version:
+            if m1 == m2:
+                return False
+            if m1.stripped_subject == m2.stripped_subject:
+                if m1.version > m2.version:
+                    return m1.date >= m2.date
+                if m1.version < m2.version:
+                    return False
+            if m2.is_obsolete and not m1.is_obsolete:
+                return True
+            if m1.is_obsolete and not m2.is_obsolete:
                 return False
             return m1.date > m2.date
 
@@ -129,21 +137,37 @@ series cover letter, patch mail body and their replies.
                 m.is_obsolete = True
                 m.save()
 
-    def parse_message_tags(self, m):
+    def process_supersedes(self, series, tag):
+        old = Message.objects.find_series_from_tag(tag, series.project)
+        if old:
+            # the newer_than test does not work when the subject changes
+            assert old.topic
+            series.topic = old.topic
+            if old.topic.latest == old:
+                old.topic.latest = series
+                old.topic.save()
+            old.is_obsolete = True
+            old.save()
+            series.topic.merge_with(old.topic)
+
+    def parse_message_tags(self, series, m):
         r = []
         for l in m.get_body().splitlines():
+            line = l.lower()
             for p in self.get_tag_prefixes():
-                if l.lower().startswith(p.lower()):
+                if line.startswith(p.lower()):
+                    if line.startswith("supersedes:"):
+                        self.process_supersedes(series, l)
                     r.append(l)
         return r
 
-    def look_for_tags(self, m):
+    def look_for_tags(self, series, m):
         # Incorporate tags from non-patch replies
-        r = self.parse_message_tags(m)
+        r = self.parse_message_tags(series, m)
         for x in m.get_replies():
             if x.is_patch:
                 continue
-            r += self.look_for_tags(x)
+            r += self.look_for_tags(series, x)
         return r
 
     def prepare_message_hook(self, request, message, detailed):

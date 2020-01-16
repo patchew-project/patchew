@@ -562,6 +562,12 @@ class Topic(models.Model):
         "Message", on_delete=models.SET_NULL, null=True, related_name="+"
     )
 
+    def merge_with(self, superseded):
+        if self == superseded:
+            return
+        Message.objects.filter(topic=self).update(topic=superseded)
+        self.delete()
+
 
 class Message(models.Model):
     """ Patch email message """
@@ -647,7 +653,11 @@ class Message(models.Model):
 
             # If no --- line, tags go at the end as there's no better place
             for tag in sorted(tags):
-                if tag not in old_tags and not tag.startswith("Based-on"):
+                if (
+                    tag not in old_tags
+                    and not tag.startswith("Based-on")
+                    and not tag.startswith("Supersedes")
+                ):
                     yield tag
             if need_minusminusminus:
                 yield line
