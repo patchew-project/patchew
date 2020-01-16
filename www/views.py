@@ -187,6 +187,8 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
     series = query[start : start + PAGE_SIZE]
+    if not series and cur_page > 1:
+        raise Http404("Page not found")
     params = ""
     if sort:
         params += "&" + urllib.parse.urlencode({"sort": sort})
