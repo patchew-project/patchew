@@ -203,7 +203,7 @@ Email information is configured in "INI" style:
     def prepare_message_hook(self, request, message, detailed):
         if not detailed:
             return
-        if message.is_series_head and request.user.is_authenticated:
+        if message.is_series_head and request.user.is_authenticated and request.user.email:
             message.extra_ops.append(
                 {
                     "url": reverse(
