@@ -457,7 +457,6 @@ class MessageManager(models.Manager):
         msg.stripped_subject = m.get_subject(strip_tags=True)
         msg.version = m.get_version()
         msg.prefixes = m.get_prefixes()
-        msg.is_series_head = False
         if m.is_series_head():
             msg.is_series_head = True
             msg.topic = Topic.objects.for_stripped_subject(msg.stripped_subject)
@@ -578,7 +577,7 @@ class Message(models.Model):
     recipients = jsonfield.JSONField()
     tags = jsonfield.JSONField(default=[])
     prefixes = jsonfield.JSONField(blank=True)
-    is_series_head = models.BooleanField()
+    is_series_head = models.BooleanField(default=False)
     is_complete = models.BooleanField(default=False)
     is_patch = models.BooleanField()
     is_merged = models.BooleanField(default=False, blank=True)
@@ -915,10 +914,10 @@ class Message(models.Model):
     class Meta:
         unique_together = ("project", "message_id")
         index_together = [
-            ("is_series_head", "project", "last_reply_date"),
-            ("is_series_head", "project", "date"),
-            ("is_series_head", "last_reply_date"),
-            ("is_series_head", "date"),
+            ("topic", "project", "last_reply_date"),
+            ("topic", "project", "date"),
+            ("topic", "last_reply_date"),
+            ("topic", "date"),
         ]
 
 
