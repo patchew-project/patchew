@@ -682,7 +682,7 @@ class ApplyCommand(SubCommand):
 
     def arguments(self, parser):
         parser.add_argument("term", nargs="*", type=str)
-        parser.add_argument("-C", dest="repo", help="The path to the git repo")
+        parser.add_argument("-C", dest="repo", default=".", help="The path to the git repo")
         parser.add_argument(
             "--any",
             "-a",
