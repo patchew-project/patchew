@@ -183,6 +183,7 @@ Negative of an expression. Example:
 ### Search by message id
 
  - Syntax: id:MESSAGE-ID
+ - Syntax: rfc822msgid:MESSAGE-ID
 
 Exact match of message-id. Example:
 
@@ -191,6 +192,8 @@ Exact match of message-id. Example:
 or
 
     id:1416902879-17422-1-git-send-email-user@domain.com
+
+The two prefixes are equivalent.
 
 ---
 
@@ -294,7 +297,7 @@ Search text keyword in the email message. Example:
         elif term.startswith("subject:"):
             cond = term[term.find(":") + 1 :]
             return self._add_to_keywords(cond)
-        elif term.startswith("id:"):
+        elif term.startswith("id:") or term.startswith("rfc822msgid:"):
             cond = term[term.find(":") + 1 :]
             if cond[0] == "<" and cond[-1] == ">":
                 cond = cond[1:-1]
