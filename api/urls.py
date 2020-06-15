@@ -35,22 +35,22 @@ router = DefaultRouter(trailing_slash=True)
 router.include_format_suffixes = False
 router.register("users", rest.UsersViewSet)
 router.register("projects", rest.ProjectsViewSet)
-router.register("series", rest.SeriesViewSet, base_name="series")
+router.register("series", rest.SeriesViewSet, basename="series")
 router.register("messages", rest.MessagesViewSet)
 
 projects_router = NestedDefaultRouter(
     router, "projects", lookup="projects", trailing_slash=True
 )
 projects_router.include_format_suffixes = False
-projects_router.register("results", rest.ProjectResultsViewSet, base_name="results")
-projects_router.register("series", rest.ProjectSeriesViewSet, base_name="series")
-projects_router.register("messages", rest.ProjectMessagesViewSet, base_name="messages")
+projects_router.register("results", rest.ProjectResultsViewSet, basename="results")
+projects_router.register("series", rest.ProjectSeriesViewSet, basename="series")
+projects_router.register("messages", rest.ProjectMessagesViewSet, basename="messages")
 
 results_router = NestedDefaultRouter(
     projects_router, "series", lookup="series", trailing_slash=True
 )
 results_router.include_format_suffixes = False
-results_router.register("results", rest.SeriesResultsViewSet, base_name="results")
+results_router.register("results", rest.SeriesResultsViewSet, basename="results")
 
 schema_view = get_schema_view(title="API schema")
 
