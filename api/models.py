@@ -333,7 +333,8 @@ class Project(models.Model):
 
 
 class ProjectResult(Result):
-    project = models.ForeignKey(Project, related_name="results")
+    project = models.ForeignKey(Project, related_name="results",
+                                on_delete=models.CASCADE)
 
     @property
     def obj(self):
@@ -527,8 +528,8 @@ def HeaderFieldModel(**args):
 
 
 class QueuedSeries(models.Model):
-    user = models.ForeignKey(User)
-    message = models.ForeignKey("Message")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey("Message", on_delete=models.CASCADE)
     # Special purposed queues:
     # accept: When user marked series as "accepted"
     # reject: When user marked series as "rejected"
@@ -948,7 +949,8 @@ class Message(models.Model):
 
 
 class MessageResult(Result):
-    message = models.ForeignKey(Message, related_name="results")
+    message = models.ForeignKey(Message, related_name="results",
+                                on_delete=models.CASCADE)
 
     @property
     def obj(self):
