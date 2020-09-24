@@ -928,7 +928,7 @@ class ApplyCommand(SubCommand):
 
     def do(self, args, argv):
         if args.applier_mode:
-            if args.repo or args.branch or args.force_branch or args.tag:
+            if args.repo not in [None, '.'] or args.branch or args.force_branch or args.tag:
                 print("--applier-mode conflicts with -C, -b, -B and -t")
                 return 1
             return self._applier_mode(args)
