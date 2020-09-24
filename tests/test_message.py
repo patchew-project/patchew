@@ -30,14 +30,14 @@ class MessageTest(PatchewTestCase):
 
     def test_now(self):
         message = Message()
-        dt = datetime.datetime.fromtimestamp(time.time() + 100)
+        dt = datetime.datetime.utcfromtimestamp(time.time() + 100)
         message.date = dt
         age = message.get_age()
         self.assertEqual(age, "now")
 
     def test_1_day(self):
         message = Message()
-        dt = datetime.datetime.fromtimestamp(time.time() - 3600 * 25)
+        dt = datetime.datetime.utcfromtimestamp(time.time() - 3600 * 25)
         message.date = dt
         age = message.get_age()
         self.assertEqual(age, "1 day")
