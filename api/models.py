@@ -544,7 +544,7 @@ class QueuedSeries(models.Model):
 class TopicManager(models.Manager):
     def for_stripped_subject(self, stripped_subject):
         q = (
-            Message.objects.filter(stripped_subject=stripped_subject)
+            Message.objects.filter(stripped_subject=stripped_subject, topic__isnull=False)
             .order_by("date")
             .reverse()[:1]
             .values("topic")
