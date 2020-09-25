@@ -648,10 +648,13 @@ class TestingGetView(APILoginRequiredView, GetTestViewMixin):
         po = Project.objects.get(name=project)
         return self._do_testing_get(request, po, tester, capabilities)
 
+class TestSerializer(serializers.BaseSerializer):
+    pass
 
 class GetTestView(generics.GenericAPIView, GetTestViewMixin):
     queryset = Project.objects.all()
     permission_classes = (TestPermission,)
+    serializer_class = TestSerializer
 
     def _generate_test_data(
         self, project, repo, head, base, identity, result_uri, test
