@@ -14,6 +14,7 @@ from django.conf.urls import url, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested.routers import NestedDefaultRouter
 from rest_framework.schemas import get_schema_view
+from rest_framework import permissions
 
 from . import views
 from . import rest
@@ -52,7 +53,8 @@ results_router = NestedDefaultRouter(
 results_router.include_format_suffixes = False
 results_router.register("results", rest.SeriesResultsViewSet, basename="results")
 
-schema_view = get_schema_view(title="API schema")
+schema_view = get_schema_view(title="API schema",
+                              permission_classes=[permissions.AllowAny])
 
 urlpatterns = _build_urls()
 dispatch_module_hook("api_url_hook", urlpatterns=urlpatterns)
