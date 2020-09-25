@@ -638,7 +638,7 @@ class RestTest(PatchewTestCase):
     def test_maintainer_create_message(self):
         test = self.create_user(username="test", password="userpass")
         self.api_client.login(username="test", password="userpass")
-        self.p.maintainers = (test,)
+        self.p.maintainers.set([test])
         dp = self.get_data_path("0023-multiple-project-patch.mbox.gz")
         with open(dp, "r") as f:
             data = f.read()

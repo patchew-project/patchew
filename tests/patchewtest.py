@@ -65,7 +65,7 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
             username or self.user, self.email, password or self.password
         )
         if groups:
-            user.groups = [Group.objects.get_or_create(name=g)[0] for g in groups]
+            user.groups.set([Group.objects.get_or_create(name=g)[0] for g in groups])
             user.save()
         return user
 
