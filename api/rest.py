@@ -406,8 +406,8 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin, mixins.UpdateModelM
         return self.__project
 
     def get_serializer_context(self):
-        if self.project is None:
-            raise Http404
+        if "projects_pk" in self.kwargs and not self.project:
+            raise Http404("Project not found")
         context = super(ProjectMessagesViewSetMixin, self).get_serializer_context()
         context["project"] = self.project
         return context
