@@ -1,7 +1,7 @@
-FROM centos:7
+FROM centos:8
 EXPOSE 80
 RUN yum install -y epel-release
-RUN yum install -y git nginx xz findutils python34 python34-pip
+RUN yum install -y git nginx xz findutils python3 python3-pip
 COPY requirements.txt /tmp/requirements.txt
 ENV PYTHONPATH .
 RUN /bin/bash -c "mkdir -p /opt/patchew && \
