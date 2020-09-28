@@ -343,9 +343,10 @@ class ProjectCommand(SubCommand):
             old_head = "%s~100" % new_head
 
         try:
+            # TODO: relax this 100 limit, which probably need an API change.
             new_commits = (
                 subprocess.check_output(
-                    ["git", "rev-list", "%s..%s" % (old_head, new_head)], cwd=clone
+                    ["git", "rev-list", "-n", "100", "%s..%s" % (old_head, new_head)], cwd=clone
                 )
                 .decode()
                 .splitlines()
