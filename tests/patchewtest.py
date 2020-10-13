@@ -170,6 +170,8 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
         repo = os.path.join(self.get_tmpdir(), name)
         os.mkdir(repo)
         subprocess.check_output(["git", "init"], cwd=repo)
+        subprocess.check_output(["git", "config", "user.name", "Patchew Test"], cwd=repo)
+        subprocess.check_output(["git", "config", "user.email", "test@patchew.org"], cwd=repo)
         subprocess.check_output(["touch", "foo", "bar"], cwd=repo)
         subprocess.check_output(["git", "add", "foo"], cwd=repo)
         subprocess.check_output(["git", "commit", "-m", "initial commit"], cwd=repo)

@@ -81,6 +81,28 @@ def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
         clone_cmd += ["--recursive"]
     clone_cmd += [cache_repo, clone]
     subprocess.check_call(clone_cmd, stderr=logf, stdout=logf)
+    subprocess.check_call(
+        [
+            "git",
+            "config",
+            "user.name",
+            "Patchew Applier",
+        ],
+        cwd=clone,
+        stdout=logf,
+        stderr=logf,
+    )
+    subprocess.check_call(
+        [
+            "git",
+            "config",
+            "user.email",
+            "no-reply@patchew.org",
+        ],
+        cwd=clone,
+        stdout=logf,
+        stderr=logf,
+    )
     if checkout:
         subprocess.check_call(
             ["git", "checkout", head, "-b", "test"], stderr=logf, stdout=logf, cwd=clone
