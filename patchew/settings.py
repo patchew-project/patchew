@@ -34,6 +34,8 @@ MODULE_DIR = os.path.join(BASE_DIR, "mods")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "@f-l5@70om7o(7rda^oxd$f#60g3jy#&m^p7z@vkf+&$*@%!^o"
 
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ALLOWED_HOSTS = []
 
 # Application definition
