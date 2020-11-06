@@ -817,32 +817,8 @@ class Message(models.Model):
     def get_sender_name(self):
         return self.sender[0]
 
-    def _get_age(self, date):
-        def _seconds_to_human(sec):
-            unit = "second"
-            if sec > 60:
-                sec /= 60
-                unit = "minute"
-                if sec > 60:
-                    sec /= 60
-                    unit = "hour"
-                    if sec > 24:
-                        sec /= 24
-                        unit = "day"
-                        if sec > 7:
-                            sec /= 7
-                            unit = "week"
-            if sec >= 2:
-                unit += "s"
-            return "%s %s" % (int(sec), unit)
-
-        age = int((datetime.datetime.utcnow() - date).total_seconds())
-        if age < 0:
-            return "now"
-        return _seconds_to_human(age)
-
     def get_age(self):
-        return self._get_age(self.date)
+        return self.date
 
     def get_asctime(self):
         d = self.date
@@ -858,7 +834,7 @@ class Message(models.Model):
         )
 
     def get_last_reply_age(self):
-        return self._get_age(self.last_reply_date or self.date)
+        return self.last_reply_date or self.date
 
     def get_body(self):
         return self.get_mbox_obj().get_body()

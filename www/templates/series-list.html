@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block header %}
 <link rel="stylesheet" href="/static/css/series-list.css">
@@ -59,9 +60,9 @@
                 </span>
             </td>
             {% if order_by_reply %}
-            <td><span class="timestamp" title="{{ s.last_reply_date }}">{{ s.get_last_reply_age }}</span></td>
+            <td><span class="timestamp" title="{{ s.last_reply_date }}">{{ s.get_last_reply_age|naturaltime }}</span></td>
             {% else %}
-            <td><span class="timestamp" title="{{ s.date }}">{{ s.get_age }}</span></td>
+            <td><span class="timestamp" title="{{ s.date }}">{{ s.get_age|naturaltime }}</span></td>
             {% endif %}
         </tr>
     {% endfor %}

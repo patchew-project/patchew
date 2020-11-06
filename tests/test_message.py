@@ -22,26 +22,6 @@ class MessageTest(PatchewTestCase):
         self.create_superuser()
         self.p = self.add_project("QEMU", "qemu-devel@nongnu.org")
 
-    def test_0_second(self):
-        message = Message()
-        message.date = datetime.datetime.utcnow()
-        age = message.get_age()
-        self.assertEqual(age, "0 second")
-
-    def test_now(self):
-        message = Message()
-        dt = datetime.datetime.fromtimestamp(time.time() + 100)
-        message.date = dt
-        age = message.get_age()
-        self.assertEqual(age, "now")
-
-    def test_1_day(self):
-        message = Message()
-        dt = datetime.datetime.fromtimestamp(time.time() - 3600 * 25)
-        message.date = dt
-        age = message.get_age()
-        self.assertEqual(age, "1 day")
-
     def test_asctime(self):
         message = Message()
         dt = datetime.datetime(2016, 10, 22, 10, 16, 40)

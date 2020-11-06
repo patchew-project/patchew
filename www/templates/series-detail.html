@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block header %}
 <link rel="stylesheet" href="/static/css/series-detail.css">
@@ -19,11 +20,11 @@
 <div class="series-header-info">
             <span class="message-author" title="{{ series.sender_full_name }}">
                 {{ series.sender_display_name }}
-	    </span> posted <span class="patch-count">
-		    {{ series.total_patches }}
-		    patch{% if series.total_patches != 1 %}es{% endif %}
-	    </span> <span class="message-age" title="{{ series.date }}">
-		    {{ series.age }} ago</span>
+            </span> posted <span class="patch-count">
+                {{ series.total_patches }}
+                patch{{ series.total_patches|pluralize:"es" }}
+            </span> <span class="message-age" title="{{ series.date }}">
+                {{ series.age|naturaltime }}</span>
   {% if series.extra_links %}
   <ul id="series-links">
     {% for op in series.extra_links %}
@@ -130,9 +131,8 @@ function prompt_and_open(obj, url) {
                         <span class="message-author" title="{{ msg.sender_full_name }}">
                             {{ msg.sender_display_name }}</span>
                         <span class="message-age" title="{{ msg.date }}">
-                            {{ msg.get_age }}
+                            {{ msg.get_age|naturaltime }}
                         </span>
-                        ago
                     </div>
             </div>
             <div class="panel-body panel-collapse collapse in">
