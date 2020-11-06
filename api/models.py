@@ -830,7 +830,7 @@ class Message(models.Model):
             d.year,
         )
 
-    def get_last_reply_age(self):
+    def get_last_reply_date(self):
         return self.last_reply_date or self.date
 
     def get_body(self):
