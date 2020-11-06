@@ -62,7 +62,7 @@
             {% if order_by_reply %}
             <td><span class="timestamp" title="{{ s.last_reply_date }}">{{ s.get_last_reply_age|naturaltime }}</span></td>
             {% else %}
-            <td><span class="timestamp" title="{{ s.date }}">{{ s.get_age|naturaltime }}</span></td>
+            <td><span class="timestamp" title="{{ s.date }}">{{ s.date|naturaltime }}</span></td>
             {% endif %}
         </tr>
     {% endfor %}

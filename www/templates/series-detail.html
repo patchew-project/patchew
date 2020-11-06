@@ -131,7 +131,7 @@ function prompt_and_open(obj, url) {
                         <span class="message-author" title="{{ msg.sender_full_name }}">
                             {{ msg.sender_display_name }}</span>
                         <span class="message-age" title="{{ msg.date }}">
-                            {{ msg.get_age|naturaltime }}
+                            {{ msg.date|naturaltime }}
                         </span>
                     </div>
             </div>

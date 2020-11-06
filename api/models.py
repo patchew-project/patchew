@@ -817,9 +817,6 @@ class Message(models.Model):
     def get_sender_name(self):
         return self.sender[0]
 
-    def get_age(self):
-        return self.date
-
     def get_asctime(self):
         d = self.date
         wday = d.weekday() + 1
