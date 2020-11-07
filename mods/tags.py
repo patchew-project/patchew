@@ -173,7 +173,8 @@ series cover letter, patch mail body and their replies.
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
             return
-        if message.get_property("reviewed"):
+
+        if message.is_reviewed:
             reviewers = message.get_property("reviewers")
             message.status_tags.append(
                 {
@@ -182,6 +183,7 @@ series cover letter, patch mail body and their replies.
                     "char": "R",
                 }
             )
+
         if message.is_obsolete:
             message.status_tags.append(
                 {
