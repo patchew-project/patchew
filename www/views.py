@@ -42,7 +42,6 @@ def prepare_message(request, project, m, detailed):
     name, addr = m.sender
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
-    m.age = m.date
     m.url = reverse(
         "series_detail", kwargs={"project": project.name, "message_id": m.message_id}
     )

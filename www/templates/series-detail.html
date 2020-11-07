@@ -24,7 +24,7 @@
                 {{ series.total_patches }}
                 patch{{ series.total_patches|pluralize:"es" }}
             </span> <span class="message-age" title="{{ series.date }}">
-                {{ series.age|naturaltime }}</span>
+                {{ series.date|naturaltime }}</span>
   {% if series.extra_links %}
   <ul id="series-links">
     {% for op in series.extra_links %}
