@@ -45,7 +45,7 @@
       - "--exclude=/venv"
 - name: Delete old docker image stash
   docker_image:
-    force: yes
+    force_absent: yes
     name: "patchew:{{ instance_name }}-prev"
     state: absent
 - name: Stash docker image
