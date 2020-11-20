@@ -35,18 +35,32 @@ class InvalidSearchTerm(Exception):
 
 
 # Hack alert: Django wraps each argument to to_tsvector with a COALESCE function,
-# and that causes postgres not to use the index.  Monkeypatch the constructor
-# to skip that step, which we do not need since the subject field is not nullable.
+# and that causes postgres not to use the index.  Monkeypatch as_sql to skip
+# that step, which we do not need since the subject field is not nullable.
 class NonNullSearchVector(SearchVector):
     function = "to_tsvector"
     arg_joiner = " || ' ' || "
     _output_field = SearchVectorField()
-    config = None
 
-    def __init__(self, *expressions, **extra):
-        super(SearchVector, self).__init__(*expressions, **extra)
-        self.config = self.extra.get("config", self.config)
-        self.weight = None
+    def as_sql(self, compiler, connection, function=None, template=None):
+        config_sql = None
+        config_params = []
+        if template is None:
+            if self.config:
+                config_sql, config_params = compiler.compile(self.config)
+                template = '%(function)s(%(config)s, %(expressions)s)'
+            else:
+                template = self.template
+        sql, params = super(SearchVector, self).as_sql(
+            compiler, connection, function=function, template=template,
+            config=config_sql,
+        )
+        extra_params = []
+        if self.weight:
+            weight_sql, extra_params = compiler.compile(self.weight)
+            sql = 'setweight({}, {})'.format(sql, weight_sql)
+        return sql, config_params + params + extra_params
+
 
 
 class SearchEngine(object):
