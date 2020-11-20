@@ -361,14 +361,17 @@ class ProjectCommand(SubCommand):
             if old_head == new_head:
                 logging.info("no change since last update")
                 return
+            commit_range = "%s..%s" % (old_head, new_head)
         except:
-            old_head = "%s~100" % new_head
+            commit_range = new_head
 
         try:
             # TODO: relax this 100 limit, which probably need an API change.
+            # using -100 would count all commits, while "^HEAD~100" counts merge
+            # commits as one
             new_commits = (
                 subprocess.check_output(
-                    ["git", "rev-list", "-n", "100", "%s..%s" % (old_head, new_head)], cwd=clone
+                    ["git", "rev-list", commit_range, "^%s~100" % new_head], cwd=clone
                 )
                 .decode()
                 .splitlines()
