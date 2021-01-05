@@ -194,6 +194,17 @@ class GitTest(PatchewTestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEquals(len(resp.data["results"]), 0)
 
+    def test_git_push_options(self):
+        self.p.config['git']["use_git_push_option"] = True
+        self.p.save()
+        self.cli_import("0013-foo-patch.mbox.gz")
+        out, err = self.do_apply(True)
+        self.assertNotIn("ci.skip", out)
+
+        # Getting a new reviewed-by shouldn't trigger re-test
+        self.cli_import("0025-foo-patch-review.mbox.gz")
+        out, err = self.do_apply(True)
+        self.assertIn("ci.skip", out)
 
 if __name__ == "__main__":
     main()

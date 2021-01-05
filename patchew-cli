@@ -934,19 +934,19 @@ class ApplyCommand(SubCommand):
             )
         return list(maintainers)
 
-    def _push(self, repo, remote, tag, logf):
+    def _push(self, repo, remote, tag, logf, push_options):
         subprocess.check_call(
             ["git", "remote", "add", "push_to", remote],
             cwd=repo,
             stdout=logf,
             stderr=logf,
         )
-        subprocess.check_call(
-            ["git", "push", "-f", "push_to", "%s:refs/tags/%s" % (tag, tag)],
-            cwd=repo,
-            stdout=logf,
-            stderr=logf,
-        )
+        push_options_args = ['-o', push_options] if push_options else []
+        cmd = ["git", "push", "-f", "push_to"] + \
+                push_options_args + \
+                ["%s:refs/tags/%s" % (tag, tag)]
+        logging.debug(" ".join(cmd))
+        subprocess.check_call(cmd, cwd=repo, stdout=logf, stderr=logf)
 
     def _applier_mode(self, args):
         applier_get_args = {}
@@ -981,7 +981,8 @@ class ApplyCommand(SubCommand):
             )
             maintainers = self._apply(wd, toapply, branch, force_branch, tag, logf)
             if push_repo:
-                self._push(wd, push_repo, tag, logf)
+                push_options = toapply.get('git.push_options') if toapply.get("git.use_git_push_option") else None
+                self._push(wd, push_repo, tag, logf, push_options)
             url = toapply.get("git.url_template", "").replace("%t", tag)
         except Exception as e:
             if not isinstance(e, ApplyFailedException):

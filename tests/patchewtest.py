@@ -70,8 +70,15 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
         return user
 
     def cli(self, argv):
+        return self.do_cli(False, argv)
+
+    def cli_debug(self, argv):
+        return self.do_cli(True, argv)
+
+    def do_cli(self, debug, argv):
         """Run patchew-cli command and return (retcode, stdout, stderr)"""
-        cmd = [PATCHEW_CLI, "-D", "-s", self.live_server_url] + argv
+        dbgopt = "-d" if debug else "-D"
+        cmd = [PATCHEW_CLI, dbgopt, "-s", self.live_server_url] + argv
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         a, b = p.communicate()
         a = a.decode("utf-8")
@@ -105,13 +112,14 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
     def cli_import(self, mbox, rc=0):
         self.check_cli(["import", self.get_data_path(mbox)], rc)
 
-    def do_apply(self):
+    def do_apply(self, debug=False):
         while True:
-            r, out, err = self.cli(["apply", "--applier-mode"])
+            r, out, err = self.do_cli(debug, ["apply", "--applier-mode"])
             if r != 0:
                 break
         for s in Message.objects.series_heads():
             self.assertNotEqual(s.git_result.status, Result.PENDING)
+        return out, err
 
     def get_data_path(self, fname):
         r = tempfile.NamedTemporaryFile(dir=RUN_DIR, prefix="test-data-", delete=False)

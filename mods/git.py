@@ -75,6 +75,9 @@ class GitModule(PatchewModule):
             schema.StringSchema(
                 "public_repo", "Public repo", desc="Publicly visible repo URL"
             ),
+            schema.BooleanSchema(
+                "use_git_push_option", "Enable git push options", desc="Whether the push remote accepts git push options"
+            ),
             schema.StringSchema(
                 "url_template",
                 "URL template",
@@ -93,14 +96,20 @@ class GitModule(PatchewModule):
         declare_event("ProjectGitUpdate", project="the updated project name")
         declare_event("SeriesApplied", series="the object of applied series")
         register_handler("SeriesComplete", self.on_series_update)
-        register_handler("TagsUpdate", self.on_series_update)
+        register_handler("TagsUpdate", self.on_tags_update)
 
-    def mark_as_pending_apply(self, series):
+    def mark_as_pending_apply(self, series, data={}):
         r = series.git_result or series.create_result(name="git")
         r.log = None
         r.status = Result.PENDING
-        r.data = {}
+        r.data = data
         r.save()
+
+    def on_tags_update(self, event, series, **params):
+        if series.is_complete:
+            self.mark_as_pending_apply(series, {
+                'git.push_options': 'ci.skip',
+                })
 
     def on_series_update(self, event, series, **params):
         if series.is_complete:
@@ -327,6 +336,7 @@ class ApplierGetView(APILoginRequiredView):
             request=request,
         )
         response["result_uri"] = reverse_detail(m.git_result, request)
+        response["git.push_options"] = m.git_result.data.get("git.push_options")
         return response
 
 
