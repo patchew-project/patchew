@@ -362,6 +362,7 @@ class ProjectCommand(SubCommand):
             .strip()
         )
         logging.debug("new head: %s", new_head)
+        old_head = None
         try:
             old_head = project["properties"]["git.head"].strip()
             if old_head == new_head:
