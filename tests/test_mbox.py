@@ -50,6 +50,12 @@ Virtualization:  qemu.org | libvirt.org
             msg = mbox.MboxMessage(f.read())
         self.assertTrue(msg.is_patch())
 
+    def test_raw_diff(self):
+        dp = self.get_data_path("0033-raw-diff.mbox.gz")
+        with open(dp, "r") as f:
+            msg = mbox.MboxMessage(f.read())
+        self.assertTrue(msg.is_patch())
+
     def test_get_json(self):
         dp = self.get_data_path("0001-simple-patch.mbox.gz")
         with open(dp, "r") as f:
