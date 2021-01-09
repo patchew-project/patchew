@@ -268,6 +268,7 @@ class MboxMessage(object):
             or self._has_lines(body, "---", "diff ", "index ", "GIT binary patch")
             or self._has_lines(body, "---", "diff ", "old mode ", "new mode ")
             or self._has_lines(body, "---", "+++", "@@")
+            or self._has_lines(body, "---", "diff ", "rename from", "rename to")
         )
 
     def is_series_head(self):
