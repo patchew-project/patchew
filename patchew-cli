@@ -33,6 +33,11 @@ class APIError(Exception):
 
 def git_head():
     a = str(os.environ.get("PATCHEW_TAG"))
+    if a:
+        if a.startswith("tags/"):
+            a = a[len("tags/"):]
+        elif a.startswith("refs/tags/"):
+            a = a[len("refs/tags/"):]
     return a or subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
 
 def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
