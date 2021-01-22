@@ -32,7 +32,8 @@ class APIError(Exception):
     pass
 
 def git_head():
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+    a = str(os.environ.get("PATCHEW_TAG"))
+    return a or subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
 
 def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
     cache_repo = os.path.join(
@@ -716,10 +717,15 @@ class GitlabPipelineCheckCommand(SubCommand):
         parser.add_argument("--gitlab", "-g", type=str, default="https://gitlab.com/",
                             help="gitlab server addr")
 
-    def _find_pipeline(self, pipelines, sha):
+    def _find_pipeline(self, pipelines, head):
+        candidate = None
         for p in pipelines:
-            if p['sha'] == sha:
-                return p
+            if head in (p['sha'], p['ref']):
+                if p['status'] == 'skipped':
+                    candidate = candidate or p
+                else:
+                    return p
+        return candidate
 
     def print(self, *msgs):
         print("[%s]" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), *msgs)
@@ -736,6 +742,7 @@ class GitlabPipelineCheckCommand(SubCommand):
         for page in range(10):
             url = "%s/api/v4/projects/%s/pipelines/?page=%d&per_page=100" % (
                     gitlab, project_encoded, page)
+            logging.debug(url)
             resp = json.loads(http_get(url))
             p = self._find_pipeline(resp, head)
             if p:
@@ -766,6 +773,7 @@ class GitlabPipelineCheckCommand(SubCommand):
         url = "%s/api/v4/projects/%s/pipelines/%d/jobs" % (
                 gitlab, project_encoded, pid)
         p = json.loads(http_get(url))
+        logging.debug(p)
         for job in p:
             if job["status"] in 'success':
                 continue
