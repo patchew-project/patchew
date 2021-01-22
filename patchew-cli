@@ -576,12 +576,15 @@ class TesterCommand(SubCommand):
             logf.write("=== OUTPUT BEGIN ===\n")
             logf.flush()
             start_time = time.time()
+            env = os.environ.copy()
+            env['PATCHEW_TAG'] = r["head"]
             tp = subprocess.Popen(
                 ["/usr/bin/script", "-qefc", test_script + "< /dev/null", "/dev/null"],
                 cwd=clone,
                 stdin=subprocess.PIPE,
                 stdout=logf,
                 stderr=logf,
+                env=env,
             )
             rc = None
             timeout = r["test"]["timeout"]
