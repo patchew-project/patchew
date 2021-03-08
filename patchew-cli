@@ -759,7 +759,7 @@ class GitlabPipelineCheckCommand(SubCommand):
 
         self.print("Waiting for pipeline to finish...")
         cnt = 0
-        while p['status'] not in ['success', 'failed', 'canceled', 'canceled']:
+        while p['status'] not in ['success', 'failed', 'canceled', 'canceled', 'skipped']:
             time.sleep(60)
             cnt += 1
             if cnt % 15 == 0:
