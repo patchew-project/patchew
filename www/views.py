@@ -356,7 +356,7 @@ def view_series_message(request, project, thread_id, message_id):
         subject=m.subject,
         stripped_subject=s.stripped_subject,
         has_other_revisions=series.has_other_revisions,
-        version=m.version,
+        version=s.version,
         message_id=m.message_id,
         series=series,
         is_cover_letter=False,
