@@ -120,10 +120,10 @@ function prompt_and_open(obj, url) {
 <div class="col-lg-10">
     <div id="thread">
     {% for msg in messages %}
-        <div class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
+        <div id="{{ msg.message_id }}" class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
             <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
                     <h3 class="panel-title">
-                        {{ msg.subject }}
+                      {{ msg.subject }} <a class="permalink" href="#{{msg.message_id}}"><span class="fa fa-sm fa-link"></span></a>
                     </h3>
 
                     <div class="message-info">
