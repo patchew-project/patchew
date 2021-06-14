@@ -349,6 +349,9 @@ class ProjectCommand(SubCommand):
         )
 
     def update_one_project(self, wd, project):
+        if not project["git"]:
+            logging.info("Project '%s' not configured", project["name"])
+            return
         logging.info("Updating project '%s'", project["name"])
         clone = os.path.join("/var/tmp/patchew-project-update", project["name"])
         if " " in project["git"]:
