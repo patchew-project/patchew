@@ -266,11 +266,19 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = (PatchewPermission,)
 
+    # for permissions
+    @property
+    def project(self):
+        if hasattr(self, "__project"):
+            return self.__project
+        self.__project = self.get_object()
+        return self.__project
+
     @action(
         methods=["get", "put"], detail=True, permission_classes=[MaintainerPermission]
     )
     def config(self, request, pk=None):
-        project = self.get_object()
+        project = self.project
         if request.method == "PUT":
             project.config = request.data
             project.save()
@@ -287,7 +295,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
             "message_ids": []
         }
         """
-        project = self.get_object()
+        project = self.project
         head = project.project_head
         old_head = request.data["old_head"]
         message_ids = request.data["message_ids"]
