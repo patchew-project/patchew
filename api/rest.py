@@ -266,11 +266,17 @@ class ProjectsViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = (PatchewPermission,)
 
+    def has_project(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        return lookup_url_kwarg in self.kwargs
+
     # for permissions
     @property
     def project(self):
         if hasattr(self, "__project"):
             return self.__project
+        if not self.has_project():
+            return None
         self.__project = self.get_object()
         return self.__project
 
