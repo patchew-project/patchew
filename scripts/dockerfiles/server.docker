@@ -8,6 +8,7 @@ RUN /bin/bash -c "mkdir -p /opt/patchew && \
     cd /opt/patchew && \
     python3 -m venv ./venv && \
     . venv/bin/activate && \
+    pip3 install --upgrade pip && \
     pip3 install -r /tmp/requirements.txt"
 COPY . /tmp/patchew/
 # Be careful not to overwrite the venv we've just initialized
