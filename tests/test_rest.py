@@ -128,6 +128,21 @@ class RestTest(PatchewTestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.data["git"]["push_to"], "/tmp/bbb")
 
+    def test_project_maintainer_config_put(self):
+        test = self.create_user(username="test", password="userpass")
+        self.api_client.login(username="test", password="userpass")
+        self.p.maintainers.set([test])
+
+        new_config = {"git": {"push_to": "/tmp/bbb"}}
+        resp = self.api_client.put(
+            self.PROJECT_BASE + "config/", new_config, format="json"
+        )
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data["git"]["push_to"], "/tmp/bbb")
+        resp = self.api_client.get(self.PROJECT_BASE + "config/")
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.data["git"]["push_to"], "/tmp/bbb")
+
     def test_update_project_head(self):
         resp = self.apply_and_retrieve(
             "0001-simple-patch.mbox.gz",
