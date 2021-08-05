@@ -177,7 +177,7 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
     def create_git_repo(self, name="test-repo"):
         repo = os.path.join(self.get_tmpdir(), name)
         os.mkdir(repo)
-        subprocess.check_output(["git", "init"], cwd=repo)
+        subprocess.check_output(["git", "init", "-bmaster"], cwd=repo)
         subprocess.check_output(["git", "config", "user.name", "Patchew Test"], cwd=repo)
         subprocess.check_output(["git", "config", "user.email", "test@patchew.org"], cwd=repo)
         subprocess.check_output(["touch", "foo", "bar"], cwd=repo)
