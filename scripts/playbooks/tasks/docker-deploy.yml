@@ -7,7 +7,7 @@
     name: python-pip
 - name: Install docker
   package:
-    name: docker-ce
+    name: docker
 - name: Start docker daemon
   service:
     name: docker
