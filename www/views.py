@@ -11,7 +11,7 @@ import urllib
 
 from django.shortcuts import render
 from django.http import HttpResponse, Http404
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
 from django.urls import reverse
 from django.utils.html import format_html
 from django.conf import settings
@@ -176,13 +176,11 @@ def prepare_navigate_list(cur, *path):
 def render_series_list_page(request, query, search=None, project=None, keywords=[]):
     sort = request.GET.get("sort")
     if sort == "replied":
-        sortfield = "-last_reply_date"
+        query = query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
         order_by_reply = True
     else:
-        sortfield = "-date"
+        query = query.order_by('-date')
         order_by_reply = False
-    if sortfield:
-        query = query.order_by(sortfield)
     query = query.prefetch_related("topic")
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
