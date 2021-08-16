@@ -28,7 +28,8 @@ def _parse_header(header):
 
 
 def parse_address(addr_str):
-    name, addr = email.utils.parseaddr(_parse_header(addr_str))
+    name, addr = email.utils.parseaddr(addr_str)
+    name = _parse_header(name)
     return name, addr
 
 

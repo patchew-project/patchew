@@ -62,6 +62,12 @@ Virtualization:  qemu.org | libvirt.org
             msg = mbox.MboxMessage(f.read())
         self.assertTrue(msg.is_patch())
 
+    def test_rfc2047_from(self):
+        dp = self.get_data_path("0035-rfc2047-from.mbox.gz")
+        with open(dp, "r") as f:
+            msg = mbox.MboxMessage(f.read())
+        self.assertTrue(msg.get_from()[1] == 'AIERPATIJIANG1@kingsoft.com')
+
     def test_get_json(self):
         dp = self.get_data_path("0001-simple-patch.mbox.gz")
         with open(dp, "r") as f:
