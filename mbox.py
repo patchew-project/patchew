@@ -115,6 +115,8 @@ class MboxMessage(object):
         addrs = email.utils.getaddresses(f)
         for name, addr in addrs:
             name = name or addr
+            if not addr:
+                continue
             if text:
                 ret.append(_addr_fmt_text(name, addr))
             else:

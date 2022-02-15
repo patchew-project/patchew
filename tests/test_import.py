@@ -86,6 +86,17 @@ class ImportTest(PatchewTestCase):
         )
         self.check_cli(["search", "project:Libvirt-python"], stdout=subj)
 
+    def test_import_no_to_header(self):
+        self.add_project(
+            "Linux",
+            "linux-kernel@vger.kernel.org",
+            "https://github.com/torvalds/linux",
+        )
+        self.cli_import("0036-patch-with-no-to-header.mbox.gz")
+        a = "[PATCH] fpga: microsemi-spi: add Microsemi FPGA manager"
+        self.check_cli(["search", "project:Linux"], stdout=a.strip())
+        self.check_cli(["search", "project:QEMU"], stdout='')
+
 
 class UnprivilegedImportTest(ImportTest):
     def setUp(self):

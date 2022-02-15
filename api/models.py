@@ -265,11 +265,15 @@ class Project(models.Model):
             return True
         return False
 
+    def get_mailing_lists(self):
+        r = self.mailing_list.split()
+        return [x.rstrip(',;') for x in r]
+
     def recognizes(self, m):
         """Test if @m is considered a message in this project"""
         addr_ok = False
         for name, addr in m.get_to() + m.get_cc():
-            if addr in self.mailing_list:
+            if addr in self.get_mailing_lists():
                 addr_ok = True
                 break
         if addr_ok:
