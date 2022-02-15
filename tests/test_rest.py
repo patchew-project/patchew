@@ -411,18 +411,18 @@ class RestTest(PatchewTestCase):
 
         resp = self.api_client.get(self.REST_BASE + "series/?q=project:QEMU")
         self.assertEqual(resp.data["count"], 2)
-        self.assertEqual(
-            resp.data["results"][0]["resource_uri"], resp1.data["resource_uri"]
-        )
-        self.assertEqual(resp.data["results"][0]["subject"], resp1.data["subject"])
-        self.assertEqual("replies" in resp.data["results"][0], False)
-        self.assertEqual("patches" in resp.data["results"][0], False)
-        self.assertEqual(
-            resp.data["results"][1]["resource_uri"], resp2.data["resource_uri"]
-        )
-        self.assertEqual(resp.data["results"][1]["subject"], resp2.data["subject"])
-        self.assertEqual("replies" in resp.data["results"][1], False)
-        self.assertEqual("patches" in resp.data["results"][1], False)
+
+        def cmp_result(a, expected):
+            self.assertEqual(a["resource_uri"], expected["resource_uri"])
+            self.assertEqual(a["subject"], expected["subject"])
+            self.assertNotIn("replies", a)
+            self.assertNotIn("patches", a)
+        if resp.data["results"][0]["subject"] == resp1.data["subject"]:
+            cmp_result(resp.data['results'][0], resp1.data)
+            cmp_result(resp.data['results'][1], resp2.data)
+        else:
+            cmp_result(resp.data['results'][0], resp2.data)
+            cmp_result(resp.data['results'][1], resp1.data)
 
         resp = self.api_client.get(self.REST_BASE + "projects/12345/series/?q=quorum")
         self.assertEqual(resp.status_code, 404)
