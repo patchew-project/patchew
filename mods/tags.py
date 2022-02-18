@@ -150,25 +150,29 @@ series cover letter, patch mail body and their replies.
             old.save()
             series.topic.merge_with(old.topic)
 
-    def parse_message_tags(self, series, m):
+    def parse_message_tags(self, series, m, tag_prefixes):
         r = []
         for l in m.get_body().splitlines():
             line = l.lower()
-            for p in self.get_tag_prefixes():
+            for p in tag_prefixes:
                 if line.startswith(p.lower()):
                     if line.startswith("supersedes:"):
                         self.process_supersedes(series, l)
                     r.append(l)
         return r
 
-    def look_for_tags(self, series, m):
+    def _look_for_tags(self, series, m, tag_prefixes):
         # Incorporate tags from non-patch replies
-        r = self.parse_message_tags(series, m)
+        r = self.parse_message_tags(series, m, tag_prefixes)
         for x in m.get_replies():
             if x.is_patch:
                 continue
-            r += self.look_for_tags(series, x)
+            r += self._look_for_tags(series, x, tag_prefixes)
         return r
+
+    def look_for_tags(self, series, m):
+        tag_prefixes = self.get_tag_prefixes()
+        return self._look_for_tags(series, m, tag_prefixes)
 
     def prepare_message_hook(self, request, message, detailed):
         if not message.is_series_head:
