@@ -32,11 +32,13 @@ class MaintainerModule(PatchewModule):
             message="Message added",
             name="Name of the updated queue",
             user="Owner of the queue",
+            queue="Queue that message is being added to",
         )
         declare_event(
             "MessageDropping",
             message="Message to be dropped",
-            queue="Message is about to be dropping from a queue",
+            user="Owner of the queue",
+            queue="Queue that message is being removed from",
         )
 
     def _add_to_queue(self, user, m, queue):
