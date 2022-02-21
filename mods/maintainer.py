@@ -42,16 +42,15 @@ class MaintainerModule(PatchewModule):
         )
 
     def _add_to_queue(self, user, m, queue):
-        for x in [m] + list(m.get_patches()):
-            q, created = QueuedSeries.objects.get_or_create(
-                user=user, message=x, name=queue
-            )
-            if created:
-                emit_event("MessageQueued", user=user, message=x, queue=q)
+        q, created = QueuedSeries.objects.get_or_create(
+            user=user, message=m, name=queue
+        )
+        if created:
+            emit_event("MessageQueued", user=user, message=m, queue=q)
 
     def _drop_from_queue(self, user, m, queue):
         query = QueuedSeries.objects.filter(
-            user=user, message__in=m.get_patches() + [m], name=queue
+            user=user, message=m, name=queue
         )
         for q in query:
             emit_event("MessageDropping", user=user, message=q.message, queue=q)
@@ -129,7 +128,7 @@ class MaintainerModule(PatchewModule):
     def www_view_add_to_queue(self, request, message_id):
         if not request.user.is_authenticated:
             raise PermissionDenied()
-        m = Message.objects.filter(message_id=message_id).first()
+        m = Message.objects.find_series(message_id)
         if not m:
             raise Http404("Series not found")
         queue = request.GET.get("queue")
@@ -141,7 +140,7 @@ class MaintainerModule(PatchewModule):
     def www_view_drop_from_queue(self, request, queue, message_id):
         if not request.user.is_authenticated:
             raise PermissionDenied()
-        m = Message.objects.filter(message_id=message_id).first()
+        m = Message.objects.find_series(message_id)
         if not m:
             raise Http404("Series not found")
         self._drop_from_queue(request.user, m, queue)
