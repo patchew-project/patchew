@@ -80,12 +80,8 @@ class MaintainerModule(PatchewModule):
             to_create, to_delete = "accept", "reject"
         else:
             to_create, to_delete = "reject", "accept"
-        QueuedSeries.objects.filter(
-            user=request.user, message=msg, name=to_delete
-        ).delete()
-        QueuedSeries.objects.get_or_create(
-            user=request.user, message=msg, name=to_create
-        )
+        self._drop_from_queue(request.user, msg, to_delete)
+        self._add_to_queue(request.user, msg, to_create)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def _delete_review(self, request, message_id):
