@@ -78,6 +78,8 @@
 {% if is_search %}
     {% if is_watched_query %}
         <p>Saved as my watched query</p>
+    {% elif has_watched_query %}
+        <button><a href="/watch-query/?q={{ search }}">Replace watched query</a></button>
     {% else %}
         <button><a href="/watch-query/?q={{ search }}">Watch query</a></button>
     {% endif %}

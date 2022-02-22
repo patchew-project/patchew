@@ -182,8 +182,10 @@ class MaintainerModule(PatchewModule):
     def render_page_hook(self, request, context_data):
         if request.user.is_authenticated and context_data.get("is_search"):
             q = WatchedQuery.objects.filter(user=request.user).first()
-            if q and q.query == context_data.get("search"):
-                context_data["is_watched_query"] = True
+            if q:
+                context_data["has_watched_query"] = True
+                if q.query == context_data.get("search"):
+                    context_data["is_watched_query"] = True
 
     def www_view_watch_query(self, request):
         if not request.user.is_authenticated:
