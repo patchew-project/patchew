@@ -349,7 +349,7 @@ class MaintainerModule(PatchewModule):
                             "drop-from-queue",
                             kwargs={"queue": r.name, "message_id": message.message_id},
                         ),
-                        "icon": "remove",
+                        "icon": "times",
                         "title": "Drop from queue '%s'" % r.name,
                     }
                 )
