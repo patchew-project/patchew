@@ -69,7 +69,7 @@ class MaintainerModule(PatchewModule):
     def _update_watch_queue(self, series):
         se = SearchEngine()
         for wq in WatchedQuery.objects.all():
-            if se.query_test_message(wq.query, series):
+            if se.query_test_message(wq.query, series, wq.user):
                 self._add_to_queue(wq.user, series, "watched")
             else:
                 self._drop_from_queue(wq.user, series, "watched")

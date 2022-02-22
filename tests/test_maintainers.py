@@ -88,6 +88,28 @@ class MaintainerQueueTest(PatchewTestCase):
         assert q
         assert q.message.id == msg.id
 
+    def test_update_watch_with_user_me(self):
+        wq = WatchedQuery(user=self.testuser, query="to:qemu-block@nongnu.org -nack:me")
+        wq.save()
+        self.cli_import("0001-simple-patch.mbox.gz")
+        msg = Message.objects.first()
+        query = QueuedSeries.objects.filter(user=self.testuser, name="watched")
+        q = query.first()
+        assert q
+        assert q.message.id == msg.id
+
+        # TODO: support and use REST API
+        self.client.post("/login/", {"username": "test", "password": "1234"})
+        self.client.get("/mark-as-rejected/" + msg.message_id + "/")
+        query = QueuedSeries.objects.filter(user=self.testuser, name="reject")
+        q = query.first()
+        assert q
+        assert q.message.id == msg.id
+
+        query = QueuedSeries.objects.filter(user=self.testuser, name="watched")
+        q = query.first()
+        assert not q
+
 
 if __name__ == "__main__":
     main()

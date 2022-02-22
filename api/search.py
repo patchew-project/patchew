@@ -427,7 +427,7 @@ Search text keyword in the email message. Example:
 
         return queryset.filter(q)
 
-    def query_test_message(self, query, message):
+    def query_test_message(self, query, message, user=None):
         queryset = Message.objects.filter(id=message.id)
         terms = [x.strip() for x in query.split() if x.strip()]
-        return self.search_series(*terms, queryset=queryset).first()
+        return self.search_series(*terms, user=user, queryset=queryset).first()
