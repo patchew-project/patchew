@@ -29,7 +29,7 @@
 
     <div class="col-lg-10">
         {% for qn, msgs in queues.items %}
-            <h3>Queue: {{ qn }} [{{ p }}]</h3>
+	<h3><a href="{% url "maintainer_queue" project=p name=qn %}">Queue: {{ qn }} [{{ p }}]</a></h3>
             <ul class="panel" id="patches">
             {% for patch in msgs %}
                 <li><a href="/{{ p }}/{{ patch.get_series_head.message_id }}/">

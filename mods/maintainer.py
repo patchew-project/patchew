@@ -14,10 +14,11 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
 from mod import PatchewModule
-from api.models import Message, QueuedSeries, WatchedQuery
+from api.models import Message, QueuedSeries, Project, WatchedQuery
 from django.shortcuts import render
 from api.search import SearchEngine
 from event import declare_event, register_handler, emit_event
+from www.views import render_series_list_page
 
 
 class MaintainerModule(PatchewModule):
@@ -164,13 +165,37 @@ class MaintainerModule(PatchewModule):
         self._drop_from_queue(request.user, m, queue)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def www_view_my_queues(self, request):
+    def www_view_queue(self, request, project, name):
+        if not request.user.is_authenticated:
+            raise PermissionDenied()
+
+        q = QueuedSeries.objects.filter(user=request.user, name=name).first()
+        if not q:
+            raise Http404("Queue not found")
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Http404("Project not found")
+
+        search = 'project:' + project + ' queue:' + name
+        query = Message.objects.series_heads(po.id).filter(queuedseries=q)
+        return render_series_list_page(request, query,
+                                       search=search, project=project,
+                                       title='"' + name + '" queue')
+
+    def www_view_my_queues(self, request, project=None):
         if not request.user.is_authenticated:
             raise PermissionDenied()
         data = {}
-        for i in QueuedSeries.objects.filter(
-            user=request.user
-        ).order_by("message__project", "name", "message__date"):
+        q = QueuedSeries.objects.filter(user=request.user)
+        if project:
+            po = Project.objects.filter(name=project).first()
+            if not po:
+                raise Http404("Project not found")
+            q = q.filter(message__project=po)
+        else:
+            q = q.order_by("message__project")
+
+        for i in q.order_by("name", "message__date"):
             pn = i.message.project.name
             qn = i.name
             data.setdefault(pn, {})
@@ -248,8 +273,10 @@ class MaintainerModule(PatchewModule):
                 name="drop-from-queue",
             )
         )
-        urlpatterns.append(url(r"^my-queues/", self.www_view_my_queues))
-        urlpatterns.append(url(r"^watch-query/", self.www_view_watch_query))
+        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/$", self.www_view_queue, name="maintainer_queue"))
+        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/$", self.www_view_my_queues))
+        urlpatterns.append(url(r"^my-queues/$", self.www_view_my_queues))
+        urlpatterns.append(url(r"^watch-query/$", self.www_view_watch_query))
 
     def prepare_message_hook(self, request, message, detailed):
         if message.maintainers:
