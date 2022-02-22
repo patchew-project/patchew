@@ -545,6 +545,10 @@ class QueuedSeries(models.Model):
         index_together = [("user", "message")]
 
 
+    def __str__(self):
+        return '"' + self.message.subject + '" in queue ' + self.user.username + "/" + \
+                self.message.project.name + "/" + self.name
+
 class TopicManager(models.Manager):
     def for_stripped_subject(self, stripped_subject):
         q = (
@@ -954,3 +958,6 @@ class WatchedQuery(models.Model):
         User, on_delete=models.CASCADE, related_name="watched_queries"
     )
     query = models.TextField(blank=False, help_text="Watched query")
+
+    def __str__(self):
+        return self.query + " for user " + self.user.username

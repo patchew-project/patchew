@@ -9,7 +9,7 @@
 # http://opensource.org/licenses/MIT.
 
 from django.contrib import admin
-from .models import Message, Module, Project
+from .models import Message, Module, Project, WatchedQuery, QueuedSeries
 from mod import get_module
 
 
@@ -58,3 +58,5 @@ admin_site.index_title = "Patchew administration"
 admin_site.register(Project, ProjectAdmin)
 admin_site.register(Message, MessageAdmin)
 admin_site.register(Module, ModuleAdmin)
+admin_site.register(WatchedQuery, admin.ModelAdmin)
+admin_site.register(QueuedSeries, admin.ModelAdmin)
