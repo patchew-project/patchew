@@ -27,6 +27,8 @@ class MaintainerModule(PatchewModule):
 
     def __init__(self):
         register_handler("ResultUpdate", self.on_result_update)
+        register_handler("SeriesMerged", self.on_series_merged)
+        register_handler("SeriesReviewed", self.on_series_reviewed)
         declare_event(
             "MessageQueued",
             message="Message added",
@@ -74,6 +76,21 @@ class MaintainerModule(PatchewModule):
             # By the time of git result update we should have calculated
             # maintainers so redo the watched queue
             self._update_watch_queue(obj)
+
+    def on_series_reviewed(self, evt, series):
+        # Handle changes to "is:reviewed"
+        self._update_watch_queue(obj)
+
+    def on_series_merged(self, evt, project, series):
+        # This is a bit of a hack for now.  We probably should hide merged
+        # series more aggressively, but I am not sure how to handle that
+        # efficiently in the database.
+        query = QueuedSeries.objects.filter(
+            message=series, name__in=['accept', 'reject']
+        )
+        self._drop_all_from_queue(query)
+        # Handle changes to "is:merged"
+        self._update_watch_queue(obj)
 
     def _update_review_state(self, request, message_id, accept):
         if not request.user.is_authenticated:
