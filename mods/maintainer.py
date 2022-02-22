@@ -169,13 +169,14 @@ class MaintainerModule(PatchewModule):
         if not request.user.is_authenticated:
             raise PermissionDenied()
 
-        q = QueuedSeries.objects.filter(user=request.user, name=name).first()
-        if not q:
+        q = QueuedSeries.objects.filter(user=request.user, name=name)
+        if not q.first():
             raise Http404("Queue not found")
         po = Project.objects.filter(name=project).first()
         if not po:
             raise Http404("Project not found")
-        return Message.objects.series_heads(po.id).filter(queuedseries=q)
+        message_ids = q.values("message_id")
+        return Message.objects.series_heads(po.id).filter(id__in=message_ids)
 
     def www_download_queue_mbox(self, request, project, name):
         query = self.query_queue(request, project, name).filter(is_complete=True)
