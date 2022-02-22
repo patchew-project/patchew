@@ -28,6 +28,8 @@ class MaintainerModule(PatchewModule):
 
     def __init__(self):
         register_handler("ResultUpdate", self.on_result_update)
+        register_handler("MessageQueued", self.on_queue_change)
+        register_handler("MessageDropped", self.on_queue_change)
         register_handler("SeriesMerged", self.on_series_merged)
         register_handler("SeriesReviewed", self.on_series_reviewed)
         declare_event(
@@ -70,6 +72,11 @@ class MaintainerModule(PatchewModule):
                 self._add_to_queue(wq.user, series, "watched")
             else:
                 self._drop_from_queue(wq.user, series, "watched")
+
+    def on_queue_change(self, evt, user, message, queue):
+        # Handle changes to e.g. "-nack:me"
+        if queue != "watched":
+            self._update_watch_queue(message)
 
     def on_result_update(self, evt, obj, old_status, result):
         if not isinstance(obj, Message):
@@ -117,7 +124,7 @@ class MaintainerModule(PatchewModule):
         r = QueuedSeries.objects.filter(
             user=request.user, message=msg, name__in=["accept", "reject"]
         )
-        r.delete()
+        self._drop_all_from_queue(r)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def _update_merge_state(self, request, message_id, is_merged):
