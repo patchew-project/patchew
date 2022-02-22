@@ -256,7 +256,7 @@ class MaintainerModule(PatchewModule):
                     "url": reverse(
                         "mark-as-merged", kwargs={"message_id": message.message_id}
                     ),
-                    "icon": "check",
+                    "icon": "code-branch fa-flip-vertical",
                     "title": "Mark series as merged",
                 }
             )
