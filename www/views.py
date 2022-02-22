@@ -173,7 +173,9 @@ def prepare_navigate_list(cur, *path):
     return r
 
 
-def render_series_list_page(request, query, search=None, project=None, keywords=[]):
+def render_series_list_page(request, query, search=None, project=None,
+                            title='Search results', link_icon=None,
+                            link_url=None, link_text=None, keywords=[]):
     sort = request.GET.get("sort")
     if sort == "replied":
         query = query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
@@ -191,7 +193,6 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
     if sort:
         params += "&" + urllib.parse.urlencode({"sort": sort})
     if search is not None:
-        is_search = True
         params += "&" + urllib.parse.urlencode({"q": search})
         cur = 'search "%s"' % search
         if project:
@@ -201,18 +202,22 @@ def render_series_list_page(request, query, search=None, project=None, keywords=
         else:
             nav_path = prepare_navigate_list(cur)
     else:
-        is_search = False
         search = "project:%s" % project
         nav_path = prepare_navigate_list(project)
     page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
+    if project:
+        title += ' for ' + project
     return render_page(
         request,
         "series-list.html",
         series=prepare_series_list(request, series),
         page_links=page_links,
         search=search,
+        title=title,
         project=project,
-        is_search=is_search,
+        link_icon=link_icon,
+        link_url=link_url,
+        link_text=link_text,
         keywords=keywords,
         order_by_reply=order_by_reply,
         navigate_links=nav_path,
@@ -269,7 +274,11 @@ def view_series_list(request, project):
     if not prj:
         raise Http404("Project not found")
     query = api.models.Message.objects.series_heads(prj.id)
-    return render_series_list_page(request, query, project=project)
+    return render_series_list_page(request, query, project=project,
+                                   title='All series',
+                                   link_icon='fa fa-list',
+                                   link_url=reverse("project_detail", kwargs={"project": project}),
+                                   link_text='More information about ' + project + '...')
 
 
 def view_mbox(request, project, message_id):
