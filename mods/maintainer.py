@@ -147,7 +147,7 @@ class MaintainerModule(PatchewModule):
             raise PermissionDenied()
         data = {}
         for i in QueuedSeries.objects.filter(
-            message__is_patch=True, user=request.user
+            user=request.user
         ).order_by("message__project", "name", "message__date"):
             pn = i.message.project.name
             qn = i.name
