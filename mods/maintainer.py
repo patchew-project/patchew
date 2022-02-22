@@ -48,19 +48,24 @@ class MaintainerModule(PatchewModule):
         if created:
             emit_event("MessageQueued", user=user, message=m, queue=q)
 
+    def _drop_all_from_queue(self, query):
+        for q in query:
+            emit_event("MessageDropping", user=q.user, message=q.message, queue=q)
+        query.delete()
+
     def _drop_from_queue(self, user, m, queue):
         query = QueuedSeries.objects.filter(
             user=user, message=m, name=queue
         )
-        for q in query:
-            emit_event("MessageDropping", user=user, message=q.message, queue=q)
-        query.delete()
+        self._drop_all_from_queue(query)
 
     def _update_watch_queue(self, series):
         se = SearchEngine()
         for wq in WatchedQuery.objects.all():
             if se.query_test_message(wq.query, series):
                 self._add_to_queue(wq.user, series, "watched")
+            else:
+                self._drop_from_queue(wq.user, series, "watched")
 
     def on_result_update(self, evt, obj, old_status, result):
         if not isinstance(obj, Message):
