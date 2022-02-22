@@ -54,7 +54,7 @@ class MaintainerModule(PatchewModule):
         )
         for q in query:
             emit_event("MessageDropping", user=user, message=q.message, queue=q)
-        q.delete()
+        query.delete()
 
     def _update_watch_queue(self, series):
         se = SearchEngine()
