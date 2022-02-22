@@ -193,7 +193,7 @@ class GitModule(PatchewModule):
                 message.extra_ops.append(
                     {
                         "url": url,
-                        "icon": "refresh",
+                        "icon": "sync",
                         "title": "Git reset",
                         "class": "warning",
                     }

@@ -209,7 +209,7 @@ Email information is configured in "INI" style:
                     "url": reverse(
                         "email-bounce", kwargs={"message_id": message.message_id}
                     ),
-                    "icon": "mail-forward",
+                    "icon": "share",
                     "title": "Bounce to me",
                 }
             )

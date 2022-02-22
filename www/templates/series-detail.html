@@ -79,15 +79,15 @@ function prompt_and_open(obj, url) {
 <div class="status">
 {% if series.num_patches < series.total_patches %}
 <div class="status-content">
-   <span class="fa fa-lg fa-warning"></span>
+   <span class="fa fa-lg fa-exclamation-triangle"></span>
    <div>Only {{ series.num_patches }} patches received!</div>
 </div>
 {% endif %}
 {% for result in results %}
 <div class="status-content">
  {% if result.status == "pending" %} <span class="fa fa-lg fa-hourglass"></span>
- {% elif result.status == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
- {% elif result.status == "failure" %} <span class="fa fa-lg fa-warning"></span>
+ {% elif result.status == "running" %} <span class="fa fa-lg fa-sync fa-spin"></span>
+ {% elif result.status == "failure" %} <span class="fa fa-lg fa-exclamation-triangle"></span>
  {% elif result.status == "success" %} <span class="fa fa-lg fa-check"></span>{% endif %}
  <div>{{ result.html }}</div>
 </div>
@@ -146,7 +146,7 @@ function prompt_and_open(obj, url) {
 	{% if is_cover_letter and forloop.first%}
         <ul class="panel" id="patches">
           {% for patch in patches %}
-	  <li><span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
+	  <li><span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
 	  {% endfor %}
           </ul>
 	{% endif %}
@@ -157,7 +157,7 @@ function prompt_and_open(obj, url) {
     <ul class="panel" id="patches">
     {% for patch in patches %}
     <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
-      <span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span>
+      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}
       {% if patch.message_id != message_id %}</a>{% endif %}</li>
     {% endfor %}

@@ -398,7 +398,7 @@ class TestingModule(PatchewModule):
                 "url": url,
                 "title": "Reset all testing states",
                 "class": "warning",
-                "icon": "refresh",
+                "icon": "sync",
             }
         ]
         for r in self.get_testing_results(obj, ~Q(status=Result.PENDING)):
@@ -408,7 +408,7 @@ class TestingModule(PatchewModule):
                     "url": url + "&test=" + tn,
                     "title": format_html("Reset <b>{}</b> testing state", tn),
                     "class": "warning",
-                    "icon": "refresh",
+                    "icon": "sync",
                 }
             )
         return ret
@@ -483,7 +483,7 @@ class TestingModule(PatchewModule):
         if not at:
             return
         project.extra_status.append(
-            {"icon": "fa-refresh fa-spin", "html": "Active testers: " + ", ".join(at)}
+            {"icon": "fa-sync fa-spin", "html": "Active testers: " + ", ".join(at)}
         )
 
     def prepare_project_hook(self, request, project):

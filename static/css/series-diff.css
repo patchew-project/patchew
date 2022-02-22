@@ -78,7 +78,7 @@
     margin: 0.3em 0em;
     padding: 0em;
 }
-.diff th.texttitle > div.patch-link .fa {
+div.patch-link .fa, div.patch-link .fab, div.patch-link .far {
     position: relative;
     color: #337ab7;
     width: 1.5em;

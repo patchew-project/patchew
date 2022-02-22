@@ -1,3 +1,8 @@
+@import url(brands.min.css);
+@import url(fontawesome.min.css);
+@import url(regular.min.css);
+@import url(solid.min.css);
+
 html, body {
     height: 100%;
 }
@@ -135,17 +140,14 @@ h1, h2, h3, .h1, .h2, .h3 {
     margin: 0.5em 0em;
 }
 
-.status-content > .fa {
+.status-content > .fa, .status-content > .fab, .status-content > .far {
     position: absolute;
     width: 40px;
     margin-top: 0.166666em;
     text-align: center;
-}
-
-.status-content > .fa {
     color: #337ab7;
 }
-.status-content > .fa-warning, .status-content > .fa-times {
+.status-content > .fa-exclamation-triangle, .status-content > .fa-times {
     color: #CC0000;
 }
 .status-content > .fa-check {
@@ -188,7 +190,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     margin: 1em 0.5em;
     padding: 0em;
 }
-#detail-ops > ul > li > .fa {
+#detail-ops > ul > li > .fa, #detail-ops > ul > li > .fab, #detail-ops > ul > li > .far {
     position: relative;
     left: -1em;
     width: 1em;

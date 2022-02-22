@@ -33,7 +33,7 @@
             <ul class="panel" id="patches">
             {% for patch in msgs %}
                 <li><a href="/{{ p }}/{{ patch.get_series_head.message_id }}/">
-                  <span class="fa fa-lg {% if patch.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}"></span>
+                  <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
                   {{ patch.subject }}
                   </a></li>
             {% endfor %}

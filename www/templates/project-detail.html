@@ -28,10 +28,10 @@
 
 <div class="status">
 <div class="status-content">
-  <span class="fa fa-lg fa-external-link"></span><div>URL: <a href="{{ project.url }}">{{ project.url }}</a></div>
+  <span class="fa fa-lg fa-external-link-alt"></span><div>URL: <a href="{{ project.url }}">{{ project.url }}</a></div>
 </div>
 <div class="status-content">
-  <span class="fa fa-lg fa-git"></span><div>Git: <a href="{{ project.git }}">{{ project.git }}</a></div>
+  <span class="fab fa-lg fa-git"></span><div>Git: <a href="{{ project.git }}">{{ project.git }}</a></div>
 </div>
 {% if project.get_subprojects %}
 <div class="status-content">
@@ -45,8 +45,8 @@
 {% for result in results %}
 <div class="status-content status-{{ result.status }}">
  {% if result.status == "pending" %} <span class="fa fa-lg fa-hourglass"></span>
- {% elif result.status == "running" %} <span class="fa fa-lg fa-refresh fa-spin"></span>
- {% elif result.status == "failure" %} <span class="fa fa-lg fa-warning"></span>
+ {% elif result.status == "running" %} <span class="fa fa-lg fa-sync fa-spin"></span>
+ {% elif result.status == "failure" %} <span class="fa fa-lg fa-exclamation-triangle"></span>
  {% elif result.status == "success" %} <span class="fa fa-lg fa-check"></span>{% endif %}
  <div>{{ result.html }}</div>
 </div>

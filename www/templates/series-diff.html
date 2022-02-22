@@ -24,10 +24,10 @@
 
 <textarea id="null" data-subject="" style="display: none;"></textarea>
 {% for m in series_left %}
-<textarea id="left{{forloop.counter}}" data-icon="{% if m.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}" data-href="{{m.link}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
+<textarea id="left{{forloop.counter}}" data-icon="{% if m.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}" data-href="{{m.link}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
 {% endfor %}
 {% for m in series_right %}
-<textarea id="right{{forloop.counter}}" data-icon="{% if m.has_replies %}fa-comment-o{% else %}fa-ellipsis-v{% endif %}" data-href="{{m.link}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
+<textarea id="right{{forloop.counter}}" data-icon="{% if m.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}" data-href="{{m.link}}" data-subject="{{m.subject}}" style="display: none;">{{m.body}}</textarea>
 {% endfor %}
 
 <script type="text/javascript">
@@ -43,7 +43,7 @@ function buildTitleCell(textArea, defaultText)
 	elem = $('<div></div>', { 'text': defaultText });
     } else {
         span = $('<span></span>',
-	         { 'class': 'fa fa-lg ' + textArea.data('icon') });
+	         { 'class': 'fa-lg ' + textArea.data('icon') });
         a = $('<a></a>',
 	      { 'href': textArea.data('href'),
 	        'text': textArea.data('subject')
