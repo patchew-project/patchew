@@ -47,7 +47,6 @@ samp {
 }
 
 .navbar {
-    border: 0px 0px 1px 0px;
     border-radius: 0px;
     background: none;
     padding: 3px 3px 5px 3px;
@@ -180,7 +179,7 @@ h1, h2, h3, .h1, .h2, .h3 {
 
 #detail-ops > ul {
     list-style-type: none;
-    color: #1708f;
+    color: #11708f;
     background-color: #d9edf7;
     border-radius: 4px;
     padding: 0px 1em 0px 2em;
