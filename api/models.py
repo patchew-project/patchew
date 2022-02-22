@@ -688,7 +688,7 @@ class Message(models.Model):
         container.set_payload(payload, charset="utf-8")
         return msg.as_bytes(unixfrom=True)
 
-    def get_mbox_with_tags(self):
+    def get_mboxes_with_tags(self):
         if not self.is_patch:
             if not self.is_complete:
                 return None
@@ -701,7 +701,10 @@ class Message(models.Model):
         mbox_list = []
         for message in messages:
             mbox_list.append(message._get_mbox_with_tags(series_tags))
-        return b"\n".join(mbox_list)
+        return mbox_list
+
+    def get_mbox_with_tags(self):
+        return b"\n".join(self.get_mboxes_with_tags())
 
     def get_num(self):
         assert self.is_patch or self.is_series_head

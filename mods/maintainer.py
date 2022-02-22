@@ -11,7 +11,7 @@
 import re
 from django.conf.urls import url
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.urls import reverse
 from mod import PatchewModule
 from api.models import Message, QueuedSeries, Project, WatchedQuery
@@ -165,7 +165,7 @@ class MaintainerModule(PatchewModule):
         self._drop_from_queue(request.user, m, queue)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def www_view_queue(self, request, project, name):
+    def query_queue(self, request, project, name):
         if not request.user.is_authenticated:
             raise PermissionDenied()
 
@@ -175,12 +175,27 @@ class MaintainerModule(PatchewModule):
         po = Project.objects.filter(name=project).first()
         if not po:
             raise Http404("Project not found")
+        return Message.objects.series_heads(po.id).filter(queuedseries=q)
 
+    def www_download_queue_mbox(self, request, project, name):
+        query = self.query_queue(request, project, name).filter(is_complete=True)
+        mbox_list = []
+        for s in query:
+            mbox_list.extend(s.get_mboxes_with_tags())
+        mbox = b"\n".join(mbox_list)
+        return HttpResponse(mbox, content_type="text/plain")
+
+    def www_view_queue(self, request, project, name):
+        query = self.query_queue(request, project, name)
         search = 'project:' + project + ' queue:' + name
-        query = Message.objects.series_heads(po.id).filter(queuedseries=q)
         return render_series_list_page(request, query,
                                        search=search, project=project,
-                                       title='"' + name + '" queue')
+                                       title='"' + name + '" queue',
+                                       link_icon='fa fa-download',
+                                       link_text='Download mbox',
+                                       link_url=reverse("maintainer_queue_mbox",
+                                                        kwargs={"project": project,
+                                                                "name": name}))
 
     def www_view_my_queues(self, request, project=None):
         if not request.user.is_authenticated:
@@ -274,6 +289,7 @@ class MaintainerModule(PatchewModule):
             )
         )
         urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/$", self.www_view_queue, name="maintainer_queue"))
+        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/mbox$", self.www_download_queue_mbox, name="maintainer_queue_mbox"))
         urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/$", self.www_view_my_queues))
         urlpatterns.append(url(r"^my-queues/$", self.www_view_my_queues))
         urlpatterns.append(url(r"^watch-query/$", self.www_view_watch_query))
