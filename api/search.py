@@ -178,6 +178,7 @@ Syntax:
  - reject:USERNAME or nack:USERNAME - the series was marked as reject by the user
  - review:USERNAME - the series was marked as accepted or rejected by the user
  - watch:USERNAME - the series is in the user's watched queue
+ - queue:NAME - the series is in the given queue of the current user
 
 USERNAME can be "me" to identify the current user
 
@@ -352,6 +353,9 @@ Search text keyword in the email message. Example:
         ):
             username = term[term.find(":") + 1 :]
             return self._make_filter_queue(username, user, name="reject")
+        elif term.startswith("queue:"):
+            name = term[term.find(":") + 1 :]
+            return self._make_filter_queue("me", user, name=name)
         elif term.startswith("review:") or term.startswith("reviewed:"):
             username = term[term.find(":") + 1 :]
             return self._make_filter_queue(
