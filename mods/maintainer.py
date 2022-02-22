@@ -38,8 +38,8 @@ class MaintainerModule(PatchewModule):
             queue="Queue that message is being added to",
         )
         declare_event(
-            "MessageDropping",
-            message="Message to be dropped",
+            "MessageDropped",
+            message="Message that has been dropped",
             user="Owner of the queue",
             queue="Queue that message is being removed from",
         )
@@ -52,9 +52,10 @@ class MaintainerModule(PatchewModule):
             emit_event("MessageQueued", user=user, message=m, queue=q)
 
     def _drop_all_from_queue(self, query):
-        for q in query:
-            emit_event("MessageDropping", user=q.user, message=q.message, queue=q)
+        events = [{"user": q.user, "message": q.message, "queue": q} for q in query]
         query.delete()
+        for ev in events:
+            emit_event("MessageDropped", **ev)
 
     def _drop_from_queue(self, user, m, queue):
         query = QueuedSeries.objects.filter(
