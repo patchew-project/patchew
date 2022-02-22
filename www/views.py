@@ -175,7 +175,8 @@ def prepare_navigate_list(cur, *path):
 
 def render_series_list_page(request, query, search=None, project=None,
                             title='Search results', link_icon=None,
-                            link_url=None, link_text=None, keywords=[]):
+                            link_url=None, link_text=None, keywords=[],
+                            is_search=False):
     sort = request.GET.get("sort")
     if sort == "replied":
         query = query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
@@ -213,6 +214,7 @@ def render_series_list_page(request, query, search=None, project=None,
         series=prepare_series_list(request, series),
         page_links=page_links,
         search=search,
+        is_search=is_search,
         title=title,
         project=project,
         link_icon=link_icon,
@@ -265,7 +267,8 @@ def view_search(request):
     se = SearchEngine()
     query = se.search_series(user=request.user, *terms)
     return render_series_list_page(
-        request, query, search=search, project=se.project(), keywords=se.last_keywords()
+        request, query, search=search, project=se.project(), keywords=se.last_keywords(),
+        is_search=True
     )
 
 
