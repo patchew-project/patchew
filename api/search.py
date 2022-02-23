@@ -379,7 +379,10 @@ def __parser(_Q):
 
     AnyTerm = PlusTerm | MinusTerm | BangTerm | BasicTerm
 
-    return AnyTerm
+    Rest = Spaces.then(AnyTerm).repeat(value=SearchTrue(), reducer=operator.and_)
+    ConjunctionTerms = AnyTerm.then(Rest, reducer=operator.and_)
+
+    return ConjunctionTerms
 
 def parse(s, the_parser=__parser(Q)):
     results = the_parser(s)

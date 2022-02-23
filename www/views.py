@@ -273,8 +273,7 @@ def view_search(request):
     from api.search import SearchEngine
 
     search = request.GET.get("q", "").strip()
-    terms = [x.strip() for x in search.split(" ") if x]
-    se = SearchEngine(terms, request.user)
+    se = SearchEngine([search], request.user)
     query = se.search_series()
     return render_series_list_page(
         request, query, search=search, project=se.project(), keywords=se.last_keywords(),
