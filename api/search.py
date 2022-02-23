@@ -9,7 +9,9 @@
 # http://opensource.org/licenses/MIT.
 
 from .models import Message, MessageResult, Result, QueuedSeries
+from collections import namedtuple
 from functools import reduce
+import operator
 
 from django.db import connection
 from django.db.models import Q
@@ -18,6 +20,8 @@ from django.contrib.postgres.search import SearchQuery, SearchVector, SearchVect
 from django.db.models import Lookup
 from django.db.models.fields import Field
 
+import abc
+import compynator.core
 
 @Field.register_lookup
 class NotEqual(Lookup):
@@ -61,6 +65,332 @@ class NonNullSearchVector(SearchVector):
             sql = 'setweight({}, {})'.format(sql, weight_sql)
         return sql, config_params + params + extra_params
 
+
+# The abstract syntax tree of the search.  This allows:
+# - showing the project name if the result of the search is a single project
+# - highlighting all keywords
+# - using a single SearchVector for multiple ANDed keywords
+#
+# On top of this, SearchMaint and SearchQueue allow to use a singleton parser
+# that does not know about requests, and only resolve the user ("me") later
+
+class SearchExpression(metaclass=abc.ABCMeta):
+    def get_project(self):
+        return None
+
+    def get_all_keywords(self):
+        return self.get_keywords()
+
+    def get_keywords(self):
+        return []
+
+    @abc.abstractmethod
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        pass
+
+    def get_query(self, user, keyword_map, keyword_final):
+        # Combine the query returned by get_query_no_keywords()
+        # with the keyword search for the result of get_keywords()
+        query_no_kw = self.get_query_no_keywords(user, keyword_map, keyword_final)
+        kw = self.get_keywords()
+        if not kw:
+            return query_no_kw
+        query_kw = reduce(operator.and_, map(keyword_map, self.get_keywords()))
+        return query_no_kw & keyword_final(query_kw)
+
+    def __invert__(self):
+        return SearchNot(self)
+
+    def __or__(self, rhs):
+        if isinstance(rhs, SearchFalse):
+            return self
+        return SearchOr(self, rhs)
+
+    def __and__(self, rhs):
+        if isinstance(rhs, SearchTrue):
+            return self
+        return SearchAnd(self, rhs)
+
+
+class SearchFalse(SearchExpression):
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return Q(pk=None)
+
+    def __invert__(self):
+        return SearchTrue(self)
+
+    def __or__(self, rhs):
+        return rhs
+
+
+class SearchTrue(SearchExpression):
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return Q()
+
+    def __invert__(self):
+        return SearchFalse(self)
+
+    def __and__(self, rhs):
+        return rhs
+
+
+class SearchNot(SearchExpression, namedtuple('SearchNot', ['op'])):
+    def get_all_keywords(self):
+        return self.op.get_all_keywords()
+
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return ~self.op.get_query(user, keyword_map, keyword_final)
+
+    def __invert__(self):
+        return self.op
+
+
+class SearchBinary(SearchExpression, namedtuple('SearchBinary', ['left', 'right'])):
+    def get_all_keywords(self):
+        return self.left.get_all_keywords() + self.right.get_all_keywords()
+
+
+class SearchAnd(SearchBinary):
+    def get_project(self):
+        return self.left.get_project() or self.right.get_project()
+
+    def get_keywords(self):
+        return self.left.get_keywords() + self.right.get_keywords()
+
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return self.left.get_query_no_keywords(user, keyword_map, keyword_final) \
+                & self.right.get_query_no_keywords(user, keyword_map, keyword_final)
+
+
+class SearchOr(SearchBinary):
+    def get_project(self):
+        candidate = self.left.get_project()
+        if candidate:
+            return candidate if self.right.get_project() == candidate else None
+        return None
+
+    def get_keywords(self):
+        return []
+
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        # keywords from the left and right part cannot be combined in a
+        # single query, so resolve them already
+        return self.left.get_query(user, keyword_map, keyword_final) \
+                | self.right.get_query(user, keyword_map, keyword_final)
+
+
+class SearchTerm(SearchExpression, namedtuple('SearchTerm', ['project', 'query'])):
+    def __invert__(self):
+        return SearchTerm(project=None, query=~self.query)
+
+    def get_project(self):
+        return self.project
+
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return self.query
+
+
+class SearchKeyword(SearchExpression, namedtuple('SearchKeyword', ['keyword'])):
+    def get_keywords(self):
+        return [self.keyword]
+
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        return Q()
+
+
+class SearchSubquery(SearchExpression, namedtuple('SearchQueue', ['model', 'q'])):
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        message_ids = self.model.objects.filter(self.q).values("message_id")
+        return Q(id__in=message_ids)
+
+
+class SearchQueue(SearchExpression, namedtuple('SearchQueue', ['queues', 'username'])):
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        if self.username == "me":
+            if not user.is_authenticated:
+                # Django hack to return an always false Q object
+                return Q(pk=None)
+            q = Q(user=user, name__in=self.queues)
+        else:
+            q = Q(user__username=self.username, name__in=self.queues)
+        message_ids = QueuedSeries.objects.filter(q).values("message_id")
+        return Q(id__in=message_ids)
+
+class SearchMaint(SearchExpression, namedtuple('SearchMaint', ['rhs'])):
+    def get_query_no_keywords(self, user, keyword_map, keyword_final):
+        if self.rhs == "me":
+            if not user.is_authenticated:
+                # Django hack to return an always false Q object
+                return Q(pk=None)
+            return Q(maintainers__icontains=user.email)
+        else:
+            return Q(maintainers__icontains=self.rhs)
+
+
+def __parser(_Q):
+    from compynator.core import One, Terminal
+    from compynator.niceties import Digit, Forward, Lookahead
+
+    def Q(**kwargs):
+        return SearchTerm(project=None, query=_Q(**kwargs))
+
+    def K(keyword):
+        return SearchKeyword(keyword)
+
+    def human_to_seconds(n, unit):
+        unit = unit.lower()
+        if unit == "d":
+            return int(n) * 86400
+        elif unit == "w":
+            return int(n) * 86400 * 7
+        elif unit == "m":
+            return int(n) * 86400 * 30
+        elif unit == "y":
+            return int(n) * 86400 * 365
+        raise Exception("No unit specified")
+
+    def _make_filter_age(cond, sec):
+        import datetime
+
+        less = cond == "<"
+        p = datetime.datetime.now() - datetime.timedelta(0, sec)
+        if less:
+            q = Q(date__gte=p)
+        else:
+            q = Q(date__lte=p)
+        return q
+
+    def _make_filter_project(cond):
+        return SearchTerm(project=cond,
+                          query=_Q(project__name=cond) | _Q(project__parent_project__name=cond))
+
+    def _make_filter_is(cond):
+        if cond == "complete":
+            return Q(is_complete=True)
+        elif cond == "pull":
+            return K("PULL") & SearchTerm(project=None,
+                                          query=_Q(subject__contains="[PULL") | _Q(subject__contains="[GIT PULL"))
+        elif cond == "reviewed":
+            return Q(is_reviewed=True)
+        elif cond in ("obsoleted", "old", "obsolete"):
+            return Q(is_obsolete=True)
+        elif cond == "applied":
+            return SearchSubquery(
+                MessageResult, _Q(name="git", status=Result.SUCCESS)
+            )
+        elif cond == "tested":
+            return Q(is_tested=True)
+        elif cond == "merged":
+            return Q(is_merged=True)
+        return None
+
+    def _make_filter_not(cond):
+        q = _make_filter_is(cond)
+        if q:
+            q = ~q
+        return q
+
+    def _make_filter_is_or_keyword(cond):
+        return _make_filter_is(cond) or K(cond)
+
+    def _make_subquery_result(term, **kwargs):
+        q = _Q(name=term, **kwargs) | _Q(name__startswith=term + ".", **kwargs)
+        return SearchSubquery(MessageResult, q)
+
+    def _make_filter_result(kind, term):
+        if kind == "failure:":
+            return _make_subquery_result(term, status=Result.FAILURE)
+        if kind == "success:":
+            # What we want is "all results are successes", but the only way to
+            # express it is "there is a result and not (any result is not a success)".
+            return _make_subquery_result(term) & ~_make_subquery_result(
+                term, status__ne=Result.SUCCESS
+            )
+        if kind == "pending:":
+            return _make_subquery_result(term, status=Result.PENDING)
+        if kind == "running:":
+            return _make_subquery_result(term, status=Result.RUNNING)
+
+    def field(terminal, value, field):
+        return Terminal(terminal).then(value).value(lambda x: Q(**{ field: x }))
+
+    def charset(cs, reverse=False, lookahead=False):
+        if reverse:
+            char = One.where(lambda c: c not in cs)
+        else:
+            char = One.where(lambda c: c in cs)
+        if lookahead:
+            return Lookahead(char)
+        else:
+            return char
+
+    WordChar = charset(' \t<>', reverse=True)
+    Space = One.where(lambda c: c == ' ' or c == '\t')
+    Word = WordChar.repeat(lower=1)
+    WordNoColon = Word.filter(lambda x: ':' not in x.value)
+    Spaces = Space.repeat(lower=1, reducer=lambda x, y: None)
+    RemoveBrackets = Terminal('<').repeat(upper=1).then(Word).skip(Terminal('>').repeat(upper=1))
+
+    Maint = (Terminal('maintained-by:') | Terminal('maint:'))
+    ResultOutcome = Terminal('failure:') | Terminal('success:') | Terminal('pending:') | Terminal('running:')
+    Ack = (Terminal('ack:') | Terminal('accept:') | Terminal('accepted:')).value(lambda x: ['accept'])
+    Nack = (Terminal('nack:') | Terminal('reject:') | Terminal('rejected:')).value(lambda x: ['reject'])
+    Review = (Terminal('review:') | Terminal('reviewed:')).value(lambda x: ['accept', 'reject'])
+
+    Timespan = Digit.repeat().then(charset('DWMYdwmy'), human_to_seconds)
+    Age = charset('<>').repeat(upper=1).then(Timespan, _make_filter_age)
+    AgeTerm = (Terminal('age:') | charset('<>', lookahead=True)).then(Age)
+
+    SimpleFieldTerm = (
+            field('from:', Word, 'sender__icontains') |
+            field('to:', Word, 'recipients__icontains') |
+            field('id:', RemoveBrackets, 'message_id') |
+            field('rfcmsg822id:', RemoveBrackets, 'message_id') |
+            Terminal('project:').then(Word).value(_make_filter_project) |
+            Terminal('subject:').then(Word).value(K) |
+            Terminal('queue:').then(Word, lambda _, q: SearchQueue([q], 'me')) |
+            Maint.then(Word).value(SearchMaint) |
+            (Ack | Nack | Review).then(Word, SearchQueue) |
+            ResultOutcome.then(Word, _make_filter_result))
+
+    # _make_filter_is and _make_filter_not return None if the RHS is not accepted
+    IsTerm = (
+            Terminal('is:').then(Word).value(_make_filter_is) |
+            Terminal('not:').then(Word).value(_make_filter_not)) \
+        .filter(lambda x: x is not None)
+
+    HasTerm = (
+            Terminal('has:replies').value(lambda x: Q(last_comment_date__isnull=False)) |
+            field('has:', Word, 'properties__name'))
+
+    BooleanTerm = (AgeTerm |
+            SimpleFieldTerm |
+            IsTerm |
+            HasTerm)
+
+    # + and - try to match an "is:" condition, and falls back to a keyword
+    PlusTerm = Terminal('+').then(
+        WordNoColon.value(_make_filter_is_or_keyword) | BooleanTerm)
+    MinusTerm = Terminal('-').then(
+        WordNoColon.value(_make_filter_is_or_keyword) | BooleanTerm).value(operator.invert)
+    BasicTerm = charset('+-!', reverse=True, lookahead=True).then(
+        WordNoColon.value(K) | BooleanTerm)
+    BangTerm = Terminal('!').then(BasicTerm).value(operator.invert)
+
+    AnyTerm = PlusTerm | MinusTerm | BangTerm | BasicTerm
+
+    return AnyTerm
+
+def parse(s, the_parser=__parser(Q)):
+    results = the_parser(s)
+    if not isinstance(results, compynator.core.Success):
+        #raise Exception("invalid search terms at '" + s + "'")
+        return SearchFalse()
+    result = next(iter(results))
+    if result.remain:
+        #raise Exception("invalid search terms at '" + result.remain + "'")
+        return SearchFalse()
+    return result.value
 
 
 class SearchEngine(object):
@@ -222,212 +552,36 @@ Search text keyword in the email message. Example:
 
 """
 
-    def _make_filter_subquery(self, model, q):
-        message_ids = model.objects.filter(q).values("message_id")
-        return Q(id__in=message_ids)
-
-    def _make_filter_result(self, term, **kwargs):
-        q = Q(name=term, **kwargs) | Q(name__startswith=term + ".", **kwargs)
-        return self._make_filter_subquery(MessageResult, q)
-
-    def _make_filter_age(self, cond):
-        import datetime
-
-        def human_to_seconds(n, unit):
-            if unit == "d":
-                return n * 86400
-            elif unit == "w":
-                return n * 86400 * 7
-            elif unit == "m":
-                return n * 86400 * 30
-            elif unit == "y":
-                return n * 86400 * 365
-            raise Exception("No unit specified")
-
-        if cond.startswith("<"):
-            less = True
-            cond = cond[1:]
-        elif cond.startswith(">"):
-            less = False
-            cond = cond[1:]
-        else:
-            less = False
-        num, unit = cond[:-1], cond[-1].lower()
-        if not num.isdigit() or unit not in "dwmy":
-            raise InvalidSearchTerm("Invalid age string: %s" % cond)
-        sec = human_to_seconds(int(num), unit)
-        p = datetime.datetime.now() - datetime.timedelta(0, sec)
-        if less:
-            q = Q(date__gte=p)
-        else:
-            q = Q(date__lte=p)
-        return q
-
-    def _add_to_keywords(self, t):
-        self._last_keywords.append(t)
-        return Q()
-
-    def _make_filter_is(self, cond):
-        if cond == "complete":
-            return Q(is_complete=True)
-        elif cond == "pull":
-            self._add_to_keywords("PULL")
-            return Q(subject__contains="[PULL") | Q(subject__contains="[GIT PULL")
-        elif cond == "reviewed":
-            return Q(is_reviewed=True)
-        elif cond in ("obsoleted", "old", "obsolete"):
-            return Q(is_obsolete=True)
-        elif cond == "applied":
-            return self._make_filter_subquery(
-                MessageResult, Q(name="git", status=Result.SUCCESS)
-            )
-        elif cond == "tested":
-            return Q(is_tested=True)
-        elif cond == "merged":
-            return Q(is_merged=True)
-        return None
-
-    def _make_filter_queue(self, username, user, **kwargs):
-        if username == "me":
-            if not user.is_authenticated:
-                # Django hack to return an always false Q object
-                return Q(pk=None)
-            q = Q(user=user, **kwargs)
-        else:
-            q = Q(user__username=username, **kwargs)
-        return self._make_filter_subquery(QueuedSeries, q)
-
-    def _make_filter(self, term, user):
-        if term.startswith("age:"):
-            cond = term[term.find(":") + 1 :]
-            return self._make_filter_age(cond)
-        elif term[0] in "<>" and len(term) > 1:
-            return self._make_filter_age(term)
-        elif term.startswith("from:"):
-            cond = term[term.find(":") + 1 :]
-            return Q(sender__icontains=cond)
-        elif term.startswith("to:"):
-            cond = term[term.find(":") + 1 :]
-            return Q(recipients__icontains=cond)
-        elif term.startswith("subject:"):
-            cond = term[term.find(":") + 1 :]
-            return self._add_to_keywords(cond)
-        elif term.startswith("id:") or term.startswith("rfc822msgid:"):
-            cond = term[term.find(":") + 1 :]
-            if cond[0] == "<" and cond[-1] == ">":
-                cond = cond[1:-1]
-            return Q(message_id=cond)
-        elif term.startswith("is:"):
-            return self._make_filter_is(term[3:]) or self._add_to_keywords(term)
-        elif term.startswith("not:"):
-            return ~self._make_filter_is(term[4:]) or self._add_to_keywords(term)
-        elif term.startswith("has:"):
-            cond = term[term.find(":") + 1 :]
-            if cond == "replies":
-                return Q(last_comment_date__isnull=False)
-            else:
-                return Q(properties__name=cond)
-        elif term.startswith("failure:"):
-            return self._make_filter_result(term[8:], status=Result.FAILURE)
-        elif term.startswith("success:"):
-            # What we want is "all results are successes", but the only way to
-            # express it is "there is a result and not (any result is not a success)".
-            return self._make_filter_result(term[8:]) & ~self._make_filter_result(
-                term[8:], status__ne=Result.SUCCESS
-            )
-        elif term.startswith("pending:"):
-            return self._make_filter_result(term[8:], status=Result.PENDING)
-        elif term.startswith("running:"):
-            return self._make_filter_result(term[8:], status=Result.RUNNING)
-        elif (
-            term.startswith("ack:")
-            or term.startswith("accept:")
-            or term.startswith("accepted:")
-        ):
-            username = term[term.find(":") + 1 :]
-            return self._make_filter_queue(username, user, name="accept")
-        elif (
-            term.startswith("nack:")
-            or term.startswith("reject:")
-            or term.startswith("rejected:")
-        ):
-            username = term[term.find(":") + 1 :]
-            return self._make_filter_queue(username, user, name="reject")
-        elif term.startswith("queue:"):
-            name = term[term.find(":") + 1 :]
-            return self._make_filter_queue("me", user, name=name)
-        elif term.startswith("review:") or term.startswith("reviewed:"):
-            username = term[term.find(":") + 1 :]
-            return self._make_filter_queue(
-                username, user, name__in=["accept", "reject"]
-            )
-        elif term.startswith("watch:") or term.startswith("watched:"):
-            username = term[term.find(":") + 1 :]
-            return self._make_filter_queue(username, user, name="watched")
-        elif term.startswith("project:"):
-            cond = term[term.find(":") + 1 :]
-            self._projects.add(cond)
-            return Q(project__name=cond) | Q(project__parent_project__name=cond)
-        elif term.startswith("maintained-by:") or term.startswith("maint:"):
-            cond = term[term.find(":") + 1 :]
-            if cond == "me" and user:
-                cond = user.email
-            return Q(maintainers__icontains=cond)
-
-        # Keyword in subject is the default
-        return self._add_to_keywords(term)
-
-    def _process_term(self, term, user):
-        """ Return a Q object that will be applied to the query """
-        is_plusminus = neg = False
-        if term[0] in "+-!":
-            neg = term[0] != "+"
-            is_plusminus = term[0] != "!"
-            term = term[1:]
-
-        if is_plusminus and ":" not in term:
-            q = self._make_filter_is(term) or self._add_to_keywords(term)
-        else:
-            q = self._make_filter(term, user)
-        if neg:
-            return ~q
-        else:
-            return q
-
     def __init__(self, terms, user):
-        self._last_keywords = []
-        self._projects = set()
         self.q = reduce(
-            lambda x, y: x & y, map(lambda t: self._process_term(t, user), terms), Q()
-        )
-        if self._last_keywords:
-            if connection.vendor == "postgresql":
-                queryset = queryset.annotate(
-                    subjsearch=NonNullSearchVector("subject", config="english")
-                )
-                searchq = reduce(
-                    lambda x, y: x & y,
-                    map(
-                        lambda x: SearchQuery(x, config="english"), self._last_keywords
-                    ),
-                )
-                self.q = self.q & Q(subjsearch=searchq)
-            else:
-                self.q = reduce(
-                    lambda x, y: x & Q(subject__icontains=y), self._last_keywords, self.q
-                )
-
+            operator.and_, map(lambda t: parse(t), terms))
+        self.user = user
 
     def last_keywords(self):
-        return self._last_keywords
+        return self.q.get_all_keywords()
 
     def project(self):
-        return next(iter(self._projects)) if len(self._projects) == 1 else None
+        return self.q.get_project()
 
     def search_series(self, queryset=None):
         if queryset is None:
             queryset = Message.objects.series_heads()
-        return queryset.filter(self.q)
+
+        if connection.vendor == "postgresql":
+            have_keywords = len(self.q.get_all_keywords()) > 0
+            if have_keywords:
+                queryset = queryset.annotate(
+                    subjsearch=NonNullSearchVector("subject", config="english")
+                )
+            q = self.q.get_query(self.user,
+                        lambda x: SearchQuery(x, config="english"),
+                        lambda x: Q(subjsearch=x))
+        else:
+            q = self.q.get_query(self.user,
+                        lambda x: Q(subject__icontains=x),
+                        lambda x: x)
+
+        return queryset.filter(q)
 
     def query_test_message(self, message):
         queryset = Message.objects.filter(id=message.id)
