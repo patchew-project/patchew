@@ -30,6 +30,7 @@ class MaintainerModule(PatchewModule):
         register_handler("ResultUpdate", self.on_result_update)
         register_handler("MessageQueued", self.on_queue_change)
         register_handler("MessageDropped", self.on_queue_change)
+        register_handler("SeriesComplete", self.on_series_complete)
         register_handler("SeriesMerged", self.on_series_merged)
         register_handler("SeriesReviewed", self.on_series_reviewed)
         declare_event(
@@ -85,6 +86,9 @@ class MaintainerModule(PatchewModule):
             # By the time of git result update we should have calculated
             # maintainers so redo the watched queue
             self._update_watch_queue(obj)
+
+    def on_series_complete(self, evt, project, series):
+        self._update_watch_queue(series)
 
     def on_series_reviewed(self, evt, series):
         # Handle changes to "is:reviewed"
