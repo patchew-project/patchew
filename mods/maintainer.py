@@ -80,7 +80,7 @@ class MaintainerModule(PatchewModule):
 
     def on_series_reviewed(self, evt, series):
         # Handle changes to "is:reviewed"
-        self._update_watch_queue(obj)
+        self._update_watch_queue(series)
 
     def on_series_merged(self, evt, project, series):
         # This is a bit of a hack for now.  We probably should hide merged
@@ -91,7 +91,7 @@ class MaintainerModule(PatchewModule):
         )
         self._drop_all_from_queue(query)
         # Handle changes to "is:merged"
-        self._update_watch_queue(obj)
+        self._update_watch_queue(series)
 
     def _update_review_state(self, request, message_id, accept):
         if not request.user.is_authenticated:
