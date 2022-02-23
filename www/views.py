@@ -132,27 +132,35 @@ def view_project_list(request):
     return render_page(request, "project-list.html", projects=prepare_projects())
 
 
-def gen_page_links(total, cur_page, pagesize, extra_params):
+def gen_page_links(query, cur_page, pagesize, extra_params):
+    # stop a little after the current page
+    limit = max(cur_page + 3, 10)
+
+    # include one extra record in the limit, so that the final "..." can be printed,
+    # but do not go all the way to the end
+    total = query[:pagesize * limit + 1].count()
     max_page = int((total + pagesize - 1) / pagesize)
+    start = 10 if max_page <= 10 else 3
+
     ret = []
     ddd = False
-    for i in range(1, max_page + 1):
-        if i == cur_page:
-            ret.append(
-                {
-                    "title": str(i),
-                    "url": "?page=" + str(i) + extra_params,
-                    "class": "active",
-                }
-            )
-            ddd = False
-        elif i < 10 or abs(i - cur_page) < 3 or max_page - i < 3:
-            ret.append({"title": str(i), "url": "?page=" + str(i) + extra_params})
-            ddd = False
-        else:
+    i = 1
+    offset = 1
+    while offset <= total:
+        if (i > start and abs(i - cur_page) >= 3 and max_page - i >= 3) or (offset > pagesize * limit):
             if not ddd:
-                ret.append({"title": "...", "class": "disabled", "url": "#"})
-                ddd = True
+                result = {"title": "...", "class": "disabled", "url": "#"}
+                ret.append(result)
+            ddd = True
+        else:
+            result = {"title": str(i), "url": "?page=" + str(i) + extra_params}
+            if i == cur_page:
+                result["class"] = "active"
+            ret.append(result)
+            ddd = False
+
+        i += 1
+        offset += pagesize
 
     return ret
 
@@ -173,23 +181,13 @@ def prepare_navigate_list(cur, *path):
     return r
 
 
-def render_series_list_page(request, query, search=None, project=None,
+def render_series_list_page(request, base_query, search=None, project=None,
                             title='Search results', link_icon=None,
                             link_url=None, link_text=None, keywords=[],
                             is_search=False):
     sort = request.GET.get("sort")
-    if sort == "replied":
-        query = query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
-        order_by_reply = True
-    else:
-        query = query.order_by('-date')
-        order_by_reply = False
-    query = query.prefetch_related("topic")
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
-    series = query[start : start + PAGE_SIZE]
-    if not series and cur_page > 1:
-        raise Http404("Page not found")
     params = ""
     if sort:
         params += "&" + urllib.parse.urlencode({"sort": sort})
@@ -205,7 +203,19 @@ def render_series_list_page(request, query, search=None, project=None,
     else:
         search = "project:%s" % project
         nav_path = prepare_navigate_list(project)
-    page_links = gen_page_links(query.count(), cur_page, PAGE_SIZE, params)
+    page_links = gen_page_links(base_query, cur_page, PAGE_SIZE, params)
+
+    if sort == "replied":
+        query = base_query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
+        order_by_reply = True
+    else:
+        query = base_query.order_by('-date')
+        order_by_reply = False
+    query = query.prefetch_related("topic")
+    series = query[start : start + PAGE_SIZE]
+    if not series and cur_page > 1:
+        raise Http404("Page not found")
+
     if project:
         title += ' for ' + project
     return render_page(
