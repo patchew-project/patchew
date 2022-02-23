@@ -67,9 +67,10 @@ class MaintainerModule(PatchewModule):
         self._drop_all_from_queue(query)
 
     def _update_watch_queue(self, series):
-        se = SearchEngine()
         for wq in WatchedQuery.objects.all():
-            if se.query_test_message(wq.query, series, wq.user):
+            terms = [x.strip() for x in wq.query.split() if x.strip()]
+            se = SearchEngine(terms, wq.user)
+            if se.query_test_message(series):
                 self._add_to_queue(wq.user, series, "watched")
             else:
                 self._drop_from_queue(wq.user, series, "watched")

@@ -394,20 +394,12 @@ Search text keyword in the email message. Example:
         else:
             return q
 
-    def last_keywords(self):
-        return getattr(self, "_last_keywords", [])
-
-    def project(self):
-        return next(iter(self._projects)) if len(self._projects) == 1 else None
-
-    def search_series(self, *terms, user=None, queryset=None):
+    def __init__(self, terms, user):
         self._last_keywords = []
         self._projects = set()
-        q = reduce(
+        self.q = reduce(
             lambda x, y: x & y, map(lambda t: self._process_term(t, user), terms), Q()
         )
-        if queryset is None:
-            queryset = Message.objects.series_heads()
         if self._last_keywords:
             if connection.vendor == "postgresql":
                 queryset = queryset.annotate(
@@ -419,15 +411,24 @@ Search text keyword in the email message. Example:
                         lambda x: SearchQuery(x, config="english"), self._last_keywords
                     ),
                 )
-                q = q & Q(subjsearch=searchq)
+                self.q = self.q & Q(subjsearch=searchq)
             else:
-                q = reduce(
-                    lambda x, y: x & Q(subject__icontains=y), self._last_keywords, q
+                self.q = reduce(
+                    lambda x, y: x & Q(subject__icontains=y), self._last_keywords, self.q
                 )
 
-        return queryset.filter(q)
 
-    def query_test_message(self, query, message, user=None):
+    def last_keywords(self):
+        return self._last_keywords
+
+    def project(self):
+        return next(iter(self._projects)) if len(self._projects) == 1 else None
+
+    def search_series(self, queryset=None):
+        if queryset is None:
+            queryset = Message.objects.series_heads()
+        return queryset.filter(self.q)
+
+    def query_test_message(self, message):
         queryset = Message.objects.filter(id=message.id)
-        terms = [x.strip() for x in query.split() if x.strip()]
-        return self.search_series(*terms, user=user, queryset=queryset).first()
+        return self.search_series(queryset=queryset).first()

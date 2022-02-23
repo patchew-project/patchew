@@ -524,8 +524,8 @@ class PatchewSearchFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         search = request.query_params.get(self.search_param) or ""
         terms = [x.strip() for x in search.split(" ") if x]
-        se = SearchEngine()
-        query = se.search_series(queryset=queryset, user=request.user, *terms)
+        se = SearchEngine(terms=terms, user=request.user)
+        query = se.search_series(queryset=queryset)
         return query
 
     def to_html(self, request, queryset, view):

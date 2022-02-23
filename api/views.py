@@ -175,8 +175,8 @@ class SearchView(APIView):
     name = "search"
 
     def handle(self, request, terms, fields=None):
-        se = SearchEngine()
-        r = se.search_series(user=request.user, *terms)
+        se = SearchEngine(terms, request.user)
+        r = se.search_series()
         return [prepare_series(request, x, fields) for x in r]
 
 
@@ -210,8 +210,8 @@ class DeleteView(APILoginRequiredView):
         if not terms:
             Message.objects.all().delete()
         else:
-            se = SearchEngine()
-            for r in se.search_series(user=request.user, *terms):
+            se = SearchEngine(terms, request.user)
+            for r in se.search_series():
                 Message.objects.delete_subthread(r)
 
 

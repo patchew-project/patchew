@@ -730,7 +730,7 @@ class UntestView(APILoginRequiredView):
     allowed_groups = ["testers"]
 
     def handle(self, request, terms):
-        se = SearchEngine()
-        q = se.search_series(user=request.user, *terms)
+        se = SearchEngine(terms, request.user)
+        q = se.search_series()
         for s in q:
             _instance.clear_and_start_testing(s)
