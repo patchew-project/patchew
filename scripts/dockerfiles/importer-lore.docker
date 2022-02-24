@@ -1,0 +1,5 @@
+FROM fedora:latest
+RUN dnf install -y python findutils git wget
+ENV LC_ALL en_US.UTF-8
+COPY . /opt/patchew/
+CMD /opt/patchew/scripts/patchew-importer-lore -d /data/patchew -c /data/patchew/config

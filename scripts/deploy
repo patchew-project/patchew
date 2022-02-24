@@ -21,6 +21,8 @@ def parse_args():
                         help="Database host address")
     parser.add_argument("--tester", "-t", nargs="*", dest="testers",
                         help="Tester host address")
+    parser.add_argument("--public-inbox", "-p", nargs="?",
+                        help="Importer host address")
     parser.add_argument("--importer", "-i", nargs="?",
                         help="Importer host address")
     parser.add_argument("--applier", "-a", nargs="?",
@@ -41,6 +43,9 @@ def generate_inventory_file(args):
 [appliers]
 %s
 
+[importers_lore]
+%s
+
 [importers]
 %s
 
@@ -49,6 +54,7 @@ def generate_inventory_file(args):
         % (args.web_server or "",
            args.db_server or "",
            args.applier or "",
+           args.public_inbox or "",
            args.importer or "",
            "\n".join(args.testers or [])))
     f.flush()
@@ -68,6 +74,8 @@ def main():
         playbooks.append("deploy-testers.yml")
     if args.applier:
         playbooks.append("deploy-appliers.yml")
+    if args.public_inbox:
+        playbooks.append("deploy-importers-lore.yml")
     if args.importer:
         playbooks.append("deploy-importers.yml")
     if not playbooks:

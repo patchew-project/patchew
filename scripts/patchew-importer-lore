@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+#
+# Copyright 2021-2022 Bytedance Inc.
+#
+# Authors:
+#     Fam Zheng <fam.zheng@bytedance.com>
+#
+# This work is licensed under the MIT License.  Please see the LICENSE file or
+# http://opensource.org/licenses/MIT.
+
+import os
+import sys
+import time
+import argparse
+import logging
+import tempfile
+import subprocess
+import dbm
+
+BASE_DIR = os.path.realpath(os.path.dirname(__file__) + "/..")
+PATCHEW_CLI = os.path.join(BASE_DIR, "patchew-cli")
+
+CONFIG_ITEMS = {
+    "data_dir": {
+        "short": "d",
+        "help": "directory to put data in",
+        "metavar": "PATH",
+    },
+    "patchew_server": {
+        "short": "S",
+        "help": "Patchew server to log into",
+        "metavar": "HOST",
+    },
+    "patchew_username": {
+        "short": "U",
+        "help": "Username for patchew server",
+        "metavar": "USER",
+    },
+    "patchew_password": {
+        "short": "P",
+        "help": "Password for patchew server",
+        "metavar": "PASSWORD",
+    },
+    "git_root": {
+        "short": "g",
+        "help": "Root of public-inbox repository",
+        "metavar": "URL",
+    },
+    "limit": {
+        "short": "l",
+        "default": "2.months.ago",
+        "help": "How old to import backlog (default 2 months)",
+        "metavar": "DATE",
+    },
+    "max": {
+        "short": "m",
+        "default": "4",
+        "help": "How many public-inbox repositories to import (default 4)",
+        "metavar": "N",
+    },
+    "batch": {
+        "short": "b",
+        "default": "500",
+        "help": "How many messages to import between git-pull",
+        "metavar": "N",
+    },
+}
+
+CONFIG = {}
+HIGHEST_REPO = 0
+
+
+def config_from_file(args):
+    global CONFIG
+    import configparser
+
+    parser = configparser.ConfigParser()
+    parser.read(args.config)
+
+    # default section applies to all git repos
+    CONFIG.update(parser["DEFAULT"])
+    if not args.git_root:
+        # no -g flag, there needs to be exactly one non-DEFAULT section
+        if len(parser.sections()) > 1:
+            raise Exception("please specify desired git root")
+        git_root = parser.sections()[0]
+        CONFIG["git_root"] = git_root
+        CONFIG.update(parser[git_root])
+    else:
+        # -g flag, use the named section or just the defaults
+        if args.git_root in parser.sections():
+            CONFIG.update(parser[args.git_root])
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", "-c", help="Path to config file", metavar="FILE")
+    for k, v in CONFIG_ITEMS.items():
+        long = "--" + k.replace("_", "-")
+        short = "-" + v["short"]
+        parser.add_argument(short, long, help=v["help"], metavar=v["metavar"])
+        if "default" in v:
+            CONFIG[k] = v["default"]
+
+    args = parser.parse_args()
+    if args.config:
+        config_from_file(args)
+    # Arguments override config file
+    for k in CONFIG_ITEMS.keys():
+        if getattr(args, k) is not None:
+            CONFIG[k] = getattr(args, k)
+
+
+def git_clone(src, dest):
+    logging.info("cloning " + src + " into " + os.path.join(os.getcwd(), dest))
+    subprocess.check_call(["git", "clone", src, dest])
+
+
+def git_pull(wd):
+    logging.info("updating " + os.path.join(os.getcwd(), wd))
+    subprocess.check_call(["git", "pull"], cwd=wd)
+
+
+def find_commits(git_root, first_repo, max_repos):
+    global HIGHEST_REPO
+    base = "public-inbox"
+    if not os.path.exists(base):
+        os.mkdir(base)
+    for i in range(first_repo, -1, -1):
+        if max_repos < 1:
+            break
+
+        i_str = str(i)
+        wd = os.path.join(base, i_str)
+        if not os.path.exists(wd):
+            try:
+                git_clone(git_root + i_str, wd)
+            except subprocess.CalledProcessError:
+                continue
+
+        HIGHEST_REPO = max(HIGHEST_REPO, i)
+        try:
+            git_pull(wd)
+        except subprocess.CalledProcessError:
+            break
+
+        max_repos -= 1
+        p = subprocess.Popen(
+            ["git", "log", "--oneline", "--since=" + CONFIG["limit"], "--format=%h"],
+            cwd=wd,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+        )
+        for line in p.stdout:
+            yield (wd, line.strip())
+
+
+def show_commit(d, c):
+    return subprocess.check_output(["git", "show", "%s:m" % c], cwd=d)
+
+
+def import_public_inbox(git_root, max_imports, first_repo, max_repos):
+    if not git_root.endswith("/"):
+        git_root += "/"
+
+    db = dbm.open("patchew-importer-lore.db", "c")
+
+    for (d, commit) in find_commits(git_root, first_repo, max_repos):
+        if max_imports < 1:
+            break
+        if db.get(commit):
+            continue
+        max_imports -= 1
+        with tempfile.NamedTemporaryFile() as tf:
+            try:
+                tf.write(show_commit(d, commit))
+                tf.flush()
+                what = subprocess.check_output(
+                    "git log -n 1 {commit} --oneline --format='%aD - %aN <%aE> - %s'".format(
+                        commit=commit
+                    ),
+                    shell=True,
+                    cwd=d,
+                    encoding="utf-8",
+                )
+                logging.info("importing %s" % what)
+                cmd = [PATCHEW_CLI, "-s", CONFIG["patchew_server"], "import", tf.name]
+                subprocess.check_output(cmd, stderr=subprocess.PIPE)
+                db[commit] = "imported"
+            except Exception as e:
+                logging.error(
+                    "failed to import commit %s in archive %s: %s" % (commit, d, e)
+                )
+                db[commit] = "failed"
+    else:
+        time.sleep(60)
+
+
+def main():
+    global CONFIG, HIGHEST_REPO
+
+    parse_args()
+    if not CONFIG["patchew_server"]:
+        logging.error(
+            "you need to specify a patchew server within the config file or with -S"
+        )
+    if not CONFIG["patchew_username"]:
+        logging.error(
+            "you need to specify a patchew username within the config file or with -U"
+        )
+    if not CONFIG["patchew_password"]:
+        logging.error(
+            "you need to specify a patchew username password the config file or with -P"
+        )
+
+    logging.basicConfig(level=logging.DEBUG)
+    if CONFIG["data_dir"]:
+        if not os.path.exists(CONFIG["data_dir"]):
+            os.mkdir(CONFIG["data_dir"])
+        os.chdir(CONFIG["data_dir"])
+    cmd = [
+        PATCHEW_CLI,
+        "-s",
+        CONFIG["patchew_server"],
+        "login",
+        CONFIG["patchew_username"],
+        CONFIG["patchew_password"],
+    ]
+    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+    # no need to be stingy, high repos are checked only once per run
+    first_repo = 40
+    max_repos = int(CONFIG["max"])
+    max_imports = int(CONFIG["batch"])
+    git_root = CONFIG["git_root"]
+    while True:
+        # restart and import the latest mails every once in a while to make
+        # sure new patches are imported timely, before the backlog
+        import_public_inbox(git_root, max_imports, first_repo, max_repos)
+        first_repo = HIGHEST_REPO + 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

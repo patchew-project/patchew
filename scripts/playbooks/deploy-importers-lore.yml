@@ -1,0 +1,38 @@
+- hosts: importers_lore
+  vars_prompt:
+    - name: instance_name
+      prompt: "The instance name"
+      default: patchew-importer-lore
+      private: no
+    - name: "patchew_server"
+      prompt: "The address of patchew server"
+      default: "https://patchew.org"
+      private: no
+    - name: "importer_user"
+      prompt: "Username for the importer to login to the server"
+      private: no
+      default: "importer"
+    - name: "importer_pass"
+      prompt: "Password for the importer to login to the server"
+      private: yes
+    - name: "git_repo_base"
+      prompt: "URL in which to find public-inbox git repositories"
+      default: "https://lore.kernel.org/lkml/"
+      private: no
+  vars:
+    base_dir: "/data/{{ instance_name }}"
+    src_dir: "{{ base_dir }}/src"
+    data_dir: "{{ base_dir }}/data"
+    config_file: "{{ data_dir }}/config"
+  tasks:
+    - name: Create data dir
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+    - name: Create config
+      template:
+        src: "templates/importer-lore-config.j2"
+        dest: "{{ config_file }}"
+    - import_tasks: tasks/docker-deploy.yml
+      vars:
+        instance_role: importer-lore
