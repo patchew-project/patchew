@@ -24,6 +24,7 @@
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
     config_file: "{{ data_dir }}/config"
+    docker_run_args: "--init"
   tasks:
     - name: Create data dir
       file:
