@@ -160,7 +160,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     padding-left: 0.5em;
     visibility: hidden;
 }
-.hover-icon {
+.hover-icon:hover {
     visibility: visible;
 }
 
@@ -209,7 +209,7 @@ h1, h2, h3, .h1, .h2, .h3 {
 .no-bullet > li.active {
     font-weight: bold;
 }
-.no-bullet > li .fa, .fa-list > li .fab, .fa-list > li .far {
+.no-bullet > li .fa, .no-bullet > li .fab, .no-bullet > li .far {
     position: relative;
     color: #337ab7;
     left: -0.5em;
