@@ -392,7 +392,9 @@ def __parser(_Q):
 
     Disjunction.is_(Terminal('{').then(DisjunctionTerms).skip(Terminal('}')))
     Conjunction.is_(Terminal('(').then(ConjunctionTerms).skip(Terminal(')')))
-    return ConjunctionTerms
+
+    EmptySearch = Space.repeat(value=SearchTrue(), reducer=lambda x, y: x)
+    return ConjunctionTerms | EmptySearch
 
 def parse(s, the_parser=__parser(Q)):
     results = the_parser(s)
