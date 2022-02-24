@@ -138,7 +138,7 @@ def gen_page_links(query, cur_page, pagesize, extra_params):
 
     # include one extra record in the limit, so that the final "..." can be printed,
     # but do not go all the way to the end
-    total = query[:pagesize * limit + 1].count()
+    total = query[: pagesize * limit + 1].count()
     max_page = int((total + pagesize - 1) / pagesize)
     start = 10 if max_page <= 10 else 3
 
@@ -173,7 +173,7 @@ def get_page_from_request(request):
 
 
 def prepare_navigate_list(cur, *path):
-    """ each path is (view_name, kwargs, title) """
+    """each path is (view_name, kwargs, title)"""
     r = [{"url": reverse("project_list"), "title": "Patchew"}]
     for it in path:
         r.append({"url": reverse(it[0], kwargs=it[1]), "title": it[2]})
@@ -181,10 +181,18 @@ def prepare_navigate_list(cur, *path):
     return r
 
 
-def render_series_list_page(request, base_query, search=None, project=None,
-                            title='Search results', link_icon=None,
-                            link_url=None, link_text=None, keywords=[],
-                            is_search=False):
+def render_series_list_page(
+    request,
+    base_query,
+    search=None,
+    project=None,
+    title="Search results",
+    link_icon=None,
+    link_url=None,
+    link_text=None,
+    keywords=[],
+    is_search=False,
+):
     sort = request.GET.get("sort")
     cur_page = get_page_from_request(request)
     start = (cur_page - 1) * PAGE_SIZE
@@ -206,10 +214,10 @@ def render_series_list_page(request, base_query, search=None, project=None,
     page_links = gen_page_links(base_query, cur_page, PAGE_SIZE, params)
 
     if sort == "replied":
-        query = base_query.order_by(F('last_reply_date').desc(nulls_last=True), '-date')
+        query = base_query.order_by(F("last_reply_date").desc(nulls_last=True), "-date")
         order_by_reply = True
     else:
-        query = base_query.order_by('-date')
+        query = base_query.order_by("-date")
         order_by_reply = False
     query = query.prefetch_related("topic")
     series = query[start : start + PAGE_SIZE]
@@ -217,7 +225,7 @@ def render_series_list_page(request, base_query, search=None, project=None,
         raise Http404("Page not found")
 
     if project:
-        title += ' for ' + project
+        title += " for " + project
     return render_page(
         request,
         "series-list.html",
@@ -276,8 +284,12 @@ def view_search(request):
     se = SearchEngine([search], request.user)
     query = se.search_series()
     return render_series_list_page(
-        request, query, search=search, project=se.project(), keywords=se.last_keywords(),
-        is_search=True
+        request,
+        query,
+        search=search,
+        project=se.project(),
+        keywords=se.last_keywords(),
+        is_search=True,
     )
 
 
@@ -286,11 +298,15 @@ def view_series_list(request, project):
     if not prj:
         raise Http404("Project not found")
     query = api.models.Message.objects.series_heads(prj.id)
-    return render_series_list_page(request, query, project=project,
-                                   title='All series',
-                                   link_icon='fa fa-list',
-                                   link_url=reverse("project_detail", kwargs={"project": project}),
-                                   link_text='More information about ' + project + '...')
+    return render_series_list_page(
+        request,
+        query,
+        project=project,
+        title="All series",
+        link_icon="fa fa-list",
+        link_url=reverse("project_detail", kwargs={"project": project}),
+        link_text="More information about " + project + "...",
+    )
 
 
 def view_mbox(request, project, message_id):

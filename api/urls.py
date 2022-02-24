@@ -53,8 +53,9 @@ results_router = NestedDefaultRouter(
 results_router.include_format_suffixes = False
 results_router.register("results", rest.SeriesResultsViewSet, basename="results")
 
-schema_view = get_schema_view(title="API schema",
-                              permission_classes=[permissions.AllowAny])
+schema_view = get_schema_view(
+    title="API schema", permission_classes=[permissions.AllowAny]
+)
 
 urlpatterns = _build_urls()
 dispatch_module_hook("api_url_hook", urlpatterns=urlpatterns)

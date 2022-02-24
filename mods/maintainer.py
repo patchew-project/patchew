@@ -11,7 +11,12 @@
 import re
 from django.conf.urls import url
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseRedirect,
+    HttpResponseBadRequest,
+)
 from django.urls import reverse
 from mod import PatchewModule
 from api.models import Message, QueuedSeries, Project, WatchedQuery
@@ -22,7 +27,7 @@ from www.views import render_series_list_page
 
 
 class MaintainerModule(PatchewModule):
-    """ Project maintainer related tasks """
+    """Project maintainer related tasks"""
 
     name = "maintainer"
 
@@ -61,9 +66,7 @@ class MaintainerModule(PatchewModule):
             emit_event("MessageDropped", **ev)
 
     def _drop_from_queue(self, user, m, queue):
-        query = QueuedSeries.objects.filter(
-            user=user, message=m, name=queue
-        )
+        query = QueuedSeries.objects.filter(user=user, message=m, name=queue)
         self._drop_all_from_queue(query)
 
     def _update_watch_queue(self, series):
@@ -99,7 +102,7 @@ class MaintainerModule(PatchewModule):
         # series more aggressively, but I am not sure how to handle that
         # efficiently in the database.
         query = QueuedSeries.objects.filter(
-            message=series, name__in=['accept', 'reject']
+            message=series, name__in=["accept", "reject"]
         )
         self._drop_all_from_queue(query)
         # Handle changes to "is:merged"
@@ -200,15 +203,19 @@ class MaintainerModule(PatchewModule):
 
     def www_view_queue(self, request, project, name):
         query = self.query_queue(request, project, name)
-        search = 'project:' + project + ' queue:' + name
-        return render_series_list_page(request, query,
-                                       search=search, project=project,
-                                       title='"' + name + '" queue',
-                                       link_icon='fa fa-download',
-                                       link_text='Download mbox',
-                                       link_url=reverse("maintainer_queue_mbox",
-                                                        kwargs={"project": project,
-                                                                "name": name}))
+        search = "project:" + project + " queue:" + name
+        return render_series_list_page(
+            request,
+            query,
+            search=search,
+            project=project,
+            title='"' + name + '" queue',
+            link_icon="fa fa-download",
+            link_text="Download mbox",
+            link_url=reverse(
+                "maintainer_queue_mbox", kwargs={"project": project, "name": name}
+            ),
+        )
 
     def www_view_my_queues(self, request, project=None):
         if not request.user.is_authenticated:
@@ -301,9 +308,23 @@ class MaintainerModule(PatchewModule):
                 name="drop-from-queue",
             )
         )
-        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/$", self.www_view_queue, name="maintainer_queue"))
-        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/mbox$", self.www_download_queue_mbox, name="maintainer_queue_mbox"))
-        urlpatterns.append(url(r"^my-queues/(?P<project>[^/]*)/$", self.www_view_my_queues))
+        urlpatterns.append(
+            url(
+                r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/$",
+                self.www_view_queue,
+                name="maintainer_queue",
+            )
+        )
+        urlpatterns.append(
+            url(
+                r"^my-queues/(?P<project>[^/]*)/(?P<name>[^/]*)/mbox$",
+                self.www_download_queue_mbox,
+                name="maintainer_queue_mbox",
+            )
+        )
+        urlpatterns.append(
+            url(r"^my-queues/(?P<project>[^/]*)/$", self.www_view_my_queues)
+        )
         urlpatterns.append(url(r"^my-queues/$", self.www_view_my_queues))
         urlpatterns.append(url(r"^watch-query/$", self.www_view_watch_query))
 

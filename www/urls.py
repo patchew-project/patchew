@@ -17,17 +17,24 @@ urlpatterns = []
 dispatch_module_hook("www_url_hook", urlpatterns=urlpatterns)
 
 urlpatterns += [
-    url("^login/$",
+    url(
+        "^login/$",
         auth_views.LoginView.as_view(template_name="login.html"),
-        name="login"),
-    url("^logout/$",
-        auth_views.LogoutView.as_view(), name="logout"),
-    url("^change-password/$",
+        name="login",
+    ),
+    url("^logout/$", auth_views.LogoutView.as_view(), name="logout"),
+    url(
+        "^change-password/$",
         auth_views.PasswordChangeView.as_view(template_name="password-change.html"),
-        name="password_change"),
-    url("^change-password/done/$",
-        auth_views.PasswordChangeDoneView.as_view(template_name="password-change-done.html"),
-        name="password_change_done"),
+        name="password_change",
+    ),
+    url(
+        "^change-password/done/$",
+        auth_views.PasswordChangeDoneView.as_view(
+            template_name="password-change-done.html"
+        ),
+        name="password_change_done",
+    ),
     url(r"^search$", views.view_search, name="search"),
     url(r"^search-help$", views.view_search_help, name="search_help"),
     url(r"^(?P<project>[^/]*)/$", views.view_series_list, name="series_list"),

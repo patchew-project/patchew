@@ -31,7 +31,9 @@ class MaintainerQueueTest(PatchewTestCase):
         assert q.message.id == msg.id
 
     def test_update_watch_on_merge_change(self):
-        wq = WatchedQuery(user=self.testuser, query="to:qemu-block@nongnu.org -is:merged")
+        wq = WatchedQuery(
+            user=self.testuser, query="to:qemu-block@nongnu.org -is:merged"
+        )
         wq.save()
         self.cli_import("0001-simple-patch.mbox.gz")
         msg = Message.objects.first()
@@ -47,7 +49,9 @@ class MaintainerQueueTest(PatchewTestCase):
         assert not q
 
     def test_update_watch_on_queue_add(self):
-        wq = WatchedQuery(user=self.testuser, query="to:qemu-block@nongnu.org -nack:test")
+        wq = WatchedQuery(
+            user=self.testuser, query="to:qemu-block@nongnu.org -nack:test"
+        )
         wq.save()
         self.cli_import("0001-simple-patch.mbox.gz")
         msg = Message.objects.first()
@@ -80,7 +84,9 @@ class MaintainerQueueTest(PatchewTestCase):
         assert q
         assert q.message.id == msg.id
 
-        wq = WatchedQuery(user=self.testuser, query="to:qemu-block@nongnu.org -nack:test")
+        wq = WatchedQuery(
+            user=self.testuser, query="to:qemu-block@nongnu.org -nack:test"
+        )
         wq.save()
         self.client.get("/clear-reviewed/" + msg.message_id + "/")
         query = QueuedSeries.objects.filter(user=self.testuser, name="watched")

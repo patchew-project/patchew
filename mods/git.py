@@ -76,7 +76,9 @@ class GitModule(PatchewModule):
                 "public_repo", "Public repo", desc="Publicly visible repo URL"
             ),
             schema.BooleanSchema(
-                "use_git_push_option", "Enable git push options", desc="Whether the push remote accepts git push options"
+                "use_git_push_option",
+                "Enable git push options",
+                desc="Whether the push remote accepts git push options",
             ),
             schema.StringSchema(
                 "url_template",
@@ -107,9 +109,12 @@ class GitModule(PatchewModule):
 
     def on_tags_update(self, event, series, **params):
         if series.is_complete:
-            self.mark_as_pending_apply(series, {
-                'git.push_options': 'ci.skip',
-                })
+            self.mark_as_pending_apply(
+                series,
+                {
+                    "git.push_options": "ci.skip",
+                },
+            )
 
     def on_series_update(self, event, series, **params):
         if series.is_complete:

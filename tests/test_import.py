@@ -95,7 +95,7 @@ class ImportTest(PatchewTestCase):
         self.cli_import("0036-patch-with-no-to-header.mbox.gz")
         a = "[PATCH] fpga: microsemi-spi: add Microsemi FPGA manager"
         self.check_cli(["search", "project:Linux"], stdout=a.strip())
-        self.check_cli(["search", "project:QEMU"], stdout='')
+        self.check_cli(["search", "project:QEMU"], stdout="")
 
 
 class UnprivilegedImportTest(ImportTest):

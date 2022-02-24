@@ -41,14 +41,17 @@ class DebugSMTP(object):
 
 
 class EmailModule(PatchewModule):
-    """
+    (
+        """
 
 Documentation
 -------------
 
 Email information is configured in "INI" style:
 
-""" + _default_config
+"""
+        + _default_config
+    )
 
     name = "email"  # The notify method name
     default_config = _default_config
@@ -203,7 +206,11 @@ Email information is configured in "INI" style:
     def prepare_message_hook(self, request, message, detailed):
         if not detailed:
             return
-        if message.is_series_head and request.user.is_authenticated and request.user.email:
+        if (
+            message.is_series_head
+            and request.user.is_authenticated
+            and request.user.email
+        ):
             message.extra_ops.append(
                 {
                     "url": reverse(

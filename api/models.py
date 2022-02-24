@@ -267,7 +267,7 @@ class Project(models.Model):
 
     def get_mailing_lists(self):
         r = self.mailing_list.split()
-        return [x.rstrip(',;') for x in r]
+        return [x.rstrip(",;") for x in r]
 
     def recognizes(self, m):
         """Test if @m is considered a message in this project"""
@@ -337,8 +337,9 @@ class Project(models.Model):
 
 
 class ProjectResult(Result):
-    project = models.ForeignKey(Project, related_name="results",
-                                on_delete=models.CASCADE)
+    project = models.ForeignKey(
+        Project, related_name="results", on_delete=models.CASCADE
+    )
 
     @property
     def obj(self):
@@ -544,15 +545,25 @@ class QueuedSeries(models.Model):
         unique_together = ("user", "message", "name")
         index_together = [("user", "message")]
 
-
     def __str__(self):
-        return '"' + self.message.subject + '" in queue ' + self.user.username + "/" + \
-                self.message.project.name + "/" + self.name
+        return (
+            '"'
+            + self.message.subject
+            + '" in queue '
+            + self.user.username
+            + "/"
+            + self.message.project.name
+            + "/"
+            + self.name
+        )
+
 
 class TopicManager(models.Manager):
     def for_stripped_subject(self, stripped_subject):
         q = (
-            Message.objects.filter(stripped_subject=stripped_subject, topic__isnull=False)
+            Message.objects.filter(
+                stripped_subject=stripped_subject, topic__isnull=False
+            )
             .order_by("date")
             .reverse()[:1]
             .values("topic")
@@ -579,7 +590,7 @@ class Topic(models.Model):
 
 
 class Message(models.Model):
-    """ Patch email message """
+    """Patch email message"""
 
     project = models.ForeignKey("Project", on_delete=models.CASCADE)
     message_id = HeaderFieldModel(db_index=True)
@@ -933,8 +944,9 @@ class Message(models.Model):
 
 
 class MessageResult(Result):
-    message = models.ForeignKey(Message, related_name="results",
-                                on_delete=models.CASCADE)
+    message = models.ForeignKey(
+        Message, related_name="results", on_delete=models.CASCADE
+    )
 
     @property
     def obj(self):
@@ -942,7 +954,7 @@ class MessageResult(Result):
 
 
 class Module(models.Model):
-    """ Module information """
+    """Module information"""
 
     name = models.CharField(max_length=128, unique=True)
     config = models.TextField(blank=True)
@@ -952,7 +964,7 @@ class Module(models.Model):
 
 
 class WatchedQuery(models.Model):
-    """ User watched query """
+    """User watched query"""
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="watched_queries"

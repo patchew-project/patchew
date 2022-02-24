@@ -202,7 +202,7 @@ class ImportView(APILoginRequiredView):
 
 
 class DeleteView(APILoginRequiredView):
-    """ Delete messages """
+    """Delete messages"""
 
     name = "delete"
 

@@ -417,12 +417,13 @@ class RestTest(PatchewTestCase):
             self.assertEqual(a["subject"], expected["subject"])
             self.assertNotIn("replies", a)
             self.assertNotIn("patches", a)
+
         if resp.data["results"][0]["subject"] == resp1.data["subject"]:
-            cmp_result(resp.data['results'][0], resp1.data)
-            cmp_result(resp.data['results'][1], resp2.data)
+            cmp_result(resp.data["results"][0], resp1.data)
+            cmp_result(resp.data["results"][1], resp2.data)
         else:
-            cmp_result(resp.data['results'][0], resp2.data)
-            cmp_result(resp.data['results'][1], resp1.data)
+            cmp_result(resp.data["results"][0], resp2.data)
+            cmp_result(resp.data["results"][1], resp1.data)
 
         resp = self.api_client.get(self.REST_BASE + "projects/12345/series/?q=quorum")
         self.assertEqual(resp.status_code, 404)

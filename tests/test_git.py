@@ -195,7 +195,7 @@ class GitTest(PatchewTestCase):
         self.assertEquals(len(resp.data["results"]), 0)
 
     def test_git_push_options(self):
-        self.p.config['git']["use_git_push_option"] = True
+        self.p.config["git"]["use_git_push_option"] = True
         self.p.save()
         self.cli_import("0013-foo-patch.mbox.gz")
         out, err = self.do_apply(True)

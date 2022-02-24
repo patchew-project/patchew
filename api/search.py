@@ -23,6 +23,7 @@ from django.db.models.fields import Field
 import abc
 import compynator.core
 
+
 @Field.register_lookup
 class NotEqual(Lookup):
     lookup_name = "ne"
@@ -52,17 +53,20 @@ class NonNullSearchVector(SearchVector):
         if template is None:
             if self.config:
                 config_sql, config_params = compiler.compile(self.config)
-                template = '%(function)s(%(config)s, %(expressions)s)'
+                template = "%(function)s(%(config)s, %(expressions)s)"
             else:
                 template = self.template
         sql, params = super(SearchVector, self).as_sql(
-            compiler, connection, function=function, template=template,
+            compiler,
+            connection,
+            function=function,
+            template=template,
             config=config_sql,
         )
         extra_params = []
         if self.weight:
             weight_sql, extra_params = compiler.compile(self.weight)
-            sql = 'setweight({}, {})'.format(sql, weight_sql)
+            sql = "setweight({}, {})".format(sql, weight_sql)
         return sql, config_params + params + extra_params
 
 
@@ -73,6 +77,7 @@ class NonNullSearchVector(SearchVector):
 #
 # On top of this, SearchMaint and SearchQueue allow to use a singleton parser
 # that does not know about requests, and only resolve the user ("me") later
+
 
 class SearchExpression(metaclass=abc.ABCMeta):
     def get_project(self):
@@ -134,7 +139,7 @@ class SearchTrue(SearchExpression):
         return rhs
 
 
-class SearchNot(SearchExpression, namedtuple('SearchNot', ['op'])):
+class SearchNot(SearchExpression, namedtuple("SearchNot", ["op"])):
     def get_all_keywords(self):
         return self.op.get_all_keywords()
 
@@ -145,7 +150,7 @@ class SearchNot(SearchExpression, namedtuple('SearchNot', ['op'])):
         return self.op
 
 
-class SearchBinary(SearchExpression, namedtuple('SearchBinary', ['left', 'right'])):
+class SearchBinary(SearchExpression, namedtuple("SearchBinary", ["left", "right"])):
     def get_all_keywords(self):
         return self.left.get_all_keywords() + self.right.get_all_keywords()
 
@@ -158,8 +163,9 @@ class SearchAnd(SearchBinary):
         return self.left.get_keywords() + self.right.get_keywords()
 
     def get_query_no_keywords(self, user, keyword_map, keyword_final):
-        return self.left.get_query_no_keywords(user, keyword_map, keyword_final) \
-                & self.right.get_query_no_keywords(user, keyword_map, keyword_final)
+        return self.left.get_query_no_keywords(
+            user, keyword_map, keyword_final
+        ) & self.right.get_query_no_keywords(user, keyword_map, keyword_final)
 
 
 class SearchOr(SearchBinary):
@@ -175,11 +181,12 @@ class SearchOr(SearchBinary):
     def get_query_no_keywords(self, user, keyword_map, keyword_final):
         # keywords from the left and right part cannot be combined in a
         # single query, so resolve them already
-        return self.left.get_query(user, keyword_map, keyword_final) \
-                | self.right.get_query(user, keyword_map, keyword_final)
+        return self.left.get_query(
+            user, keyword_map, keyword_final
+        ) | self.right.get_query(user, keyword_map, keyword_final)
 
 
-class SearchTerm(SearchExpression, namedtuple('SearchTerm', ['project', 'query'])):
+class SearchTerm(SearchExpression, namedtuple("SearchTerm", ["project", "query"])):
     def __invert__(self):
         return SearchTerm(project=None, query=~self.query)
 
@@ -190,7 +197,7 @@ class SearchTerm(SearchExpression, namedtuple('SearchTerm', ['project', 'query']
         return self.query
 
 
-class SearchKeyword(SearchExpression, namedtuple('SearchKeyword', ['keyword'])):
+class SearchKeyword(SearchExpression, namedtuple("SearchKeyword", ["keyword"])):
     def get_keywords(self):
         return [self.keyword]
 
@@ -198,13 +205,13 @@ class SearchKeyword(SearchExpression, namedtuple('SearchKeyword', ['keyword'])):
         return Q()
 
 
-class SearchSubquery(SearchExpression, namedtuple('SearchQueue', ['model', 'q'])):
+class SearchSubquery(SearchExpression, namedtuple("SearchQueue", ["model", "q"])):
     def get_query_no_keywords(self, user, keyword_map, keyword_final):
         message_ids = self.model.objects.filter(self.q).values("message_id")
         return Q(id__in=message_ids)
 
 
-class SearchQueue(SearchExpression, namedtuple('SearchQueue', ['queues', 'username'])):
+class SearchQueue(SearchExpression, namedtuple("SearchQueue", ["queues", "username"])):
     def get_query_no_keywords(self, user, keyword_map, keyword_final):
         if self.username == "me":
             if not user.is_authenticated:
@@ -216,7 +223,8 @@ class SearchQueue(SearchExpression, namedtuple('SearchQueue', ['queues', 'userna
         message_ids = QueuedSeries.objects.filter(q).values("message_id")
         return Q(id__in=message_ids)
 
-class SearchMaint(SearchExpression, namedtuple('SearchMaint', ['rhs'])):
+
+class SearchMaint(SearchExpression, namedtuple("SearchMaint", ["rhs"])):
     def get_query_no_keywords(self, user, keyword_map, keyword_final):
         if self.rhs == "me":
             if not user.is_authenticated:
@@ -261,23 +269,25 @@ def __parser(_Q):
         return q
 
     def _make_filter_project(cond):
-        return SearchTerm(project=cond,
-                          query=_Q(project__name=cond) | _Q(project__parent_project__name=cond))
+        return SearchTerm(
+            project=cond,
+            query=_Q(project__name=cond) | _Q(project__parent_project__name=cond),
+        )
 
     def _make_filter_is(cond):
         if cond == "complete":
             return Q(is_complete=True)
         elif cond == "pull":
-            return K("PULL") & SearchTerm(project=None,
-                                          query=_Q(subject__contains="[PULL") | _Q(subject__contains="[GIT PULL"))
+            return K("PULL") & SearchTerm(
+                project=None,
+                query=_Q(subject__contains="[PULL") | _Q(subject__contains="[GIT PULL"),
+            )
         elif cond == "reviewed":
             return Q(is_reviewed=True)
         elif cond in ("obsoleted", "old", "obsolete"):
             return Q(is_obsolete=True)
         elif cond == "applied":
-            return SearchSubquery(
-                MessageResult, _Q(name="git", status=Result.SUCCESS)
-            )
+            return SearchSubquery(MessageResult, _Q(name="git", status=Result.SUCCESS))
         elif cond == "tested":
             return Q(is_tested=True)
         elif cond == "merged":
@@ -312,7 +322,7 @@ def __parser(_Q):
             return _make_subquery_result(term, status=Result.RUNNING)
 
     def field(terminal, value, field):
-        return Terminal(terminal).then(value).value(lambda x: Q(**{ field: x }))
+        return Terminal(terminal).then(value).value(lambda x: Q(**{field: x}))
 
     def charset(cs, reverse=False, lookahead=False):
         if reverse:
@@ -581,8 +591,7 @@ an "AND" using parentheses.
 """
 
     def __init__(self, terms, user):
-        self.q = reduce(
-            operator.and_, map(lambda t: parse(t), terms))
+        self.q = reduce(operator.and_, map(lambda t: parse(t), terms))
         self.user = user
 
     def last_keywords(self):
@@ -601,13 +610,15 @@ an "AND" using parentheses.
                 queryset = queryset.annotate(
                     subjsearch=NonNullSearchVector("subject", config="english")
                 )
-            q = self.q.get_query(self.user,
-                        lambda x: SearchQuery(x, config="english"),
-                        lambda x: Q(subjsearch=x))
+            q = self.q.get_query(
+                self.user,
+                lambda x: SearchQuery(x, config="english"),
+                lambda x: Q(subjsearch=x),
+            )
         else:
-            q = self.q.get_query(self.user,
-                        lambda x: Q(subject__icontains=x),
-                        lambda x: x)
+            q = self.q.get_query(
+                self.user, lambda x: Q(subject__icontains=x), lambda x: x
+            )
 
         return queryset.filter(q)
 

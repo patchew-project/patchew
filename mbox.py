@@ -61,7 +61,7 @@ def decode_payload(m):
 
 
 class MboxMessage(object):
-    """ Helper class to process mbox """
+    """Helper class to process mbox"""
 
     def __init__(self, m):
         self._m = email.message_from_string(m)
@@ -75,11 +75,11 @@ class MboxMessage(object):
         self, upper=False, strip_tags=False, suppress_re=None, strip_re=False
     ):
         """Process and return subject of the message.
-           upper: convert subject to upper case.
-           strip_tags: remove all the leading [xxx] tags
-           suppress_re: a subject str to compare to, if ours is the same or
-           only to prepend Re:, return an empty str
-           strip_re: drop leading "Re:" prefixes"""
+        upper: convert subject to upper case.
+        strip_tags: remove all the leading [xxx] tags
+        suppress_re: a subject str to compare to, if ours is the same or
+        only to prepend Re:, return an empty str
+        strip_re: drop leading "Re:" prefixes"""
 
         def do_strip_tags(t):
             while t.startswith("[") and "]" in t:
@@ -262,7 +262,7 @@ class MboxMessage(object):
         return i == len(lines)
 
     def is_patch(self):
-        """ Return true if the email body is a patch """
+        """Return true if the email body is a patch"""
         body = self.get_body()
         if self.get_subject().startswith("Re:"):
             return False
@@ -287,7 +287,7 @@ class MboxMessage(object):
         return False
 
     def get_json(self):
-        """Return the JSON format of the mbox """
+        """Return the JSON format of the mbox"""
         msg = {}
         msg["message_id"] = self.get_message_id()
         msg["in_reply_to"] = self.get_in_reply_to() or ""

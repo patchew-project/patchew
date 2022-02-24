@@ -19,7 +19,7 @@ import schema
 
 
 class PatchewModule(object):
-    """ Module base class """
+    """Module base class"""
 
     name = None  # The name of the module, must be unique
     default_config = ""  # The default config string
