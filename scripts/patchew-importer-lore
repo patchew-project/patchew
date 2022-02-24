@@ -126,33 +126,40 @@ def find_commits(git_root, first_repo, max_repos):
     base = "public-inbox"
     if not os.path.exists(base):
         os.mkdir(base)
-    for i in range(first_repo, -1, -1):
-        if max_repos < 1:
-            break
+    try:
+        for i in range(first_repo, -1, -1):
+            if max_repos < 1:
+                break
 
-        i_str = str(i)
-        wd = os.path.join(base, i_str)
-        if not os.path.exists(wd):
+            i_str = str(i)
+            wd = os.path.join(base, i_str)
+            if not os.path.exists(wd):
+                try:
+                    git_clone(git_root + i_str, wd)
+                except subprocess.CalledProcessError:
+                    continue
+
+            HIGHEST_REPO = max(HIGHEST_REPO, i)
             try:
-                git_clone(git_root + i_str, wd)
+                git_pull(wd)
             except subprocess.CalledProcessError:
-                continue
+                break
 
-        HIGHEST_REPO = max(HIGHEST_REPO, i)
-        try:
-            git_pull(wd)
-        except subprocess.CalledProcessError:
-            break
-
-        max_repos -= 1
-        p = subprocess.Popen(
-            ["git", "log", "--oneline", "--since=" + CONFIG["limit"], "--format=%h"],
-            cwd=wd,
-            stdout=subprocess.PIPE,
-            encoding="utf-8",
-        )
-        for line in p.stdout:
-            yield (wd, line.strip())
+            max_repos -= 1
+            p = subprocess.Popen(
+                ["git", "log", "--oneline", "--since=" + CONFIG["limit"], "--format=%h"],
+                cwd=wd,
+                stdout=subprocess.PIPE,
+                encoding="utf-8",
+            )
+            try:
+                for line in p.stdout:
+                    yield (wd, line.strip())
+            finally:
+                p.kill()
+                p.wait()
+    except StopIteration:
+        pass
 
 
 def show_commit(d, c):
@@ -165,8 +172,10 @@ def import_public_inbox(git_root, max_imports, first_repo, max_repos):
 
     db = dbm.open("patchew-importer-lore.db", "c")
 
-    for (d, commit) in find_commits(git_root, first_repo, max_repos):
+    gen = find_commits(git_root, first_repo, max_repos)
+    for (d, commit) in gen:
         if max_imports < 1:
+            gen.close()
             break
         if db.get(commit):
             continue
@@ -193,6 +202,7 @@ def import_public_inbox(git_root, max_imports, first_repo, max_repos):
                 )
                 db[commit] = "failed"
     else:
+        gen.close()
         time.sleep(60)
 
 
