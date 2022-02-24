@@ -34,10 +34,10 @@
             <h3 class="panel-title"><a href="{% url "maintainer_queue" project=p name=qn %}">Queue: {{ qn }} [{{ p }}]<span class="hover-icon fa fa-sm fa-external-link-alt"></span></a>
 </a></h3>
             </div>
-            <ul class="no-bullet panel-body panel-collapse collapse in">
+            <ul class="no-bullet panel-body panel-collapse collapse{% if qn != "reject" %} in{% endif %}">
             {% for patch in msgs %}
                 <li><a href="/{{ p }}/{{ patch.get_series_head.message_id }}/">
-                  <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+                  <span class="fa-lg fa fa-ellipsis-v"></span>
                   {{ patch.subject }}
                   </a></li>
             {% endfor %}
