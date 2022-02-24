@@ -324,7 +324,7 @@ def __parser(_Q):
         else:
             return char
 
-    WordChar = charset(' \t<>', reverse=True)
+    WordChar = charset(' \t<>{}()', reverse=True)
     Space = One.where(lambda c: c == ' ' or c == '\t')
     Word = WordChar.repeat(lower=1)
     WordNoColon = Word.filter(lambda x: ':' not in x.value)
@@ -363,10 +363,15 @@ def __parser(_Q):
             Terminal('has:replies').value(lambda x: Q(last_comment_date__isnull=False)) |
             field('has:', Word, 'properties__name'))
 
+    Conjunction = Forward()
+    Disjunction = Forward()
+
     BooleanTerm = (AgeTerm |
             SimpleFieldTerm |
             IsTerm |
-            HasTerm)
+            HasTerm |
+            Conjunction |
+            Disjunction)
 
     # + and - try to match an "is:" condition, and falls back to a keyword
     PlusTerm = Terminal('+').then(
@@ -379,9 +384,14 @@ def __parser(_Q):
 
     AnyTerm = PlusTerm | MinusTerm | BangTerm | BasicTerm
 
+    Rest = Spaces.then(AnyTerm).repeat(value=SearchFalse(), reducer=operator.or_)
+    DisjunctionTerms = AnyTerm.then(Rest, reducer=operator.or_)
+
     Rest = Spaces.then(AnyTerm).repeat(value=SearchTrue(), reducer=operator.and_)
     ConjunctionTerms = AnyTerm.then(Rest, reducer=operator.and_)
 
+    Disjunction.is_(Terminal('{').then(DisjunctionTerms).skip(Terminal('}')))
+    Conjunction.is_(Terminal('(').then(ConjunctionTerms).skip(Terminal(')')))
     return ConjunctionTerms
 
 def parse(s, the_parser=__parser(Q)):
@@ -553,6 +563,19 @@ Search text keyword in the email message. Example:
 
     regression
 
+---
+
+### AND and OR
+
+- Syntax: { TERM TERM }
+- Syntax: ( TERM TERM )
+
+Alternatives can be written within braces.  The query will match
+if at least one of the terms matches.
+
+AND is usually obtained just by writing terms next to each other,
+except inside braces.  For this reason you can also explicitly write
+an "AND" using parentheses.
 """
 
     def __init__(self, terms, user):
