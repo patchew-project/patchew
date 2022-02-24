@@ -24,13 +24,17 @@
     </div>
 </div>
 
+<div class="col-lg-10">
 {% if projects %}
 {% for p, queues in projects.items %}
 
-    <div class="col-lg-10">
-        {% for qn, msgs in queues.items %}
-	<h3><a href="{% url "maintainer_queue" project=p name=qn %}">Queue: {{ qn }} [{{ p }}]</a></h3>
-            <ul class="panel" id="patches">
+    {% for qn, msgs in queues.items %}
+        <div class="panel panel-default">
+            <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
+            <h3 class="panel-title"><a href="{% url "maintainer_queue" project=p name=qn %}">Queue: {{ qn }} [{{ p }}]<span class="hover-icon fa fa-sm fa-external-link-alt"></span></a>
+</a></h3>
+            </div>
+            <ul class="no-bullet panel-body panel-collapse collapse in">
             {% for patch in msgs %}
                 <li><a href="/{{ p }}/{{ patch.get_series_head.message_id }}/">
                   <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
@@ -39,12 +43,12 @@
             {% endfor %}
             </ul>
         {% endfor %}
-    </div>
 
 {% endfor %}
 {% else %}
 <p>You haven't created any queue</p>
 {% endif %}
+</div>
 
 <script type="text/javascript">
 

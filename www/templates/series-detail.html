@@ -123,7 +123,7 @@ function prompt_and_open(obj, url) {
         <div id="{{ msg.message_id }}" class="panel panel-default message reply-lvl-{{ msg.indent_level }}">
             <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
                     <h3 class="panel-title">
-                      {{ msg.subject }} <a class="permalink" href="#{{msg.message_id}}"><span class="fa fa-sm fa-link"></span></a>
+                      {{ msg.subject }} <a class="hover-icon" href="#{{msg.message_id}}"><span class="fa fa-sm fa-link"></span></a>
                     </h3>
 
                     <div class="message-info">
@@ -144,7 +144,7 @@ function prompt_and_open(obj, url) {
             </div>
         </div>
 	{% if is_cover_letter and forloop.first%}
-        <ul class="panel" id="patches">
+        <ul class="panel no-bullet" id="patches">
           {% for patch in patches %}
 	  <li><span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
 	  {% endfor %}
@@ -154,7 +154,7 @@ function prompt_and_open(obj, url) {
     </div>
 
     {% if not is_head %}
-    <ul class="panel" id="patches">
+    <ul class="panel no-bullet" id="patches">
     {% for patch in patches %}
     <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
       <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>

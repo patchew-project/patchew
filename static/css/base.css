@@ -156,10 +156,11 @@ h1, h2, h3, .h1, .h2, .h3 {
     margin-left: 40px;
 }
 
-.panel-heading a.permalink {
+.hover-icon {
+    padding-left: 0.5em;
     visibility: hidden;
 }
-.panel-heading:hover a.permalink {
+.hover-icon {
     visibility: visible;
 }
 
@@ -192,6 +193,26 @@ h1, h2, h3, .h1, .h2, .h3 {
 #detail-ops > ul > li > .fa, #detail-ops > ul > li > .fab, #detail-ops > ul > li > .far {
     position: relative;
     left: -1em;
+    width: 1em;
+    text-align: center;
+    display: inline-block;
+}
+
+.no-bullet {
+    list-style-type: none;
+    margin-left: 0.5em;
+}
+.no-bullet > li {
+    margin: 1em 0em;
+    padding: 0em;
+}
+.no-bullet > li.active {
+    font-weight: bold;
+}
+.no-bullet > li .fa, .fa-list > li .fab, .fa-list > li .far {
+    position: relative;
+    color: #337ab7;
+    left: -0.5em;
     width: 1em;
     text-align: center;
     display: inline-block;
