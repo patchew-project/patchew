@@ -108,10 +108,10 @@ class MaintainerModule(PatchewModule):
         # Handle changes to "is:merged"
         self._update_watch_queue(series)
 
-    def _update_review_state(self, request, message_id, accept):
+    def _update_review_state(self, request, project, message_id, accept):
         if not request.user.is_authenticated:
             return HttpResponseForbidden()
-        msg = Message.objects.find_series(message_id)
+        msg = Message.objects.find_series(message_id, project)
         if not msg:
             raise Http404("Series not found")
         if accept:
@@ -122,10 +122,10 @@ class MaintainerModule(PatchewModule):
         self._add_to_queue(request.user, msg, to_create)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def _delete_review(self, request, message_id):
+    def _delete_review(self, request, project, message_id):
         if not request.user.is_authenticated:
             return HttpResponseForbidden()
-        msg = Message.objects.find_series(message_id)
+        msg = Message.objects.find_series(message_id, project)
         if not msg:
             raise Http404("Series not found")
         r = QueuedSeries.objects.filter(
@@ -134,8 +134,8 @@ class MaintainerModule(PatchewModule):
         self._drop_all_from_queue(r)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def _update_merge_state(self, request, message_id, is_merged):
-        s = Message.objects.find_series(message_id)
+    def _update_merge_state(self, request, project, message_id, is_merged):
+        s = Message.objects.find_series(message_id, project)
         if not s:
             raise Http404("Series not found")
         if not s.project.maintained_by(request.user):
@@ -144,25 +144,25 @@ class MaintainerModule(PatchewModule):
         s.save()
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def www_view_mark_as_merged(self, request, message_id):
-        return self._update_merge_state(request, message_id, True)
+    def www_view_mark_as_merged(self, request, project, message_id):
+        return self._update_merge_state(request, project, message_id, True)
 
-    def www_view_clear_merged(self, request, message_id):
-        return self._update_merge_state(request, message_id, False)
+    def www_view_clear_merged(self, request, project, message_id):
+        return self._update_merge_state(request, project, message_id, False)
 
-    def www_view_mark_accepted(self, request, message_id):
-        return self._update_review_state(request, message_id, True)
+    def www_view_mark_accepted(self, request, project, message_id):
+        return self._update_review_state(request, project, message_id, True)
 
-    def www_view_mark_rejected(self, request, message_id):
-        return self._update_review_state(request, message_id, False)
+    def www_view_mark_rejected(self, request, project, message_id):
+        return self._update_review_state(request, project, message_id, False)
 
-    def www_view_clear_reviewed(self, request, message_id):
-        return self._delete_review(request, message_id)
+    def www_view_clear_reviewed(self, request, project, message_id):
+        return self._delete_review(request, project, message_id)
 
-    def www_view_add_to_queue(self, request, message_id):
+    def www_view_add_to_queue(self, request, project, message_id):
         if not request.user.is_authenticated:
             raise PermissionDenied()
-        m = Message.objects.find_series(message_id)
+        m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
         queue = request.GET.get("queue")
@@ -171,10 +171,10 @@ class MaintainerModule(PatchewModule):
         self._add_to_queue(request.user, m, queue)
         return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
-    def www_view_drop_from_queue(self, request, queue, message_id):
+    def www_view_drop_from_queue(self, request, queue, project, message_id):
         if not request.user.is_authenticated:
             raise PermissionDenied()
-        m = Message.objects.find_series(message_id)
+        m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
         self._drop_from_queue(request.user, m, queue)
@@ -261,49 +261,49 @@ class MaintainerModule(PatchewModule):
     def www_url_hook(self, urlpatterns):
         urlpatterns.append(
             url(
-                r"^mark-as-merged/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-merged/",
                 self.www_view_mark_as_merged,
                 name="mark-as-merged",
             )
         )
         urlpatterns.append(
             url(
-                r"^clear-merged/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/clear-merged/",
                 self.www_view_clear_merged,
                 name="clear-merged",
             )
         )
         urlpatterns.append(
             url(
-                r"^mark-as-accepted/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-accepted/",
                 self.www_view_mark_accepted,
                 name="mark-as-accepted",
             )
         )
         urlpatterns.append(
             url(
-                r"^mark-as-rejected/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-reviewed/",
                 self.www_view_mark_rejected,
                 name="mark-as-rejected",
             )
         )
         urlpatterns.append(
             url(
-                r"^clear-reviewed/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/clear-reviewed/",
                 self.www_view_clear_reviewed,
                 name="clear-reviewed",
             )
         )
         urlpatterns.append(
             url(
-                r"^add-to-queue/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/add-to-queue/",
                 self.www_view_add_to_queue,
                 name="add-to-queue",
             )
         )
         urlpatterns.append(
             url(
-                r"^drop-from-queue/(?P<queue>[^/]*)/(?P<message_id>.*)/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/drop-from-queue/(?P<queue>[^/]*)/",
                 self.www_view_drop_from_queue,
                 name="drop-from-queue",
             )
@@ -345,7 +345,11 @@ class MaintainerModule(PatchewModule):
             message.extra_ops.append(
                 {
                     "url": reverse(
-                        "clear-merged", kwargs={"message_id": message.message_id}
+                        "clear-merged",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
                     "icon": "eraser",
                     "title": "Clear merged state",
@@ -355,7 +359,11 @@ class MaintainerModule(PatchewModule):
             message.extra_ops.append(
                 {
                     "url": reverse(
-                        "mark-as-merged", kwargs={"message_id": message.message_id}
+                        "mark-as-merged",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
                     "icon": "code-branch fa-flip-vertical",
                     "title": "Mark series as merged",
@@ -381,7 +389,11 @@ class MaintainerModule(PatchewModule):
                     {
                         "url": reverse(
                             "drop-from-queue",
-                            kwargs={"queue": r.name, "message_id": message.message_id},
+                            kwargs={
+                                "queue": r.name,
+                                "message_id": message.message_id,
+                                "project": message.project.name,
+                            },
                         ),
                         "icon": "times",
                         "title": "Drop from queue '%s'" % r.name,
@@ -391,7 +403,11 @@ class MaintainerModule(PatchewModule):
             message.extra_ops.append(
                 {
                     "url": reverse(
-                        "mark-as-accepted", kwargs={"message_id": message.message_id}
+                        "mark-as-accepted",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
                     "icon": "check",
                     "title": "Mark series as accepted",
@@ -401,7 +417,11 @@ class MaintainerModule(PatchewModule):
             message.extra_ops.append(
                 {
                     "url": reverse(
-                        "mark-as-rejected", kwargs={"message_id": message.message_id}
+                        "mark-as-rejected",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
                     "icon": "times",
                     "title": "Mark series as rejected",
@@ -411,7 +431,11 @@ class MaintainerModule(PatchewModule):
             message.extra_ops.append(
                 {
                     "url": reverse(
-                        "clear-reviewed", kwargs={"message_id": message.message_id}
+                        "clear-reviewed",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
                     "icon": "eraser",
                     "title": "Clear review state",
@@ -436,7 +460,11 @@ class MaintainerModule(PatchewModule):
                     "url": "%s?queue=%s"
                     % (
                         reverse(
-                            "add-to-queue", kwargs={"message_id": message.message_id}
+                            "add-to-queue",
+                            kwargs={
+                                "message_id": message.message_id,
+                                "project": message.project.name,
+                            },
                         ),
                         qn,
                     ),
@@ -448,7 +476,11 @@ class MaintainerModule(PatchewModule):
         message.extra_ops.append(
             {
                 "url": reverse(
-                    "add-to-queue", kwargs={"message_id": message.message_id}
+                    "add-to-queue",
+                    kwargs={
+                        "message_id": message.message_id,
+                        "project": message.project.name,
+                    },
                 ),
                 "get_prompt": {"queue": "What is the name of the new queue?"},
                 "icon": "bookmark",
