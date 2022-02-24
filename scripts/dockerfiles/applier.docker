@@ -1,0 +1,11 @@
+FROM fedora:latest
+RUN dnf install -y python git wget
+RUN git config --global user.email "applier@patchew.org"
+RUN git config --global user.name "Patchew Applier"
+RUN mkdir -p -m 0700 ~/.ssh
+RUN echo IdentityFile=/data/patchew/identity > ~/.ssh/config
+RUN echo StrictHostKeyChecking no >> ~/.ssh/config
+RUN echo UserKnownHostsFile=/dev/null >> ~/.ssh/config
+ENV LC_ALL en_US.UTF-8
+COPY . /opt/patchew/
+CMD /opt/patchew/scripts/patchew-applier

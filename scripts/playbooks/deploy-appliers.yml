@@ -1,0 +1,48 @@
+- hosts: appliers
+  vars_prompt:
+    - name: instance_name
+      prompt: "The instance name"
+      default: patchew-applier
+      private: no
+    - name: "patchew_server"
+      prompt: "The address of patchew server"
+      default: "https://patchew.org"
+      private: no
+    - name: "applier_user"
+      prompt: "Username for the applier to login to the server"
+      private: no
+      default: "applier"
+    - name: "applier_pass"
+      prompt: "Password for the applier to login to the server"
+      private: yes
+    - name: "applier_identity"
+      prompt: "Path to file containing private key"
+      private: no
+    - name: "applier_repo"
+      prompt: "Target repository allowed by the private key (e.g. git@github.com:youruser)"
+      default: ""
+      private: no
+  vars:
+    base_dir: "/data/{{ instance_name }}"
+    src_dir: "{{ base_dir }}/src"
+    data_dir: "{{ base_dir }}/data"
+    config_file: "{{ data_dir }}/config"
+    identity_file: "{{ data_dir }}/identity"
+  tasks:
+    - name: Create data dir
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+    - name: Store SSH key
+      copy:
+        src: "{{ applier_identity }}"
+        dest: "{{ identity_file }}"
+        validate: test -f %s
+        mode: 0400
+    - name: Create config
+      template:
+        src: "templates/applier-config.j2"
+        dest: "{{ config_file }}"
+    - import_tasks: tasks/docker-deploy.yml
+      vars:
+        instance_role: applier

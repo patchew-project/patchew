@@ -23,6 +23,8 @@ def parse_args():
                         help="Tester host address")
     parser.add_argument("--importer", "-i", nargs="?",
                         help="Importer host address")
+    parser.add_argument("--applier", "-a", nargs="?",
+                        help="Importer host address")
     parser.add_argument("--debug", "-D", action="store_true",
                         help="Enable debug output")
     return parser.parse_known_args()
@@ -36,6 +38,9 @@ def generate_inventory_file(args):
 [db]
 %s
 
+[appliers]
+%s
+
 [importers]
 %s
 
@@ -43,6 +48,7 @@ def generate_inventory_file(args):
 %s""" \
         % (args.web_server or "",
            args.db_server or "",
+           args.applier or "",
            args.importer or "",
            "\n".join(args.testers or [])))
     f.flush()
@@ -60,10 +66,12 @@ def main():
         playbooks.append("deploy-db.yml")
     if args.testers:
         playbooks.append("deploy-testers.yml")
+    if args.applier:
+        playbooks.append("deploy-appliers.yml")
     if args.importer:
         playbooks.append("deploy-importers.yml")
     if not playbooks:
-        print("At least one host (web server, importer or tester) must be specified")
+        print("At least one host (server/db/applier/importer/tester) must be specified")
         print("Run: '%s -h' for more information" % sys.argv[0])
         return 1
     v = ["-vvv"] if args.debug else []

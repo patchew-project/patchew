@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Copyright 2016 Red Hat, Inc.
+#
+# Authors:
+#     Fam Zheng <famz@redhat.com>
+#
+# This work is licensed under the MIT License.  Please see the LICENSE file or
+# http://opensource.org/licenses/MIT.
+
+set -e
+
+. /data/patchew/config
+
+BASEDIR="/data/patchew"
+PATCHEW_CLI="/opt/patchew/patchew-cli -s $PATCHEW_SERVER"
+
+while :; do
+    $PATCHEW_CLI login "$PATCHEW_USER" "$PATCHEW_PASS"
+    while :; do
+        wd=$(mktemp -d /var/tmp/patchew-applier.XXXXX)
+	applier_args='--applier-mode '
+	if test "$PATCHEW_TARGET_REPO" != ""; then
+	  applier_args="$applier_args --applier-target $PATCHEW_TARGET_REPO"
+	fi
+        if (cd $wd; $PATCHEW_CLI apply $applier_args); then
+            rm -rf $wd
+        elif [ $? -eq 3 ]; then
+            rm -rf $wd
+            break
+        else
+            rm -rf $wd
+        fi
+    done
+    $PATCHEW_CLI project update
+    sleep 60
+done
