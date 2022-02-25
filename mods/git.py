@@ -358,10 +358,17 @@ class ApplierGetView(APILoginRequiredView):
 class UnappliedSeriesSerializer(SeriesSerializer):
     class Meta:
         model = Message
-        fields = SeriesSerializer.Meta.fields + ("mirror", "result_uri")
+        fields = SeriesSerializer.Meta.fields + ("mirror", "result_uri", "push_options")
 
     mirror = SerializerMethodField()
     result_uri = SerializerMethodField()
+    push_options = SerializerMethodField()
+
+    def get_push_options(self, obj):
+        if obj.project.config.get("git", {}).get("use_git_push_option", False):
+            return obj.git_result.data.get("git.push_options")
+        else:
+            return None
 
     def get_result_uri(self, obj):
         request = self.context["request"]
