@@ -31,14 +31,16 @@ COOKIE_FILENAME = os.path.expanduser("~/.patchew.cookie")
 class APIError(Exception):
     pass
 
+
 def git_head():
     a = str(os.environ.get("PATCHEW_TAG"))
     if a:
         if a.startswith("tags/"):
-            a = a[len("tags/"):]
+            a = a[len("tags/") :]
         elif a.startswith("refs/tags/"):
-            a = a[len("refs/tags/"):]
+            a = a[len("refs/tags/") :]
     return a or subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+
 
 def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
     cache_repo = os.path.join(
@@ -117,12 +119,14 @@ def git_clone_repo(clone, remote, head, logf, checkout=True, recursive=False):
             ["git", "checkout", head, "-b", "test"], stderr=logf, stdout=logf, cwd=clone
         )
 
+
 def http_get(url):
     logging.debug("http get: " + url)
     return urllib.request.urlopen(url).read()
 
+
 class SubCommand(object):
-    """ Base class of subcommand"""
+    """Base class of subcommand"""
 
     help = ""
     want_argv = False  # Whether the command accepts extra arguments
@@ -656,7 +660,7 @@ class TesterCommand(SubCommand):
             logf.flush()
             start_time = time.time()
             env = os.environ.copy()
-            env['PATCHEW_TAG'] = r["head"]
+            env["PATCHEW_TAG"] = r["head"]
             tp = subprocess.Popen(
                 ["/usr/bin/script", "-qefc", test_script + "< /dev/null", "/dev/null"],
                 cwd=clone,
@@ -787,19 +791,26 @@ class TesterCommand(SubCommand):
                 time.sleep(60)
         return 0
 
+
 class GitlabPipelineCheckCommand(SubCommand):
     name = "gitlab-pipeline-check"
+
     def arguments(self, parser):
         parser.add_argument("--project", "-p", required=True)
         parser.add_argument("--head", "-H", type=str)
-        parser.add_argument("--gitlab", "-g", type=str, default="https://gitlab.com/",
-                            help="gitlab server addr")
+        parser.add_argument(
+            "--gitlab",
+            "-g",
+            type=str,
+            default="https://gitlab.com/",
+            help="gitlab server addr",
+        )
 
     def _find_pipeline(self, pipelines, head):
         candidate = None
         for p in pipelines:
-            if head in (p['sha'], p['ref']):
-                if p['status'] == 'skipped':
+            if head in (p["sha"], p["ref"]):
+                if p["status"] == "skipped":
                     candidate = candidate or p
                 else:
                     return p
@@ -814,12 +825,15 @@ class GitlabPipelineCheckCommand(SubCommand):
         if gitlab.endswith("/"):
             gitlab = gitlab[:-1]
 
-        project_encoded = urllib.parse.quote(args.project, safe='')
+        project_encoded = urllib.parse.quote(args.project, safe="")
         self.print("Looking up pipeline...")
         p = None
         for page in range(10):
             url = "%s/api/v4/projects/%s/pipelines/?page=%d&per_page=100" % (
-                    gitlab, project_encoded, page)
+                gitlab,
+                project_encoded,
+                page,
+            )
             logging.debug(url)
             resp = json.loads(http_get(url))
             p = self._find_pipeline(resp, head)
@@ -827,38 +841,43 @@ class GitlabPipelineCheckCommand(SubCommand):
                 break
         if not p:
             raise Exception("Pipeline not found")
-        pid = p['id']
-        self.print("Found pipeline %d:\n\n%s\n" % (pid, p['web_url']))
+        pid = p["id"]
+        self.print("Found pipeline %d:\n\n%s\n" % (pid, p["web_url"]))
 
         self.print("Waiting for pipeline to finish...")
         cnt = 0
-        while p['status'] not in ['success', 'failed', 'canceled', 'canceled', 'skipped']:
+        while p["status"] not in [
+            "success",
+            "failed",
+            "canceled",
+            "canceled",
+            "skipped",
+        ]:
             time.sleep(60)
             cnt += 1
             if cnt % 15 == 0:
                 self.print("Still waiting...")
-            url = "%s/api/v4/projects/%s/pipelines/%d" % (
-                    gitlab, project_encoded, pid)
+            url = "%s/api/v4/projects/%s/pipelines/%d" % (gitlab, project_encoded, pid)
             p = json.loads(http_get(url))
-        if p['status'] == 'success':
+        if p["status"] == "success":
             self.print("Pipeline succeeded")
             return 0
-        self.print("Pipeline", p['status'])
+        self.print("Pipeline", p["status"])
         self.print_failed_jobs(gitlab, project_encoded, pid)
         return 1
 
     def print_failed_jobs(self, gitlab, project_encoded, pid):
-        url = "%s/api/v4/projects/%s/pipelines/%d/jobs" % (
-                gitlab, project_encoded, pid)
+        url = "%s/api/v4/projects/%s/pipelines/%d/jobs" % (gitlab, project_encoded, pid)
         p = json.loads(http_get(url))
         logging.debug(p)
         for job in p:
-            if job["status"] in 'success':
+            if job["status"] in "success":
                 continue
-            self.print("Job '%s' in stage '%s' is %s" % (
-                job['name'],
-                job.get('stage'),
-                job['status']))
+            self.print(
+                "Job '%s' in stage '%s' is %s"
+                % (job["name"], job.get("stage"), job["status"])
+            )
+
 
 class ApplyFailedException(Exception):
     pass
@@ -869,7 +888,9 @@ class ApplyCommand(SubCommand):
 
     def arguments(self, parser):
         parser.add_argument("term", nargs="*", type=str)
-        parser.add_argument("-C", dest="repo", default=".", help="The path to the git repo")
+        parser.add_argument(
+            "-C", dest="repo", default=".", help="The path to the git repo"
+        )
         parser.add_argument(
             "--any",
             "-a",
@@ -1031,10 +1052,12 @@ class ApplyCommand(SubCommand):
             stdout=logf,
             stderr=logf,
         )
-        push_options_args = ['-o', push_options] if push_options else []
-        cmd = ["git", "push", "-f", "push_to"] + \
-                push_options_args + \
-                ["%s:refs/tags/%s" % (tag, tag)]
+        push_options_args = ["-o", push_options] if push_options else []
+        cmd = (
+            ["git", "push", "-f", "push_to"]
+            + push_options_args
+            + ["%s:refs/tags/%s" % (tag, tag)]
+        )
         logging.debug(" ".join(cmd))
         subprocess.check_call(cmd, cwd=repo, stdout=logf, stderr=logf)
 
@@ -1071,7 +1094,11 @@ class ApplyCommand(SubCommand):
             )
             maintainers = self._apply(wd, toapply, branch, force_branch, tag, logf)
             if push_repo:
-                push_options = toapply.get('git.push_options') if toapply.get("git.use_git_push_option") else None
+                push_options = (
+                    toapply.get("git.push_options")
+                    if toapply.get("git.use_git_push_option")
+                    else None
+                )
                 self._push(wd, push_repo, tag, logf, push_options)
             url = toapply.get("git.url_template", "").replace("%t", tag)
         except Exception as e:
@@ -1116,7 +1143,12 @@ class ApplyCommand(SubCommand):
 
     def do(self, args, argv):
         if args.applier_mode:
-            if args.repo not in [None, '.'] or args.branch or args.force_branch or args.tag:
+            if (
+                args.repo not in [None, "."]
+                or args.branch
+                or args.force_branch
+                or args.tag
+            ):
                 print("--applier-mode conflicts with -C, -b, -B and -t")
                 return 1
             return self._applier_mode(args)
