@@ -591,7 +591,7 @@ an "AND" using parentheses.
 """
 
     def __init__(self, terms, user):
-        self.q = reduce(operator.and_, map(lambda t: parse(t), terms))
+        self.q = reduce(operator.and_, map(lambda t: parse(t), terms), SearchTrue())
         self.user = user
 
     def last_keywords(self):
