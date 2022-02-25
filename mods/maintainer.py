@@ -282,7 +282,7 @@ class MaintainerModule(PatchewModule):
         )
         urlpatterns.append(
             url(
-                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-reviewed/",
+                r"^(?P<project>.*)/(?P<message_id>.*)/mark-as-rejected/",
                 self.www_view_mark_rejected,
                 name="mark-as-rejected",
             )
