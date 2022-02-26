@@ -297,27 +297,25 @@ class GitModule(PatchewModule):
 
     def pending_series(self, target_repo):
         q = Message.objects.filter(results__name="git", results__status="pending")
-        if target_repo is not None and target_repo != "":
-            # Postgres could use JSON fields instead.  Fortunately projects are
-            # few so this is cheap
-            def match_target_repo(config, target_repo):
-                push_to = config.get("git", {}).get("push_to")
-                if push_to is None:
-                    return False
-                if target_repo[-1] != "/":
-                    return push_to == target_repo or push_to.startswith(
-                        target_repo + "/"
-                    )
-                else:
-                    return push_to.startswith(target_repo)
 
-            projects = Project.objects.values_list("id", "config").all()
-            projects = [
-                pid
-                for pid, config in projects
-                if match_target_repo(config, target_repo)
-            ]
-            q = q.filter(project__pk__in=projects)
+        # Postgres could use JSON fields instead.  Fortunately projects are
+        # few so this is cheap
+        def match_target_repo(config, target_repo):
+            push_to = config.get("git", {}).get("push_to")
+            if push_to is None:
+                return False
+            if target_repo is None or target_repo == "":
+                return True
+            elif target_repo[-1] != "/":
+                return push_to == target_repo or push_to.startswith(target_repo + "/")
+            else:
+                return push_to.startswith(target_repo)
+
+        projects = Project.objects.values_list("id", "config").all()
+        projects = [
+            pid for pid, config in projects if match_target_repo(config, target_repo)
+        ]
+        q = q.filter(project__pk__in=projects)
         return q
 
 
