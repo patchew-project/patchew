@@ -690,14 +690,17 @@ class MessagesViewSet(BaseMessageViewSet):
             projects = (p for p in projects if p.maintained_by(self.request.user))
         results = []
         for project in projects:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(project=project)
-            results.append(serializer.data)
+            try:
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(project=project)
+                results.append(serializer.data)
+            except django.db.utils.IntegrityError:
+                pass
         # Fake paginator response.  Note that there is no Location header.
         return Response(
             OrderedDict([("count", len(results)), ("results", results)]),
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_201_CREATED if results else status.HTTP_200_OK,
         )
 
 
