@@ -110,8 +110,16 @@ class GitModule(PatchewModule):
         register_handler("SeriesComplete", self.on_series_update)
         register_handler("TagsUpdate", self.on_tags_update)
 
+    def project_has_git_config(self, project)
+        config = self.get_project_config(project)
+        return "push_to" in config
+
     def mark_as_pending_apply(self, series, data={}):
-        r = series.git_result or series.create_result(name="git")
+        r = series.git_result
+        if not r:
+            if not self.project_has_git_config(project):
+                return
+            r = series.create_result(name="git")
         r.log = None
         r.status = Result.PENDING
         r.data = data
