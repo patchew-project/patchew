@@ -203,7 +203,9 @@ class SubCommand(object):
                 resp = opener.open(req)
             except urllib.error.HTTPError as e:
                 # urllib requires confirmation from us before following a 307 with POST
-                if e.code == 307:
+                # do *not* change the method, as that's the preferred thing to do
+                # even if it is allowed for 301 and 302 statuses
+                if e.code in (301, 302, 307, 308):
                     url = e.headers["location"]
                 else:
                     raise e
