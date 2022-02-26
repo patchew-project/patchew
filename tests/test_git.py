@@ -8,6 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+import os.path
 import shutil
 
 from api.models import Message, Result
@@ -193,6 +194,35 @@ class GitTest(PatchewTestCase):
             + "series/20160628014747.20971-1-famz@redhat.com/results/git/"
         )
         self.assertIn("url", resp.data["data"])
+
+    def test_rest_unapplied_target_repo(self):
+        self.cli_import("0004-multiple-patch-reviewed.mbox.gz")
+        self.cli_import("0001-simple-patch.mbox.gz")
+        self.api_login()
+        self.api_client.put(
+            self.PROJECT_BASE
+            + "series/20160628014747.20971-1-famz@redhat.com/results/git/",
+            {"status": "success"},
+        )
+        resp = self.api_client.get(self.REST_BASE + "series/unapplied/?target_repo=blah")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data["results"]), 0)
+
+        resp = self.api_client.get(self.REST_BASE + "series/unapplied/?target_repo=" + os.path.dirname(self.repo))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data["results"]), 1)
+
+        resp = self.api_client.get(self.REST_BASE + "series/unapplied/?target_repo=" + os.path.dirname(self.repo) + '/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data["results"]), 1)
+
+        resp = self.api_client.get(self.REST_BASE + "series/unapplied/?target_repo=" + self.repo)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data["results"]), 1)
+
+        resp = self.api_client.get(self.REST_BASE + "series/unapplied/?target_repo=" + self.repo + '/blah')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEquals(len(resp.data["results"]), 0)
 
     def test_rest_unapplied(self):
         self.cli_import("0004-multiple-patch-reviewed.mbox.gz")

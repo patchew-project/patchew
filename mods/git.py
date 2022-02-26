@@ -385,7 +385,8 @@ class UnappliedSeriesView(generics.ListAPIView):
     name = "unapplied"
     serializer_class = UnappliedSeriesSerializer
 
-    def get_queryset(self, target_repo=None):
+    def get_queryset(self):
+        target_repo = self.request.query_params.get("target_repo")
         return _instance.pending_series(target_repo)
 
 
