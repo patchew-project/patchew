@@ -638,7 +638,7 @@ class RestTest(PatchewTestCase):
         resp = self.api_client.post(
             self.REST_BASE + "messages/", data, content_type="message/rfc822"
         )
-        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data["count"], 0)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
