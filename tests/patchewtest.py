@@ -48,6 +48,10 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
 
     REST_BASE = "http://testserver/api/v1/"
 
+    def __init__(self, name):
+        super(PatchewTestCase, self).__init__(name)
+        self.need_logout = False
+
     def get_tmpdir(self):
         if not hasattr(self, "_tmpdir"):
             self._tmpdir = tempfile.mkdtemp()
@@ -160,6 +164,9 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
         )
         self.assertEquals(resp.status_code, 200)
         self.api_client.force_authenticate(user, resp.data["key"])
+        if not self.need_logout:
+            self.addCleanup(self.api_logout)
+        self.need_logout = True
 
     def api_logout(self):
         resp = self.api_client.post(self.REST_BASE + "users/logout/")
