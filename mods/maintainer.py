@@ -449,17 +449,14 @@ class MaintainerModule(PatchewModule):
                 continue
             message.extra_ops.append(
                 {
-                    "url": "%s?queue=%s"
-                    % (
-                        reverse(
-                            "add-to-queue",
-                            kwargs={
-                                "message_id": message.message_id,
-                                "project": message.project.name,
-                            },
-                        ),
-                        qn,
+                    "url": reverse(
+                        "add-to-queue",
+                        kwargs={
+                            "message_id": message.message_id,
+                            "project": message.project.name,
+                        },
                     ),
+                    "args": {"queue": qn},
                     "icon": "bookmark",
                     "title": "Add to '%s' queue" % qn,
                 }
