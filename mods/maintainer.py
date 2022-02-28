@@ -18,6 +18,8 @@ from django.http import (
 )
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from mod import PatchewModule, www_authenticated_op
 from api.models import Message, QueuedSeries, Project, WatchedQuery
 from django.shortcuts import render
@@ -435,10 +437,21 @@ class MaintainerModule(PatchewModule):
             )
 
         if queues:
+            queue_links = (
+                format_html(
+                    '<a href="{}">{}</a>',
+                    reverse(
+                        "maintainer_queue",
+                        kwargs={"project": message.project, "name": x},
+                    ),
+                    x,
+                )
+                for x in queues
+            )
             message.extra_status.append(
                 {
                     "icon": "fa-bookmark",
-                    "html": "The series is queued in: %s" % ", ".join(queues),
+                    "html": mark_safe("The series is queued in: %s" % ", ".join(queue_links)),
                 }
             )
         for q in (
