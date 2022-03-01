@@ -323,6 +323,16 @@ class MaintainerModule(PatchewModule):
         urlpatterns.append(url(r"^watch-query/$", self.www_view_watch_query))
 
     def prepare_message_hook(self, request, message, detailed):
+        def link_queue(message, queue, text):
+            return format_html(
+                '<a href="{}">{}</a>',
+                reverse(
+                    "maintainer_queue",
+                    kwargs={"project": message.project, "name": queue},
+                ),
+                text,
+            )
+
         if message.maintainers:
             message.extra_status.append(
                 {
@@ -369,12 +379,24 @@ class MaintainerModule(PatchewModule):
         for r in QueuedSeries.objects.filter(user=request.user, message=message):
             if r.name == "accept":
                 message.extra_status.append(
-                    {"icon": "fa-check", "html": "The series is marked for merging"}
+                    {
+                        "icon": "fa-check",
+                        "html": format_html(
+                            "The series is {}",
+                            link_queue(message, "accept", "marked for merging"),
+                        ),
+                    }
                 )
                 accepted = True
             elif r.name == "reject":
                 message.extra_status.append(
-                    {"icon": "fa-times", "html": "The series is marked as rejected"}
+                    {
+                        "icon": "fa-times",
+                        "html": format_html(
+                            "The series is {}",
+                            link_queue(message, "reject", "marked as rejected"),
+                        ),
+                    }
                 )
                 rejected = True
             else:
@@ -437,21 +459,13 @@ class MaintainerModule(PatchewModule):
             )
 
         if queues:
-            queue_links = (
-                format_html(
-                    '<a href="{}">{}</a>',
-                    reverse(
-                        "maintainer_queue",
-                        kwargs={"project": message.project, "name": x},
-                    ),
-                    x,
-                )
-                for x in queues
-            )
+            queue_links = (link_queue(message, x, x) for x in queues)
             message.extra_status.append(
                 {
                     "icon": "fa-bookmark",
-                    "html": mark_safe("The series is queued in: %s" % ", ".join(queue_links)),
+                    "html": mark_safe(
+                        "The series is queued in: %s" % ", ".join(queue_links)
+                    ),
                 }
             )
         for q in (
