@@ -160,7 +160,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     padding-left: 0.5em;
     visibility: hidden;
 }
-.hover-icon:hover {
+.panel-heading:hover a.hover-icon, a:hover > span.hover-icon {
     visibility: visible;
 }
 
