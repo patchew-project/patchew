@@ -133,7 +133,7 @@ function prompt_and_submit(obj) {
                         </span>
                     </div>
             </div>
-            <div class="panel-body panel-collapse collapse in">
+            <div class="panel-body panel-collapse collapse in" aria-expanded="true">
                 {% if msg.is_patch %}
                 <pre class="body-full"><code class="diff">{{ msg.get_body }}</code></pre>
                 {% else %}

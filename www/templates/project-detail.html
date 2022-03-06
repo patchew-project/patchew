@@ -79,7 +79,7 @@
     {% for info in project.extra_info %}
     <div class="panel panel-{{ info.class }}">
         <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">{{ info.title }}</div>
-        <div class="panel-body panel-collapse collapse">
+        <div class="panel-body panel-collapse collapse" aria-expanded="false">
             {% if info.content_html %}{{ info.content_html | safe }}{% endif %}
         </div>
     </div>
