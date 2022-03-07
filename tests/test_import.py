@@ -9,6 +9,8 @@
 # http://opensource.org/licenses/MIT.
 
 
+import subprocess
+
 from api.models import Message, Project
 
 from .patchewtest import PatchewTestCase, main
@@ -137,6 +139,24 @@ class UnprivilegedImportTest(ImportTest):
 
         self.cli_import("0013-foo-patch.mbox.gz")
         self.check_cli(["apply", "id:20160628014747.20971-1-famz@redhat.com"], cwd=repo)
+        s = Message.objects.series_heads()[0]
+        self.assertEqual(s.is_merged, False)
+        self.check_cli(["project", "update"], cwd=repo)
+        s = Message.objects.series_heads()[0]
+        self.assertEqual(s.is_merged, True)
+
+    def test_project_update_lore(self):
+        p = Project.objects.all()[0]
+
+        repo = self.create_git_repo()
+        p.git = repo
+        p.save()
+
+        self.cli_import("0013-foo-patch.mbox.gz")
+        subprocess.check_output(
+            ["git", "am", self.get_data_path("0037-foo-patch-for-git-am.mbox.gz")],
+            cwd=repo,
+        )
         s = Message.objects.series_heads()[0]
         self.assertEqual(s.is_merged, False)
         self.check_cli(["project", "update"], cwd=repo)

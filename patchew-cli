@@ -495,12 +495,15 @@ class ProjectCommand(SubCommand):
             cwd=clone,
         ).decode()
         msgid_trailer = 'Message-Id:'.casefold()
+        lore_link_trailer = 'Link: https://lore.kernel.org/r/'.casefold()
         msgids = []
         for x in output.splitlines():
             words = x.split()
             header = x.casefold()
             if header.startswith(msgid_trailer):
                 msgids.append(x[11:].strip())
+            elif header.startswith(lore_link_trailer):
+                msgids.append('%s' % x[32:].rstrip())
         logging.debug("message ids: \n%s" % "\n".join(["  " + x for x in msgids]))
         push_to = project["mirror"].get("pushurl")
         if push_to:
