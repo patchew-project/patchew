@@ -491,14 +491,16 @@ class ProjectCommand(SubCommand):
         logging.debug("old head: %s", old_head)
         logging.debug("new commits: \n%s" % "\n".join(["  " + x for x in new_commits]))
         output = subprocess.check_output(
-            """git show --format=%%b %s |
-                awk 'BEGIN{IGNORECASE=1} /^message-id:/{print}'
-                """
-            % " ".join(new_commits),
-            shell=True,
+            ["git", "show", "--format=%b"] + new_commits,
             cwd=clone,
         ).decode()
-        msgids = [x[len("message-id:") :].strip() for x in output.splitlines()]
+        msgid_trailer = 'Message-Id:'.casefold()
+        msgids = []
+        for x in output.splitlines():
+            words = x.split()
+            header = x.casefold()
+            if header.startswith(msgid_trailer):
+                msgids.append(x[11:].strip())
         logging.debug("message ids: \n%s" % "\n".join(["  " + x for x in msgids]))
         push_to = project["mirror"].get("pushurl")
         if push_to:
