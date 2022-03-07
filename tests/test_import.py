@@ -134,7 +134,14 @@ class UnprivilegedImportTest(ImportTest):
         repo = self.create_git_repo()
         p.git = repo
         p.save()
-        self.check_cli(["project", "update"])
+
+        self.cli_import("0013-foo-patch.mbox.gz")
+        self.check_cli(["apply", "id:20160628014747.20971-1-famz@redhat.com"], cwd=repo)
+        s = Message.objects.series_heads()[0]
+        self.assertEqual(s.is_merged, False)
+        self.check_cli(["project", "update"], cwd=repo)
+        s = Message.objects.series_heads()[0]
+        self.assertEqual(s.is_merged, True)
 
 
 if __name__ == "__main__":

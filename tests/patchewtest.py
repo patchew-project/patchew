@@ -73,25 +73,25 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
             user.save()
         return user
 
-    def cli(self, argv):
-        return self.do_cli(False, argv)
+    def cli(self, argv, cwd=None):
+        return self.do_cli(False, argv, cwd=cwd)
 
-    def cli_debug(self, argv):
-        return self.do_cli(True, argv)
+    def cli_debug(self, argv, cwd=None):
+        return self.do_cli(True, argv, cwd=cwd)
 
-    def do_cli(self, debug, argv):
+    def do_cli(self, debug, argv, cwd=None):
         """Run patchew-cli command and return (retcode, stdout, stderr)"""
         dbgopt = "-d" if debug else "-D"
         cmd = [PATCHEW_CLI, dbgopt, "-s", self.live_server_url] + argv
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         a, b = p.communicate()
         a = a.decode("utf-8")
         b = b.decode("utf-8")
         return p.returncode, a.strip(), b.strip()
 
-    def check_cli(self, args, rc=0, stdout=None, stderr=None):
+    def check_cli(self, args, rc=0, stdout=None, stderr=None, cwd=None):
         assert isinstance(args, list)
-        r, a, b = self.cli(args)
+        r, a, b = self.cli(args, cwd=cwd)
         self.assertEqual(
             r,
             rc,
