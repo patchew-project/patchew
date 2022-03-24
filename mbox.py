@@ -142,7 +142,12 @@ class MboxMessage(object):
         return msgid
 
     def get_in_reply_to(self):
-        return self.trim_message_id(self._m["in-reply-to"])
+        msgid = self._m["in-reply-to"]
+        if not msgid:
+            refs = self._m["references"]
+            if refs:
+                msgid = refs.split()[-1]
+        return self.trim_message_id(msgid)
 
     def get_date(self, timestamp=False):
         tup = email.utils.parsedate_tz(self._m["date"])
