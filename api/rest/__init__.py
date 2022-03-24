@@ -644,6 +644,7 @@ class ProjectMessagesViewSet(
     ProjectMessagesViewSetMixin,
     BaseMessageViewSet,
     mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
 ):
     parser_classes = APIView.parser_classes + [MessagePlainTextParser]
