@@ -53,7 +53,7 @@ class RestTest(PatchewTestCase):
 
     def test_users(self):
         resp = self.api_client.get(self.REST_BASE + "users/")
-        self.assertEquals(resp.data["count"], 1)
+        self.assertEquals(len(resp.data["results"]), 1)
         self.assertEquals(resp.data["results"][0]["resource_uri"], self.USER_BASE)
         self.assertEquals(resp.data["results"][0]["username"], self.admin.username)
 
@@ -64,7 +64,7 @@ class RestTest(PatchewTestCase):
 
     def test_projects(self):
         resp = self.api_client.get(self.REST_BASE + "projects/")
-        self.assertEquals(resp.data["count"], 3)
+        self.assertEquals(len(resp.data["results"]), 3)
         self.assertEquals(resp.data["results"][0]["resource_uri"], self.PROJECT_BASE)
         self.assertEquals(resp.data["results"][0]["name"], "QEMU")
         self.assertEquals(
@@ -231,7 +231,7 @@ class RestTest(PatchewTestCase):
     def test_project_results_list(self):
         resp1 = self.api_client.get(self.PROJECT_BASE)
         resp = self.api_client.get(resp1.data["results"])
-        self.assertEqual(resp.data["count"], len(resp.data["results"]))
+        self.assertEqual(len(resp.data["results"]), len(resp.data["results"]))
 
     def test_series_single(self):
         resp = self.apply_and_retrieve(
@@ -371,10 +371,10 @@ class RestTest(PatchewTestCase):
         )
 
         resp = self.api_client.get(self.REST_BASE + "series/")
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
 
         resp = self.api_client.get(self.PROJECT_BASE + "series/")
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
 
         resp = self.api_client.get(self.REST_BASE + "projects/12345/series/")
         self.assertEqual(resp.status_code, 404)
@@ -386,7 +386,7 @@ class RestTest(PatchewTestCase):
             "20160628014747.20971-1-famz@redhat.com",
         )
         resp = self.api_client.get(resp1.data["results"])
-        self.assertEqual(resp.data["count"], len(resp.data["results"]))
+        self.assertEqual(len(resp.data["results"]), len(resp.data["results"]))
 
     def test_series_search(self):
         resp1 = self.apply_and_retrieve(
@@ -401,7 +401,7 @@ class RestTest(PatchewTestCase):
         )
 
         resp = self.api_client.get(self.REST_BASE + "series/?q=quorum")
-        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(len(resp.data["results"]), 1)
         self.assertEqual(
             resp.data["results"][0]["resource_uri"], resp2.data["resource_uri"]
         )
@@ -410,7 +410,7 @@ class RestTest(PatchewTestCase):
         self.assertEqual("patches" in resp.data["results"][0], False)
 
         resp = self.api_client.get(self.REST_BASE + "series/?q=project:QEMU")
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
 
         def cmp_result(a, expected):
             self.assertEqual(a["resource_uri"], expected["resource_uri"])
@@ -579,7 +579,7 @@ class RestTest(PatchewTestCase):
             self.REST_BASE + "messages/", data, content_type="application/json"
         )
         self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
             + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/"
@@ -604,7 +604,7 @@ class RestTest(PatchewTestCase):
             self.REST_BASE + "messages/", data, content_type="message/rfc822"
         )
         self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
             + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/"
@@ -639,7 +639,7 @@ class RestTest(PatchewTestCase):
             self.REST_BASE + "messages/", data, content_type="message/rfc822"
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data["count"], 0)
+        self.assertEqual(len(resp.data["results"]), 0)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
             + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/"
@@ -662,7 +662,7 @@ class RestTest(PatchewTestCase):
             self.REST_BASE + "messages/", data, content_type="message/rfc822"
         )
         self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(len(resp.data["results"]), 1)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
             + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/"
@@ -684,7 +684,7 @@ class RestTest(PatchewTestCase):
             self.REST_BASE + "messages/", data, content_type="message/rfc822"
         )
         self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.data["count"], 2)
+        self.assertEqual(len(resp.data["results"]), 2)
         resp_get = self.api_client.get(
             self.PROJECT_BASE
             + "messages/20180223132311.26555-2-marcandre.lureau@redhat.com/"
@@ -754,7 +754,7 @@ class RestTest(PatchewTestCase):
 
         message = series.data["message"]
         resp = self.api_client.get(message + "replies/")
-        self.assertEqual(resp.data["count"], 4)
+        self.assertEqual(len(resp.data["results"]), 4)
         self.assertEqual(
             resp.data["results"][0]["resource_uri"],
             self.PROJECT_BASE

@@ -37,8 +37,8 @@ class DiffTest(PatchewTestCase):
         self.cli_import("0009-obsolete-by.mbox.gz")
 
         resp = self.api_client.get(self.REST_BASE + "series/?q=quorum")
-        self.assertEqual(resp.data["count"], 3)
         results = sorted(resp.data["results"], key=lambda y: y["version"])
+        self.assertEqual(len(results), 3)
         self.assertEqual(results[0]["version"], 1)
         self.assertEqual(results[1]["version"], 2)
         self.assertEqual(results[2]["version"], 3)

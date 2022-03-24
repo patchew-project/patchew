@@ -14,8 +14,8 @@ from django.http import Http404, HttpResponseRedirect
 from django.template import loader
 
 from mod import dispatch_module_hook
-from .models import Project, ProjectResult, Message, MessageResult, Result
-from .search import SearchEngine
+from ..models import Project, ProjectResult, Message, MessageResult, Result
+from ..search import SearchEngine
 from rest_framework import (
     permissions,
     serializers,
@@ -34,6 +34,7 @@ from rest_framework.fields import (
     EmailField,
     ListField,
 )
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -699,7 +700,7 @@ class MessagesViewSet(BaseMessageViewSet):
                 pass
         # Fake paginator response.  Note that there is no Location header.
         return Response(
-            OrderedDict([("count", len(results)), ("results", results)]),
+            OrderedDict([("results", results)]),
             status=status.HTTP_201_CREATED if results else status.HTTP_200_OK,
         )
 
