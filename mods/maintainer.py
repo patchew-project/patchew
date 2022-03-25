@@ -199,11 +199,18 @@ class MaintainerModule(PatchewModule):
 
     def www_view_queue(self, request, project, name):
         query = self.query_queue(request, project, name)
-        search = "project:" + project + " queue:" + name
+        if name == "watched":
+            # TODO: make the WatchedQuery per-project
+            q = WatchedQuery.objects.filter(user=request.user).first().query
+            se = SearchEngine([q], request.user)
+            if not se.project():
+                q = "project:" + project + " " + q
+        else:
+            q = "project:" + project + " queue:" + name
         return render_series_list_page(
             request,
             query,
-            search=search,
+            search=q,
             project=project,
             title='"' + name + '" queue',
             link_icon="fa fa-download",
