@@ -54,12 +54,13 @@ class MaintainerModule(PatchewModule):
             queue="Queue that message is being removed from",
         )
 
-    def _add_to_queue(self, user, m, queue):
-        q, created = QueuedSeries.objects.get_or_create(
-            user=user, message=m, name=queue
-        )
-        if created:
-            emit_event("MessageQueued", user=user, message=m, queue=q)
+    def _add_to_queue(self, user, msgs, queue):
+        for m in msgs:
+            q, created = QueuedSeries.objects.get_or_create(
+                user=user, message=m, name=queue
+            )
+            if created:
+                emit_event("MessageQueued", user=user, message=m, queue=q)
 
     def _drop_all_from_queue(self, query):
         events = [{"user": q.user, "message": q.message, "queue": q} for q in query]
@@ -67,17 +68,17 @@ class MaintainerModule(PatchewModule):
         for ev in events:
             emit_event("MessageDropped", **ev)
 
-    def _drop_from_queue(self, user, m, queue):
-        query = QueuedSeries.objects.filter(user=user, message=m, name=queue)
+    def _drop_from_queue(self, user, msgs, queue):
+        query = QueuedSeries.objects.filter(user=user, message__in=msgs, name=queue)
         self._drop_all_from_queue(query)
 
     def _update_watch_queue(self, series):
         for wq in WatchedQuery.objects.all():
             se = SearchEngine([wq.query], wq.user)
             if se.query_test_message(series):
-                self._add_to_queue(wq.user, series, "watched")
+                self._add_to_queue(wq.user, [series], "watched")
             else:
-                self._drop_from_queue(wq.user, series, "watched")
+                self._drop_from_queue(wq.user, [series], "watched")
 
     def on_queue_change(self, evt, user, message, queue):
         # Handle changes to e.g. "-nack:me"
@@ -118,8 +119,8 @@ class MaintainerModule(PatchewModule):
             to_create, to_delete = "accept", "reject"
         else:
             to_create, to_delete = "reject", "accept"
-        self._drop_from_queue(request.user, msg, to_delete)
-        self._add_to_queue(request.user, msg, to_create)
+        self._drop_from_queue(request.user, [msg], to_delete)
+        self._add_to_queue(request.user, [msg], to_create)
 
     def _delete_review(self, request, project, message_id):
         msg = Message.objects.find_series(message_id, project)
@@ -167,14 +168,14 @@ class MaintainerModule(PatchewModule):
         queue = request.POST.get("queue")
         if not queue or re.match(r"[^_a-zA-Z0-9\-]", queue):
             return HttpResponseBadRequest("Invalid queue name")
-        self._add_to_queue(request.user, m, queue)
+        self._add_to_queue(request.user, [m], queue)
 
     @method_decorator(www_authenticated_op)
     def www_view_drop_from_queue(self, request, queue, project, message_id):
         m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
-        self._drop_from_queue(request.user, m, queue)
+        self._drop_from_queue(request.user, [m], queue)
 
     def query_queue(self, request, project, name):
         if not request.user.is_authenticated:
