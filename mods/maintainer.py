@@ -137,8 +137,11 @@ class MaintainerModule(PatchewModule):
             raise Http404("Series not found")
         if not s.project.maintained_by(request.user):
             return HttpResponseForbidden()
-        s.is_merged = is_merged
-        s.save()
+        if is_merged:
+            s.set_merged()
+        else:
+            s.is_merged = False
+            s.save()
 
     @method_decorator(www_authenticated_op)
     def www_view_mark_as_merged(self, request, project, message_id):
