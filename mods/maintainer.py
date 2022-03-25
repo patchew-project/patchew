@@ -171,18 +171,31 @@ class MaintainerModule(PatchewModule):
         self._add_to_queue(request.user, [m], queue)
 
     @method_decorator(www_authenticated_op)
+    def www_view_search_drop_from_queue(self, request, queue, project):
+        po = Project.objects.filter(name=project).first()
+        if not po:
+            raise Http404("Project not found")
+        if not queue or re.match(r"[^_a-zA-Z0-9\-]", queue):
+            return HttpResponseBadRequest("Invalid queue name")
+        q = request.POST.get("q")
+        se = SearchEngine(["queue:" + queue, q], request.user)
+        self._drop_from_queue(
+            request.user, se.search_series(Message.objects.series_heads(po.id)), queue
+        )
+
+    @method_decorator(www_authenticated_op)
     def www_view_drop_from_queue(self, request, queue, project, message_id):
         m = Message.objects.find_series(message_id, project)
         if not m:
             raise Http404("Series not found")
         self._drop_from_queue(request.user, [m], queue)
 
-    def query_queue(self, request, project, name):
+    def query_queue(self, request, project, name, can_be_empty=False):
         if not request.user.is_authenticated:
             raise PermissionDenied()
 
         q = QueuedSeries.objects.filter(user=request.user, name=name)
-        if not q.first():
+        if not can_be_empty and not q.first():
             raise Http404("Queue not found")
         po = Project.objects.filter(name=project).first()
         if not po:
@@ -199,7 +212,7 @@ class MaintainerModule(PatchewModule):
         return HttpResponse(mbox, content_type="text/plain")
 
     def www_view_queue(self, request, project, name):
-        query = self.query_queue(request, project, name)
+        query = self.query_queue(request, project, name, can_be_empty=True)
         if name == "watched":
             # TODO: make the WatchedQuery per-project
             q = WatchedQuery.objects.filter(user=request.user).first().query
@@ -208,6 +221,23 @@ class MaintainerModule(PatchewModule):
                 q = "project:" + project + " " + q
         else:
             q = "project:" + project + " queue:" + name
+        extra = {}
+        if name == "accept":
+            extra = {
+                "button_text": "Remove merged patches",
+                "button_data": {"q": "is:merged"},
+                "button_url": reverse(
+                    "search-drop-from-queue", kwargs={"project": project, "queue": name}
+                ),
+            }
+        elif name not in ["reject", "watched"]:
+            extra = {
+                "button_text": "Remove accepted/merged/rejected patches",
+                "button_data": {"q": "{is:merged review:me}"},
+                "button_url": reverse(
+                    "search-drop-from-queue", kwargs={"project": project, "queue": name}
+                ),
+            }
         return render_series_list_page(
             request,
             query,
@@ -219,6 +249,7 @@ class MaintainerModule(PatchewModule):
             link_url=reverse(
                 "maintainer_queue_mbox", kwargs={"project": project, "name": name}
             ),
+            **extra,
         )
 
     def www_view_my_queues(self, request, project=None):
@@ -314,6 +345,13 @@ class MaintainerModule(PatchewModule):
                 r"^(?P<project>[^/]*)/(?P<message_id>.*)/drop-from-queue/(?P<queue>[^/]*)/",
                 self.www_view_drop_from_queue,
                 name="drop-from-queue",
+            )
+        )
+        urlpatterns.append(
+            url(
+                r"^my-queues/(?P<project>[^/]*)/(?P<queue>[^/]*)/remove/",
+                self.www_view_search_drop_from_queue,
+                name="search-drop-from-queue",
             )
         )
         urlpatterns.append(
