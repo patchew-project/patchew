@@ -246,10 +246,16 @@ class MaintainerModule(PatchewModule):
     def render_page_hook(self, request, context_data):
         if request.user.is_authenticated and context_data.get("is_search"):
             q = WatchedQuery.objects.filter(user=request.user).first()
-            if q:
-                context_data["has_watched_query"] = True
-                if q.query == context_data.get("search"):
-                    context_data["is_watched_query"] = True
+            if q and q.query.strip() == context_data.get("search").strip():
+                context_data["is_watched_query"] = True
+            else:
+                context_data.update(
+                    {
+                        "button_text": "Replace watched query" if q else "Watch query",
+                        "button_data": {"q": context_data["search"]},
+                        "button_url": reverse("maintainer_watch_query"),
+                    }
+                )
 
     @method_decorator(www_authenticated_op)
     def www_view_watch_query(self, request):
@@ -328,7 +334,13 @@ class MaintainerModule(PatchewModule):
             url(r"^my-queues/(?P<project>[^/]*)/$", self.www_view_my_queues)
         )
         urlpatterns.append(url(r"^my-queues/$", self.www_view_my_queues))
-        urlpatterns.append(url(r"^watch-query/$", self.www_view_watch_query))
+        urlpatterns.append(
+            url(
+                r"^watch-query/$",
+                self.www_view_watch_query,
+                name="maintainer_watch_query",
+            )
+        )
 
     def prepare_message_hook(self, request, message, detailed):
         def link_queue(message, queue, text):

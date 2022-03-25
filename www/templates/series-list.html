@@ -81,20 +81,14 @@
     </div>
 {% endif %}
 
-{% if is_search %}
-    {% if is_watched_query %}
-        <p>Saved as my watched query</p>
-    {% elif has_watched_query %}
-        <form method="post" action="/watch-query/">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ search }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button type="submit">Replace watched query</button></form>
-    {% else %}
-        <form method="post" action="/watch-query/">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ search }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button type="submit">Watch query</button></form>
-    {% endif %}
+{% if is_watched_query %}
+    <p>Saved as my watched query</p>
+{% endif %}
+{% if button_url %}
+<form method="post" action="{{ button_url }}">{% csrf_token %}
+{% for name, value in button_data.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">
+{% endfor %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+<button type="submit">{{ button_text }}</button></form>
 {% endif %}
 
 <nav>

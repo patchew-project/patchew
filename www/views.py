@@ -194,6 +194,9 @@ def render_series_list_page(
     link_text=None,
     keywords=[],
     is_search=False,
+    button_url=None,
+    button_data=None,
+    button_text=None,
 ):
     sort = request.GET.get("sort")
     cur_page = get_page_from_request(request)
@@ -243,6 +246,9 @@ def render_series_list_page(
         keywords=keywords,
         order_by_reply=order_by_reply,
         navigate_links=nav_path,
+        button_url=button_url,
+        button_data=button_data,
+        button_text=button_text,
     )
 
 
