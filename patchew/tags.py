@@ -129,3 +129,8 @@ def grep_C(value, regex, n=3, sep="---"):
 @register.simple_tag
 def lines_between(value, start, stop, include_last=True):
     return "\n".join(lines_between_iter(value, start, stop, include_last))
+
+
+@register.filter
+def modulo(num, val):
+    return num % val

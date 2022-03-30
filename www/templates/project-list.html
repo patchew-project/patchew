@@ -10,7 +10,7 @@
 
 <div class="row">
 {% for project in projects %}
-    <div class="col-sm-6 col-md-3 project">
+    <div class="col-sm-6 col-md-3 project {% if forloop.counter0|modulo:4 == 0 %}sm-clear{% elif forloop.counter0|modulo:4 == 2 %}sm-clear md-noclear{% endif %}">
         <div class="thumbnail">
             {% if project.logo %}
                 <div class="project-logo">

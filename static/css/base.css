@@ -164,6 +164,11 @@ h1, h2, h3, .h1, .h2, .h3 {
     visibility: visible;
 }
 
+@media (min-width: 576px)  { .sm-clear { clear: both; } .sm-noclear { clear: none; } }
+@media (min-width: 768px)  { .md-clear { clear: both; } .md-noclear { clear: none; } }
+@media (min-width: 992px)  { .lg-clear { clear: both; } .lg-noclear { clear: none; } }
+@media (min-width: 1200px) { .xl-clear { clear: both; } .xl-noclear { clear: none; } }
+
 @media (min-width: 1200px) {
   #detail-ops {
     clear: right;
