@@ -1,0 +1,51 @@
+@media (prefers-color-scheme: dark) {
+  table.diff {
+    border: 1px solid #666;
+  }
+  .diff th, .diff td, .diff th.author {
+    border: 1px solid #666;
+  }
+  .diff thead th, .diff thead td {
+    background: #383838;
+    border: 1px solid #666;
+  }
+  .diff.trivial thead th {
+    color: #666;
+  }
+  .diff tbody td {
+    border-bottom-color: #666;
+  }
+
+  /* Colors for the body of the diff */
+  .diff td.delete, .diff td.replace.left {
+    border-bottom-color: #666;
+    background: #400;
+  }
+  .diff td.insert, .diff td.replace.right {
+    border-bottom-color: #666;
+    background: #030;
+  }
+  .diff td.equal {
+    border-bottom-color: #666;
+  }
+  .diff td.empty {
+    border-bottom-color: #666;
+    background: #383838;
+  }
+  table.diff th.author {
+    border: #666;
+    background: #383838;
+  }
+  table.diff td.skip {
+    background-color: #383838;
+    border: 1px solid #666;
+  }
+  .diff td.skip div {
+    /* Use a top border on the div to "bypass" the table's collapsed borders.  */
+    border-top: 0px;
+  }
+
+  div.patch-link .fa, div.patch-link .fab, div.patch-link .far {
+      color: #66aae7;
+  }
+}

@@ -1,16 +1,17 @@
-.diff {
+table.diff {
   width: 100%;
   table-layout: fixed;
   margin-top: 1em;
-  border: 1px solid #999;
+  border: 1px solid #ddd;
 }
-.diff th, .diff td {
+.diff th, .diff td, .diff th.author {
   width: 50%;
-  border: 1px solid #999;
+  border: 1px solid #ddd;
   vertical-align: top;
 }
 .diff thead th, .diff thead td {
   background: #ddd;
+  border: 1px solid #bbb;
 }
 .diff.trivial thead th {
   color: #999;
@@ -51,20 +52,17 @@
 }
 .diff td.equal {
   border-bottom-color: #eee;
-  background: #fff;
 }
 .diff td.empty {
   border-bottom-color: #ddd;
   background: #eee;
 }
-.diff td.skip {
+table.diff td.skip {
   background-color: #f3f3ff;
-  border-bottom: 1px solid #cce;
+  border: 1px solid #ddd;
   padding: 0;
 }
 .diff td.skip div {
-  /* Use a top border on the div to "bypass" the table's collapsed borders.  */
-  border-top: 1px solid #cce;
   height: 6px;
   text-align: center;
   padding: 0;

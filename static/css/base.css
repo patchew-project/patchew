@@ -32,7 +32,7 @@ samp {
     margin-bottom: 0;
 }
 .smiley {
-    color: #008900;
+    color: #498300;
 }
 
 #message {
@@ -225,4 +225,111 @@ h1, h2, h3, .h1, .h2, .h3 {
     width: 1em;
     text-align: center;
     display: inline-block;
+}
+
+.hljs { color: inherit !important; }
+.hljs-deletion, .hljs-addition { font-weight: bold; }
+
+@media (prefers-color-scheme: dark) {
+    body, pre, .panel-body pre, .panel, #detail-ops {
+        background: #262626;
+        color: #e5e5e5;
+    }
+
+    /* borders in the background color */
+    .list-group-item,
+    .pagination > .active, .pagination > li,
+    .pagination > .active > a, .pagination > .active > a:hover, .pagination > .active > a:focus,
+    .pagination > .active > span, .pagination > .active > span:hover, .pagination > .active > span:focus,
+    .pagination > li > a, .pagination > li > a:hover, .pagination > li > a:focus,
+    .pagination > li > span, .pagination > li > span:hover, .pagination > li > span:focus {
+	border: 1px solid #262626;
+    }
+    .navigate > .active a {
+        color: inherit;
+    }
+
+    /* hide some light borders */
+    .panel-default > .panel-heading,
+    .navbar, .form-control, button, .btn-default {
+	border: 0px;
+    }
+
+    /* lighter backgrounds and borders */
+    a.list-group-item:hover, a.list-group-item:focus,
+    button.list-group-item:hover, button.list-group-item:focus,
+    .form-control, button, .btn-default, samp {
+        background: #999999;
+	color: black;
+    }
+    .thumbnail,
+    .panel-default,
+    #detail-ops > ul {
+	border: 1px solid #666666;
+    }
+
+    /* hover colors */
+    .pagination > li > a:hover, .pagination > li > a:focus,
+    .pagination > li > span:hover, .pagination > li > span:focus,
+    .dropdown-menu > li > a:hover, .dropdown-menu > li > a:focus,
+    .btn-default.active {
+        background: #d4d4d4;
+    }
+    .btn-default.active:hover, .btn-default.active:focus {
+        background: #e5e5e5;
+    }
+    .form-control::placeholder {
+	color: #555555;
+    }
+
+    /* darker elements */
+    .pagination > li > a,
+    .dropdown-menu, .dropdown-menu > li > a,
+    .list-group-item, a.list-group-item, btn.list-group-item,
+    #detail-ops > ul,
+    .panel-default > .panel-heading,
+    .thumbnail, .thumbnail .caption,
+    .breadcrumb {
+        background: #383838;
+	color: inherit;
+    }
+    .status-content {
+        border-bottom: 1px solid #383838;
+    }
+    .table td, .table th {
+        border-top: 1px solid #383838 !important;
+    }
+
+    /* other colors */
+    .btn-link:focus, .btn-link:hover,
+    a:focus, a:hover {
+        color: #88bbf7;
+    }
+    .no-bullet > li .fa, .no-bullet > li .fab, .no-bullet > li .far,
+    .status-content > .fa, .status-content > .fab, .status-content > .far,
+    a, .btn-link {
+        color: #66aae7;
+    }
+    .label-info {
+	background-color: #66aae7;
+    }
+    .label-warning {
+	background-color: #d3792e;
+    }
+    .status-content > .fa-exclamation-triangle, .status-content > .fa-times {
+        color: #dd2222;
+    }
+    .label-danger {
+	background-color: #dd2222;
+    }
+    .status-content > .fa-check {
+	color: #498300;
+    }
+    .label-success {
+	background-color: #498300;
+    }
+
+    .table-striped > tbody > tr:nth-of-type(2n+1) {
+	background: none;
+    }
 }
