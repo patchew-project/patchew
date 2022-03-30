@@ -95,7 +95,7 @@
     <ul class="pagination pagination-sm">
         {% for i in page_links %}
             <li class="{{ i.class }}">
-                <a href="{{ i.url }}">{{ i.title }}</a>
+	    {% if i.url %}<a href="{{ i.url }}">{{ i.title }}</a>{% else %}<span>{{ i.title }} </span>{% endif %}
             </li>
         {% endfor %}
     </ul>

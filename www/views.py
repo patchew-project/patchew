@@ -151,7 +151,7 @@ def gen_page_links(query, cur_page, pagesize, extra_params):
     while offset <= total:
         if (i > start and abs(i - cur_page) >= 3 and max_page - i >= 3) or (offset > pagesize * limit):
             if not ddd:
-                result = {"title": "...", "class": "disabled", "url": "#"}
+                result = {"title": "...", "class": "disabled", "url": ""}
                 ret.append(result)
             ddd = True
         else:
