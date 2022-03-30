@@ -4,6 +4,11 @@
 	padding: 1em;
 	float: right;
   }
+  @media (prefers-color-scheme: dark) {
+    .project-logo {
+      background: #262626;
+    }
+  }
 }
 .project-logo {
 	display: block;
