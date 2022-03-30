@@ -232,7 +232,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     display: inline-block;
 }
 
-.hljs { color: inherit !important; }
+.hljs { color: inherit }
 .hljs-deletion, .hljs-addition { font-weight: bold; }
 
 @media (prefers-color-scheme: dark) {
@@ -287,7 +287,7 @@ h1, h2, h3, .h1, .h2, .h3 {
 	color: #555555;
     }
 
-    /* darker elements */
+    /* slightly lighter elements */
     .pagination > li > a,
     .dropdown-menu, .dropdown-menu > li > a,
     .list-group-item, a.list-group-item, btn.list-group-item,
@@ -301,8 +301,15 @@ h1, h2, h3, .h1, .h2, .h3 {
     .status-content {
         border-bottom: 1px solid #383838;
     }
-    .table td, .table th {
+
+    .table-striped td, .table-striped th {
         border-top: 1px solid #383838 !important;
+    }
+    .table-striped > tbody th {
+	background: #383838;
+    }
+    .table-striped > tbody > tr:nth-of-type(2n+1) {
+	background: #222222;
     }
 
     /* other colors */
@@ -321,12 +328,14 @@ h1, h2, h3, .h1, .h2, .h3 {
     .label-warning {
 	background-color: #d3792e;
     }
+    .hljs-deletion,
     .status-content > .fa-exclamation-triangle, .status-content > .fa-times {
         color: #dd2222;
     }
     .label-danger {
 	background-color: #dd2222;
     }
+    .hljs-insertion,
     .status-content > .fa-check {
 	color: #498300;
     }
@@ -334,7 +343,4 @@ h1, h2, h3, .h1, .h2, .h3 {
 	background-color: #498300;
     }
 
-    .table-striped > tbody > tr:nth-of-type(2n+1) {
-	background: none;
-    }
 }
