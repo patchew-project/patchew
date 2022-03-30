@@ -4,6 +4,12 @@
 .keyword-highlight {
     background: yellow;
 }
+@media (prefers-color-scheme: dark) {
+  .keyword-highlight {
+    background: #111111;
+    outline: 1px solid #666666;
+  }
+}
 .frownie {
     color: #890000;
 }
