@@ -12,6 +12,7 @@ from collections import OrderedDict
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
+import django.db.utils
 
 from mod import dispatch_module_hook
 from ..models import Project, ProjectResult, Message, MessageResult, Result

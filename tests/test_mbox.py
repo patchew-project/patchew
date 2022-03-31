@@ -90,6 +90,14 @@ Virtualization:  qemu.org | libvirt.org
             msg = mbox.MboxMessage(content).get_json()
         self.assertEqual(msg, expected)
 
+    def test_octet_stream(self):
+        dp = self.get_data_path("0038-octet-stream.mbox.gz")
+        with open(dp, "r") as f:
+            content = f.read()
+        msg = mbox.MboxMessage(content)
+        self.assertTrue("Signed-off-by" in msg.get_body())
+        self.assertTrue(msg.is_patch())
+
 
 if __name__ == "__main__":
     main()

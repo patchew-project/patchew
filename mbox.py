@@ -193,7 +193,7 @@ class MboxMessage(object):
         def _get_message_text(m):
             payload = m.get_payload(decode=not self._m.is_multipart())
             body = ""
-            if m.get_content_type() == "text/plain":
+            if m.get_content_type() == "text/plain" or m.get_content_type() == "application/octet-stream":
                 body = decode_payload(m)
             elif isinstance(payload, list):
                 for p in payload:
