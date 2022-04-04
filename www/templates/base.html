@@ -59,7 +59,7 @@ crossorigin="anonymous"></script>
         <ul class="nav navbar-nav navbar-right">
             <form class="navbar-form navbar-left search-form" role="search" method="GET" action="{% url 'search' %}">
                 <div class="form-group">
-                    <input type="text" class="form-control" id="q" name="q" placeholder="Search" value="{{ search }}">
+                    <input type="text" enterkeyhint="search" class="form-control" id="q" name="q" placeholder="Search" value="{{ search }}">
                 </div>
                 <button type="button" class="form-glyph-action" aria-label="Copy to clipboard"
 				onclick="copy_to_clipboard(document.getElementById('q')); return 0"><span
