@@ -22,7 +22,7 @@ import lzma
 from mbox import MboxMessage, decode_payload
 from patchew.tags import lines_iter
 from event import emit_event, declare_event
-from .blobs import save_blob, load_blob
+from .blobs import load_blob
 import mod
 
 
@@ -493,7 +493,7 @@ class MessageManager(models.Manager):
         msg.is_patch = m.is_patch()
         msg.patch_num = m.get_num()[0]
         msg.project = project
-        msg.save_mbox(mbox)
+        msg.mbox_bytes = mbox.encode("utf-8")
         msg.save()
         emit_event("MessageAdded", message=msg)
         self.update_series(msg)
@@ -533,7 +533,7 @@ class MessageManager(models.Manager):
             msg.project = p
             if self.filter(message_id=msgid, project__name=p.name).first():
                 raise self.DuplicateMessageError(msgid)
-            msg.save_mbox(mbox)
+            msg.mbox_bytes = mbox.encode("utf-8")
             msg.save()
             emit_event("MessageAdded", message=msg)
             self.update_series(msg)
@@ -634,6 +634,7 @@ class Message(models.Model):
     is_obsolete = models.BooleanField(default=False)
     is_tested = models.BooleanField(default=False)
     is_reviewed = models.BooleanField(default=False)
+    mbox_bytes = models.BinaryField(null=True)
 
     # is series head if not Null
     topic = models.ForeignKey(
@@ -653,19 +654,18 @@ class Message(models.Model):
     maintainers = jsonfield.JSONField(blank=True, default=[])
     properties = jsonfield.JSONField(default={})
 
-    def save_mbox(self, mbox_blob):
-        save_blob(mbox_blob, self.message_id)
-
     def get_mbox_obj(self):
-        self.get_mbox()
+        if not hasattr(self, "_mbox_obj"):
+            self._mbox_obj = MboxMessage(self.mbox)
         return self._mbox_obj
 
     def get_mbox(self):
-        if hasattr(self, "mbox_blob"):
-            return self.mbox_blob
-        self.mbox_blob = load_blob(self.message_id)
-        self._mbox_obj = MboxMessage(self.mbox_blob)
-        return self.mbox_blob
+        if not hasattr(self, "_mbox_decoded"):
+            if self.mbox_bytes:
+                self._mbox_decoded = str(self.mbox_bytes, "utf-8")
+            else:
+                self._mbox_decoded = load_blob(self.message_id)
+        return self._mbox_decoded
 
     mbox = property(get_mbox)
 
