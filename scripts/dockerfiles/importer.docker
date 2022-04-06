@@ -1,5 +1,5 @@
 FROM fedora:latest
-RUN dnf install -y python offlineimap findutils wget
+RUN dnf install -y python python3-distro offlineimap findutils wget
 ENV LC_ALL en_US.UTF-8
 COPY . /opt/patchew/
 CMD /opt/patchew/scripts/patchew-importer
