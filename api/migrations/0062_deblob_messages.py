@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, transaction
 
-from api import blobs
+from . import load_blob, delete_blob
 
 def deblob_messages(apps, schema_editor):
     Project = apps.get_model("api", "Project")
@@ -19,7 +19,7 @@ def deblob_messages(apps, schema_editor):
                 q = Message.objects.filter(project=p, date__lte=first_date, mbox_bytes=None).order_by("-date")[:1000]
                 for msg in q:
                     try:
-                        mbox_decoded = blobs.load_blob(msg.message_id)
+                        mbox_decoded = load_blob(msg.message_id)
                         msg.mbox_bytes = mbox_decoded.encode("utf-8")
                         msg.save()
                         done += 1
@@ -29,7 +29,7 @@ def deblob_messages(apps, schema_editor):
                 if done == previously and start.date == first_date:
                     start = None
     for msg in Message.objects.all():
-        blobs.delete_blob(msg.message_id)
+        delete_blob(msg.message_id)
 
 class Migration(migrations.Migration):
 

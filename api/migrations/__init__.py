@@ -1,22 +1,38 @@
 #!/usr/bin/env python3
 #
-# Copyright 2018 Red Hat, Inc.
+# Copyright 2016, 2018 Red Hat, Inc.
 #
 # Authors:
+#     Fam Zheng <famz@redhat.com>
 #     Paolo Bonzini <pbonzini@redhat.com>
 #
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+from django.conf import settings
 from django.db import migrations
 
 import json
-from api import blobs
+import lzma
+import os
+import uuid
 
+
+def load_blob(name):
+    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
+    return lzma.open(fn, "r").read().decode("utf-8")
+
+
+def delete_blob(name):
+    fn = os.path.join(settings.DATA_DIR, "blob", name + ".xz")
+    try:
+        os.remove(fn)
+    except FileNotFoundError:
+        pass
 
 def load_blob_json_safe(name):
     try:
-        return json.loads(blobs.load_blob(name))
+        return json.loads(load_blob(name))
     except Exception as e:
         return "Failed to load blob %s: %s" % (name, e)
 
@@ -44,7 +60,7 @@ def get_property(model, name, **kwargs):
 def delete_property_blob(model, name, **kwargs):
     mp = get_property_raw(model, name, **kwargs)
     if hasattr(mp, "blob") and mp.blob:
-        blobs.delete_blob(mp.value)
+        delete_blob(mp.value)
 
 
 def set_property(model, name, value, **kwargs):

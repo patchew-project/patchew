@@ -22,7 +22,6 @@ import lzma
 from mbox import MboxMessage, decode_payload
 from patchew.tags import lines_iter
 from event import emit_event, declare_event
-from .blobs import load_blob
 import mod
 
 
@@ -661,10 +660,7 @@ class Message(models.Model):
 
     def get_mbox(self):
         if not hasattr(self, "_mbox_decoded"):
-            if self.mbox_bytes:
-                self._mbox_decoded = str(self.mbox_bytes, "utf-8")
-            else:
-                self._mbox_decoded = load_blob(self.message_id)
+            self._mbox_decoded = str(self.mbox_bytes, "utf-8")
         return self._mbox_decoded
 
     mbox = property(get_mbox)

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
-from api import blobs
+from . import load_blob
 
 
 def deblob_properties(apps, schema_editor):
@@ -12,7 +12,7 @@ def deblob_properties(apps, schema_editor):
         for obj in objects:
             obj.blob = False
             if obj.value is not None:
-                obj.value = blobs.load_blob(obj.value)
+                obj.value = load_blob(obj.value)
             obj.save()
 
     # We can't import the models directly as they may be a newer
