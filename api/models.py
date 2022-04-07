@@ -633,7 +633,7 @@ class Message(models.Model):
     is_obsolete = models.BooleanField(default=False)
     is_tested = models.BooleanField(default=False)
     is_reviewed = models.BooleanField(default=False)
-    mbox_bytes = models.BinaryField(null=True)
+    mbox_bytes = models.BinaryField()
 
     # is series head if not Null
     topic = models.ForeignKey(
