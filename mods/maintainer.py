@@ -8,6 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
+from collections import OrderedDict
 import re
 from django.conf.urls import url
 from django.core.exceptions import PermissionDenied
@@ -259,23 +260,29 @@ class MaintainerModule(PatchewModule):
         if not request.user.is_authenticated:
             raise PermissionDenied()
         data = {}
-        q = QueuedSeries.objects.filter(user=request.user)
+        q = QueuedSeries.objects.filter(user=request.user).order_by(
+            "name", "message__date"
+        )
         if project:
             po = Project.objects.filter(name=project).first()
             if not po:
                 raise Http404("Project not found")
             q = q.filter(message__project=po)
-        else:
-            q = q.order_by("message__project")
 
-        for i in q.order_by("name", "message__date"):
-            pn = i.message.project.name
-            qn = i.name
-            data.setdefault(pn, {})
-            data[pn].setdefault(qn, [])
-            data[pn][qn].append(i.message)
+        for pid, qn, msgid, subject in q.values_list(
+            "message__project_id", "name", "message__message_id", "message__subject"
+        ):
+            data.setdefault(pid, {})
+            data[pid].setdefault(qn, [])
+            data[pid][qn].append({"message_id": msgid, "subject": subject})
 
-        return render(request, "my-queues.html", context={"projects": data})
+        projects = OrderedDict()
+        for p in Project.objects.filter(pk__in=data.keys()).order_by("name"):
+            projects[p.id] = p.name
+
+        return render(
+            request, "my-queues.html", context={"data": data, "projects": projects}
+        )
 
     def render_page_hook(self, request, context_data):
         if request.user.is_authenticated and context_data.get("is_search"):

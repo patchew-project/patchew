@@ -134,3 +134,8 @@ def lines_between(value, start, stop, include_last=True):
 @register.filter
 def modulo(num, val):
     return num % val
+
+
+@register.filter
+def get(dictionary, key):
+    return dictionary[key]
