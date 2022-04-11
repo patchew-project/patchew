@@ -40,7 +40,7 @@ def render_page(request, template_name, **data):
     return render(request, template_name, context=data)
 
 
-def prepare_message(request, project, m, detailed):
+def prepare_message(request, project, m, for_message_view):
     name, addr = m.sender
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
@@ -68,7 +68,7 @@ def prepare_message(request, project, m, detailed):
     m.extra_status = []
     m.extra_ops = []
     dispatch_module_hook(
-        "prepare_message_hook", request=request, message=m, detailed=detailed
+        "prepare_message_hook", request=request, message=m, for_message_view=for_message_view
     )
     if m.is_merged:
         m.status_tags = [

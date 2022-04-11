@@ -206,8 +206,8 @@ Email information is configured in "INI" style:
             )
         )
 
-    def prepare_message_hook(self, request, message, detailed):
-        if not detailed:
+    def prepare_message_hook(self, request, message, for_message_view):
+        if not for_message_view:
             return
         if (
             message.is_series_head

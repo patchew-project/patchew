@@ -383,7 +383,7 @@ class TestingModule(PatchewModule):
             )
         return ret
 
-    def prepare_message_hook(self, request, message, detailed):
+    def prepare_message_hook(self, request, message, for_message_view):
         if not message.is_series_head:
             return
         if (

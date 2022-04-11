@@ -390,7 +390,7 @@ class MaintainerModule(PatchewModule):
             )
         )
 
-    def prepare_message_hook(self, request, message, detailed):
+    def prepare_message_hook(self, request, message, for_message_view):
         def link_queue(message, queue, text):
             return format_html(
                 '<a href="{}">{}</a>',
@@ -409,7 +409,7 @@ class MaintainerModule(PatchewModule):
                 }
             )
 
-        if not detailed or not request.user.is_authenticated:
+        if not for_message_view or not request.user.is_authenticated:
             return
         if not message.is_series_head:
             return

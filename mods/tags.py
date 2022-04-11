@@ -174,7 +174,7 @@ series cover letter, patch mail body and their replies.
         tag_prefixes = self.get_tag_prefixes()
         return self._look_for_tags(series, m, tag_prefixes)
 
-    def prepare_message_hook(self, request, message, detailed):
+    def prepare_message_hook(self, request, message, for_message_view):
         if not message.is_series_head:
             return
 

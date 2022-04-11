@@ -71,8 +71,8 @@ class DiffModule(PatchewModule):
         if detailed:
             fields["other_versions"] = PluginMethodField(obj=self)
 
-    def prepare_message_hook(self, request, message, detailed):
-        if not message.is_series_head or not detailed:
+    def prepare_message_hook(self, request, message, for_message_view):
+        if not message.is_series_head or not for_message_view:
             return
         other_versions = message.get_alternative_revisions()
         if len(other_versions) <= 1:

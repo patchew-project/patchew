@@ -161,7 +161,7 @@ class GitModule(PatchewModule):
         if "push_to" in config:
             response["git.push_to"] = config["push_to"]
 
-    def prepare_message_hook(self, request, message, detailed):
+    def prepare_message_hook(self, request, message, for_message_view):
         if not message.is_series_head:
             return
         r = message.git_result
