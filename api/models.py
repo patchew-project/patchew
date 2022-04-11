@@ -553,7 +553,7 @@ class QueuedSeries(models.Model):
     name = models.CharField(max_length=1024, help_text="Name of the queue")
 
     class Meta:
-        unique_together = ("user", "message", "name")
+        unique_together = ("user", "name", "message")
         index_together = [("user", "message")]
 
     def __str__(self):
