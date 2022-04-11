@@ -386,13 +386,17 @@ class TestingModule(PatchewModule):
     def prepare_message_hook(self, request, message, for_message_view):
         if not message.is_series_head:
             return
-        if (
-            message.project.maintained_by(request.user)
-            and self.get_testing_results(message, ~Q(status=Result.PENDING)).exists()
-        ):
-            message.extra_ops += self._build_reset_ops(message)
+        # results are prefetched, so do not use get_testing_results
+        if for_message_view:
+            if (
+                message.project.maintained_by(request.user)
+                and any((r.name.startswith('testing.') and r.status != Result.PENDING
+                         for r in message.results.all()))
+            ):
+                message.extra_ops += self._build_reset_ops(message)
 
-        if self.get_testing_results(message, status=Result.FAILURE).exists():
+        elif any((r.name.startswith('testing.') and r.status == Result.FAILURE
+                for r in message.results.all())):
             message.status_tags.append(
                 {
                     "title": "Testing failed",

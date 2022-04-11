@@ -224,7 +224,7 @@ def render_series_list_page(
     else:
         query = base_query.order_by("-date")
         order_by_reply = False
-    query = query.prefetch_related("topic")
+    query = query.prefetch_related("topic", "results")
     series = query[start : start + PAGE_SIZE]
     if not series and cur_page > 1:
         raise Http404("Page not found")

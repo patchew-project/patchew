@@ -164,8 +164,12 @@ class GitModule(PatchewModule):
     def prepare_message_hook(self, request, message, for_message_view):
         if not message.is_series_head:
             return
-        r = message.git_result
-        if r and r.is_completed():
+        # results are prefetched so do not use get_git_result()
+        rlist = [r for r in message.results.all() if r.name == "git"]
+        if not rlist:
+            return
+        r = rlist[0]
+        if r.is_completed():
             if r.is_failure():
                 title = "Failed in applying to current master"
                 message.status_tags.append(
