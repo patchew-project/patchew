@@ -131,14 +131,20 @@ class MboxMessage(object):
     def get_cc(self, text=False):
         return self._get_addr_list("cc", text)
 
-    def trim_message_id(self, msgid):
+    def clean_message_id(self, msgid):
         if not msgid:
             return msgid
         if msgid.startswith("<"):
-            return msgid[1 : msgid.find(">")]
-        for x in msgid.split("\n"):
-            if x.startswith("<") and x.endswith(">"):
-                return x[1:-1]
+            msgid = msgid[1 : msgid.find(">")]
+        else:
+            for x in msgid.split("\n"):
+                if x.startswith("<") and x.endswith(">"):
+                    msgid = x[1:-1]
+                    break
+            else:
+                return None
+        msgid = msgid.replace("_", "._5F")
+        msgid = msgid.replace("/", "._2F")
         return msgid
 
     def get_in_reply_to(self):
@@ -147,7 +153,7 @@ class MboxMessage(object):
             refs = self._m["references"]
             if refs:
                 msgid = refs.split()[-1]
-        return self.trim_message_id(msgid)
+        return self.clean_message_id(msgid)
 
     def get_date(self, timestamp=False):
         tup = email.utils.parsedate_tz(self._m["date"])
@@ -158,7 +164,7 @@ class MboxMessage(object):
             return datetime.datetime.utcfromtimestamp(stamp)
 
     def get_message_id(self):
-        return self.trim_message_id(self._m["message-id"])
+        return self.clean_message_id(self._m["message-id"])
 
     def get_prefixes(self, upper=False):
         """Return tags extracted from the leading "[XXX] [YYY ZZZ]... in subject"""
