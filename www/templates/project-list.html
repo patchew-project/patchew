@@ -15,7 +15,7 @@
             {% if project.logo %}
                 <div class="project-logo">
                     <a href="{% url "series_list" project=project.name %}">
-                        <img alt="Project Logo" src="{{ project.logo.url }}" />
+                        <img class="img-fluid" alt="Project Logo" src="{{ project.logo.url }}" />
                     </a>
                 </div>
             {% endif %}
