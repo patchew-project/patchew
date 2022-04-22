@@ -1,7 +1,8 @@
 function patchew_toggler_onclick(which)
 {
-    tgt = $(which).parent().find(".panel-collapse");
+    tgt = $(which).parent().find(".card-collapse");
     tgt.collapse("toggle");
+    return false;
 }
 function add_fixed_scroll_events()
 {

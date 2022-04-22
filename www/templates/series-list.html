@@ -8,7 +8,7 @@
 {% block content %}
 
 <div id="top"></div>
-<div class="col-lg-12">
+<div class="col-xl-12">
 <h2>
  {% block title %}
  {{ title }}
@@ -26,7 +26,7 @@
 
 
 {% if series %}
-<table class="table table-condensed table-striped">
+<table class="table table-sm table-striped">
     <tr>
         {% if project is None %}
         <th>Project</th>
@@ -38,11 +38,10 @@
             <div class="dropdown">
                 <a class="dropdown-toggle" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                     {% if order_by_reply %} Replied {% else %} Age {% endif %}
-                    <span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                    <li><a href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=age">Age</a></li>
-                    <li><a href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=replied">Replied</a></li>
+                    <a class="dropdown-item href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=age">Age</a>
+                    <a class="dropdown-item href="{{ request.url }}?{% if search %}q={{ search }}&{% endif %}sort=replied">Replied</a>
                 </ul>
             </div>
         </th>
@@ -54,7 +53,7 @@
             {% endif %}
             <td class="series-status">
                 {% for st in s.status_tags %}
-                    {% if st.url %}<a href="{{ st.url }}">{% endif %}<span title="{{ st.title }}" class="label label-{{ st.type }}">{{ st.char }}</span>{% if st.url %}</a>{% endif %}
+                    {% if st.url %}<a href="{{ st.url }}">{% endif %}<span title="{{ st.title }}" class="badge badge-{{ st.type }}">{{ st.char }}</span>{% if st.url %}</a>{% endif %}
                 {% endfor %}
             </td>
             <td>
@@ -94,8 +93,8 @@
 <nav>
     <ul class="pagination pagination-sm">
         {% for i in page_links %}
-            <li class="{{ i.class }}">
-	    {% if i.url %}<a href="{{ i.url }}">{{ i.title }}</a>{% else %}<span>{{ i.title }} </span>{% endif %}
+            <li class="{{ i.class }} page-item">
+                 <a class="page-link" href="{% if i.url %}{{ i.url }}{% else %}#" tabindex="-1{% endif %}">{{ i.title }}</a>
             </li>
         {% endfor %}
     </ul>

@@ -60,7 +60,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     margin-top: 15px;
 }
 
-.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:focus, .navbar-default .navbar-nav > .open > a:hover {
+.navbar-light .navbar-nav > .open > a, .navbar-light .navbar-nav > .open > a:focus, .navbar-light .navbar-nav > .open > a:hover {
     background: none;
 }
 
@@ -97,20 +97,21 @@ h1, h2, h3, .h1, .h2, .h3 {
     margin: 8px 0px 8px 0px;
 }
 
-.panel-toggler {
+.card-toggler {
     cursor: pointer;
 }
-.panel-body {
-    padding-top: 5px;
-    padding-bottom: 5px;
+.card-header > :first-child, .card-body > :first-child {
+    margin-top: 0em;
+}
+.card-header > :last-child, .card-body > :last-child {
+    margin-bottom: 0em;
 }
 .panel-hidden {
     display: none;
 }
-.panel-body pre {
+.card pre {
     background-color: #fff;
     border: none;
-    padding: 5px;
 }
 
 #pre-fixed {
@@ -160,7 +161,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     padding-left: 0.5em;
     visibility: hidden;
 }
-.panel-heading:hover a.hover-icon, a:hover > span.hover-icon {
+.card-header:hover a.hover-icon, a:hover > span.hover-icon {
     visibility: visible;
 }
 
@@ -236,8 +237,11 @@ h1, h2, h3, .h1, .h2, .h3 {
 .hljs-deletion, .hljs-addition { font-weight: bold; }
 
 @media (prefers-color-scheme: dark) {
-    body, pre, .panel-body pre, .panel, #detail-ops {
+    body, pre, .card, .card pre, .panel, #detail-ops {
         background: #262626;
+        color: #e5e5e5;
+    }
+    .navigate > .active a {
         color: #e5e5e5;
     }
 
@@ -247,49 +251,48 @@ h1, h2, h3, .h1, .h2, .h3 {
     }
 
     /* dark borders */
-    .pagination > .active > a, .pagination > .active > a:hover, .pagination > .active > a:focus,
-    .pagination > .active > span, .pagination > .active > span:hover, .pagination > .active > span:focus,
-    .pagination > li > a, .pagination > li > a:hover, .pagination > li > a:focus,
-    .pagination > li > span, .pagination > li > span:hover, .pagination > li > span:focus {
+    .page-link.active, .page-link.active:hover, .page-link.active:focus,
+    .page-link, .page-link:hover, .page-link:focus {
         border: 1px solid #111111;
     }
-    .pagination > .disabled > a, .pagination > .disabled > a:hover, .pagination > .disabled > a:focus,
-    .pagination > .disabled > span, .pagination > .disabled > span:hover, .pagination > .disabled > span:focus {
+    .page-link.disabled, .page-link.disabled:hover, .page-link.disabled:focus {
         background: none;
         border: 1px solid #111111;
     }
 
-    .navigate > .active a {
+    .navbar-light .navbar-brand, .navbar-light .navbar-brand:focus, .navbar-light .navbar-brand:hover {
         color: inherit;
     }
 
     /* hide some light borders */
-    .panel-default > .panel-heading,
-    .navbar, .form-control, button, .btn-default {
+    .card > .card-header,
+    .navbar, .form-control, button, .btn-primary {
 	border: 0px;
     }
 
     /* lighter backgrounds and borders */
     a.list-group-item:hover, a.list-group-item:focus,
     button.list-group-item:hover, button.list-group-item:focus,
-    .form-control, button, .btn-default, samp {
+    .form-control, button, .btn-primary, samp {
         background: #999999;
 	color: black;
     }
     .thumbnail,
-    .panel-default,
+    .card,
     #detail-ops > ul {
 	border: 1px solid #666666;
     }
 
     /* hover colors */
-    .pagination > li > a:hover, .pagination > li > a:focus,
-    .pagination > li > span:hover, .pagination > li > span:focus,
-    .dropdown-menu > li > a:hover, .dropdown-menu > li > a:focus,
-    .btn-default.active {
+    .page-item:hover, .page-item:focus {
+        background: none;
+     }
+    .page-link:hover, .page-link:focus,
+    .dropdown-item:hover, .dropdown-item:focus,
+    .btn-primary.active {
         background: #d4d4d4;
     }
-    .btn-default.active:hover, .btn-default.active:focus {
+    .btn-primary.active:hover, .btn-primary.active:focus {
         background: #e5e5e5;
     }
     .form-control::placeholder {
@@ -298,10 +301,10 @@ h1, h2, h3, .h1, .h2, .h3 {
 
     /* slightly lighter elements */
     .pagination > li > a, .pagination > li > span,
-    .dropdown-menu, .dropdown-menu > li > a,
+    .dropdown-menu, .dropdown-item,
     .list-group-item, a.list-group-item, btn.list-group-item,
     #detail-ops > ul,
-    .panel-default > .panel-heading,
+    .card > .card-header,
     .thumbnail, .thumbnail .caption,
     .breadcrumb {
         background: #383838;
@@ -331,24 +334,24 @@ h1, h2, h3, .h1, .h2, .h3 {
     a, .btn-link {
         color: #66aae7;
     }
-    .label-info {
+    .badge-info {
 	background-color: #66aae7;
     }
-    .label-warning {
+    .badge-warning {
 	background-color: #d3792e;
     }
     .hljs-deletion,
     .status-content > .fa-exclamation-triangle, .status-content > .fa-times {
         color: #dd2222;
     }
-    .label-danger {
+    .badge-danger {
 	background-color: #dd2222;
     }
     .hljs-insertion,
     .status-content > .fa-check {
 	color: #498300;
     }
-    .label-success {
+    .badge-success {
 	background-color: #498300;
     }
 

@@ -192,7 +192,7 @@ series cover letter, patch mail body and their replies.
             message.status_tags.append(
                 {
                     "title": "Has a newer version: " + message.topic.latest.subject,
-                    "type": "default",
+                    "type": "secondary",
                     "char": "O",
                     "row_class": "obsolete",
                 }

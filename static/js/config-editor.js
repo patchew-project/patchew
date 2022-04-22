@@ -123,7 +123,7 @@ function map_add_item(btn) {
         old = $(this).data('property-path');
         $(this).data('property-path', prefix + old);
     });
-    nt.find(".panel-collapse").collapse("show");
+    nt.find(".card-collapse").collapse("show");
     container.find("> .items").append(nt);
     confirm_leaving_page(true);
 }

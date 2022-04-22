@@ -10,6 +10,11 @@
     }
   }
 }
+.item {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
 .project-logo {
 	display: block;
 	padding-bottom: 1em;

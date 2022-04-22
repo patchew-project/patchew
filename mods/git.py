@@ -173,7 +173,7 @@ class GitModule(PatchewModule):
             if r.is_failure():
                 title = "Failed in applying to current master"
                 message.status_tags.append(
-                    {"title": title, "type": "default", "char": "G"}
+                    {"title": title, "type": "secondary", "char": "G"}
                 )
             else:
                 git_url = r.data.get("url")

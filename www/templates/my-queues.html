@@ -13,28 +13,28 @@
 
 <div class="series-detail" id="top"></div>
 
-<div class="col-lg-12">
+<div class="col-xl-12">
 
 <div id="pre-fixed"></div>
 <div class="row">
-<div class="col-lg-2">
+<div class="col-xl-2">
     <div id="fixed" class="list-group">
-        <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
-        <a href="#" class="list-group-item" id="btn-fold-all">Fold all</a>
+        <a href="#" class="list-group-item list-group-item-action" id="btn-expand-all">Expand all</a>
+        <a href="#" class="list-group-item list-group-item-action" id="btn-fold-all">Fold all</a>
     </div>
 </div>
 
-<div class="col-lg-10">
+<div class="col-xl-10">
 {% if data %}
 {% for pid, queues in data.items %}
   {% with pn=projects|get:pid %}
     {% for qn, msgs in queues.items %}
-        <div class="panel panel-default">
-            <div class="panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
-            <h3 class="panel-title"><a href="{% url "maintainer_queue" project=pn name=qn %}">Queue: {{ qn }} [{{ pn }}]<span class="hover-icon fa fa-sm fa-external-link-alt"></span></a>
-</a></h3>
+        <div class="card">
+            <div class="card-header card-toggler" onclick="return patchew_toggler_onclick(this)">
+            <div class="text-larger mb-0 card-title"><a href="{% url "maintainer_queue" project=pn name=qn %}">Queue: {{ qn }} [{{ pn }}]<span class="hover-icon fa fa-sm fa-external-link-alt"></span></a>
+</a></div>
             </div>
-	    <ul class="no-bullet panel-body panel-collapse collapse{% if qn != "reject" %} in" aria-expanded="true"{% else %}" aria-expanded="false"{% endif %}>
+	    <ul class="no-bullet card-body card-collapse collapse{% if qn != "reject" %} show" aria-expanded="true"{% else %}" aria-expanded="false"{% endif %}>
             {% for patch in msgs %}
                 <li><a href="/{{ pn }}/{{ patch.message_id }}/">
                   <span class="fa-lg fa fa-ellipsis-v"></span>
@@ -58,11 +58,13 @@ function main() {
     $(".timestamp").each(function (i, o) {
         $(o).attr("title", new Date(1000 * $(o).attr("title")));
     });
-    $("#btn-expand-all").click(function () {
-        $(".panel-collapse").collapse("show");
+    $("#btn-expand-all").click(function (e) {
+        $(".card-collapse").collapse("show");
+	e.preventDefault();
     });
-    $("#btn-fold-all").click(function () {
-        $(".panel-collapse").collapse("hide");
+    $("#btn-fold-all").click(function (e) {
+        $(".card-collapse").collapse("hide");
+	e.preventDefault();
     });
     $(document).ready(function() {
         $('pre code').each(function(i, block) {

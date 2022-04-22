@@ -9,10 +9,10 @@
 {% block content %}
 
 <div class="row">
-    <div class="col-md-2 col-md-offset-5">
-        <div class="panel panel-info login-panel">
-            <div class="panel-heading">Login to Patchew</div>
-            <div class="panel-body">
+    <div class="col-lg-2 offset-lg-5">
+        <div class="card login-panel">
+            <div class="card-header bg-info">Login to Patchew</div>
+            <div class="card-body">
                 <form class="login-form" method="post" action="{% url 'login' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% if next %}{{ next }}{% else %}/{% endif %}" />
@@ -27,7 +27,7 @@
                     {% if form.errors %}
                     <div class="alert alert-danger" role="alert">Your username and password didn't match. Please try again.</div>
                     {% endif %}
-                    <button type="submit" class="btn btn-default">Login</button>
+                    <button type="submit" class="btn btn-primary">Login</button>
                 </form>
             </div>
         </div>

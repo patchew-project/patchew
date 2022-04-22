@@ -251,7 +251,7 @@ TMPL_INTEGER = """
 """
 
 TMPL_BOOLEAN = """
-<div class="checkbox">
+<div class="form-check">
 <label>
   <input class="project-property" type="checkbox" name="{{ name }}"
     data-property-path="{{ prefix }}"
@@ -305,7 +305,7 @@ TMPL_ENUM = (
     {% endfor %}
     </div>
     {% for opt, desc in schema.enums.items %}
-        <div class="hidden enum-desc-{{ opt }}">
+        <div class="d-none enum-desc-{{ opt }}">
 """
     + TMPL_ENUM_DESC
     + """
@@ -322,12 +322,12 @@ TMPL_ARRAY = """
 """
 
 TMPL_MAP_ITEM = """
-<div class="item panel panel-default" data-property-prefix="{{ prefix }}{% if item.name %}.{{ item.name }}{% endif %}">
-    <div class="item-heading panel-heading panel-toggler" onclick="patchew_toggler_onclick(this)">
+<div class="item card" data-property-prefix="{{ prefix }}{% if item.name %}.{{ item.name }}{% endif %}">
+    <div class="item-heading card-header card-toggler" onclick="return patchew_toggler_onclick(this)">
         {{ item_schema.title }}
         <strong class="item-name">{{ item.name }}</strong>
     </div>
-    <div class="panel-body panel-collapse collapse" aria-expanded="false">
+    <div class="card-body card-collapse collapse" aria-expanded="false">
         {{ item.html }}
         <div class="form-group">
             <button type="button"

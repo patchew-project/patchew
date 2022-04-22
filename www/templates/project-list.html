@@ -10,8 +10,8 @@
 
 <div class="row">
 {% for project in projects %}
-    <div class="col-sm-6 col-md-3 project {% if forloop.counter0|modulo:4 == 0 %}sm-clear{% elif forloop.counter0|modulo:4 == 2 %}sm-clear md-noclear{% endif %}">
-        <div class="thumbnail">
+    <div class="col-md-6 col-xl-3"><div class="p-1 project">
+        <div class="rounded p-3 thumbnail">
             {% if project.logo %}
                 <div class="project-logo">
                     <a href="{% url "series_list" project=project.name %}">
@@ -25,16 +25,16 @@
                 <p class="description">{{ project.description }}</p>
             </div>
         </div>
-    </div>
+    </div></div>
 {% endfor %}
-    <div class="col-sm-12 col-md-12">
-        <div class="thumbnail">
+    <div class="col-md-6 col-xl-3"><div class="p-1 project">
+        <div class="rounded p-3 thumbnail">
             <div class="caption">
                 <h3>Want your open source project hosted?</h3>
                 <p><a href="https://github.com/patchew-project/patchew/issues/new">Submit a request now!</a></p>
             </div>
         </div>
-    </div>
+    </div></div>
 </div>
 
 {% endblock %}
