@@ -143,16 +143,18 @@ function prompt_and_submit(obj) {
                 {% endif %}
             </div>
         </div>
-	{% if is_cover_letter and forloop.first%}
-        <ul class="card no-bullet" id="patches">
-          {% for patch in patches %}
-	  <li><span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span><a href="{{ patch.message_id }}/">{{ patch.subject }}</a></li>
-	  {% endfor %}
-          </ul>
-	{% endif %}
     {% endfor %}
     </div>
 
+    {% if is_cover_letter %}
+    <ul class="card no-bullet" id="patches">
+    {% for patch in patches %}
+    <li><a href="{{ patch.message_id }}/">
+      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+      {{ patch.subject }}</a></li>
+    {% endfor %}
+    </ul>
+    {% endif %}
     {% if not is_head %}
     <ul class="card no-bullet" id="patches">
     {% for patch in patches %}
