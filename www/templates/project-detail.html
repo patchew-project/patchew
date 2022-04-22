@@ -10,6 +10,7 @@
 {% block content %}
 
 <div id="top"></div>
+<div class="row">
 <div class="col-lg-12">
 <h2>{% if project.logo %}<img alt="Project Logo" src="{{ project.logo.url }}" class="project-logo"/></li>{% endif %}{% block title %}{{ project.name }}{% endblock %}</h2>
 {% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
@@ -66,9 +67,12 @@
 <div class="status-content">
   <div><a href="{% url "series_list" project=project %}">View {{ project.total_series_count }} series</a></div>
 </div>
-</div>
+</div><!-- status -->
+</div><!-- col -->
+</div><!-- row -->
 
 <div id="pre-fixed"></div>
+<div class="row">
 <div class="col-lg-2">
     <div id="fixed" class="list-group">
         <a href="#" class="list-group-item" id="btn-expand-all">Expand all</a>
@@ -92,6 +96,7 @@
         </div>
     {% endif %}
 </div>
+</div><!-- row -->
 
 <script type="text/javascript">
 
