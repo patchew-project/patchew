@@ -250,7 +250,7 @@ h1, h2, h3, .h1, .h2, .h3 {
     .page-link, .page-link:hover, .page-link:focus {
         border: 1px solid #111111;
     }
-    .page-link.disabled, .page-link.disabled:hover, .page-link.disabled:focus {
+    .page-item.disabled, .page-item.disabled:hover, .page-item.disabled:focus {
         background: none;
         border: 1px solid #111111;
     }
