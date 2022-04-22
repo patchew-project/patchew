@@ -106,8 +106,8 @@ h1, h2, h3, .h1, .h2, .h3 {
 .card-header > :last-child, .card-body > :last-child {
     margin-bottom: 0em;
 }
-.panel-hidden {
-    display: none;
+.thumbnail {
+    border: 1px solid #ced4da;
 }
 .card pre {
     background-color: #fff;
