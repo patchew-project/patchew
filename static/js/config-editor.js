@@ -139,6 +139,6 @@ function map_delete_item(btn) {
 }
 function enum_change(which) {
     val = $(which).val();
-    desc = $(which).parent().find("#enum-desc-" + val).html();
-    $(which).parent().find("#enum-desc").html(desc);
+    desc = $(which).parent().find(".enum-desc-" + val).html();
+    $(which).parent().find(".enum-desc").html(desc);
 }
