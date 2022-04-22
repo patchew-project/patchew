@@ -64,7 +64,8 @@ crossorigin="anonymous"></script>
                 <button type="button" class="form-glyph-action" aria-label="Copy to clipboard"
 				onclick="copy_to_clipboard(document.getElementById('q')); return 0"><span
 				class="fa fa-clipboard"></span></button>
-                <a href="{% url "search_help" %}" class="form-glyph-action"><span class="glyphicon glyphicon-question-sign"></span></a>
+                <a href="{% url "search_help" %}" class="form-glyph-action" aria-label="Help"><span
+				class="fa fa-question"></span></a>
             </form>
             <div class="btn-group user-button">
                 {% if request.user.is_authenticated %}
