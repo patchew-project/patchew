@@ -49,7 +49,7 @@ class PatchewTestCase(dj_test.LiveServerTestCase):
     REST_BASE = "http://testserver/api/v1/"
 
     def __init__(self, name):
-        super(PatchewTestCase, self).__init__(name)
+        super().__init__(name)
         self.need_logout = False
 
     def get_tmpdir(self):

@@ -56,7 +56,7 @@ class NonNullSearchVector(SearchVector):
                 template = "%(function)s(%(config)s, %(expressions)s)"
             else:
                 template = self.template
-        sql, params = super(SearchVector, self).as_sql(
+        sql, params = super().as_sql(
             compiler,
             connection,
             function=function,

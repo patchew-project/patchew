@@ -56,7 +56,7 @@ class ResultDataSerializer(api.rest.ResultDataSerializer):
             tag = data["tag"]
             if url_template and tag.startswith("refs/tags/"):
                 data["url"] = url_template.replace("%t", tag[10:])
-        return super(ResultDataSerializer, self).create(data)
+        return super().create(data)
 
 
 class GitModule(PatchewModule):

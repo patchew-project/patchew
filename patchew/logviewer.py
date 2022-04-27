@@ -384,7 +384,7 @@ class ANSI2HTMLConverter(ANSIProcessor):
     ]
 
     def __init__(self, white_bg=False):
-        super(ANSI2HTMLConverter, self).__init__()
+        super().__init__()
         self.default_fg = 0 if white_bg else 7
         self.default_bg = 7 if white_bg else 0
         self.prefix = '<pre class="ansi">'
@@ -468,11 +468,11 @@ class ANSI2HTMLConverter(ANSIProcessor):
 
     def convert(self, input):
         yield from self._write_prefix()
-        yield from super(ANSI2HTMLConverter, self).convert(input)
+        yield from super().convert(input)
 
     def finish(self):
         yield from self._write_prefix()
-        yield from super(ANSI2HTMLConverter, self).finish()
+        yield from super().finish()
         yield "</pre>"
         self.prefix = '<pre class="ansi">'
 

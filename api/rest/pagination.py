@@ -45,6 +45,6 @@ class PatchewPagination(LimitOffsetPagination):
         return q
 
     def get_paginated_response_schema(self, schema):
-        ret = super(PatchewPagination, self).get_paginated_response_schema(schema)
+        ret = super().get_paginated_response_schema(schema)
         del ret["properties"]["count"]
         return ret

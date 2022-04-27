@@ -86,7 +86,7 @@ class Result(models.Model):
         old_result = Result.objects.filter(pk=self.pk).first()
         old_status = old_result.status if old_result else None
         old_entry = old_result.log_entry if old_result else None
-        super(Result, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if self.log_entry is None and old_entry is not None:
             # Quick way to check if the field was actually saved to the database
@@ -207,7 +207,7 @@ class Project(models.Model):
     def save(self, *args, **kwargs):
         old_project = Project.objects.filter(pk=self.pk).first()
         old_config = old_project.config if old_project else None
-        super(Project, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
         if old_config != self.config:
             emit_event("SetProjectConfig", obj=self)
 

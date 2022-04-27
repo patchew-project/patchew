@@ -200,7 +200,7 @@ class PluginMethodField(SerializerMethodField):
 
     def __init__(self, obj=None, method_name=None, **kwargs):
         self.obj = obj
-        super(PluginMethodField, self).__init__(method_name=method_name, **kwargs)
+        super().__init__(method_name=method_name, **kwargs)
 
     def to_representation(self, value):
         method = getattr(self.obj, self.method_name)
@@ -257,7 +257,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
 
     def get_fields(self):
-        fields = super(ProjectSerializer, self).get_fields()
+        fields = super().get_fields()
         request = self.context["request"]
         dispatch_module_hook("rest_project_fields_hook", request=request, fields=fields)
         return fields
@@ -424,7 +424,7 @@ class ProjectMessagesViewSetMixin(mixins.RetrieveModelMixin, mixins.UpdateModelM
     def get_serializer_context(self):
         if "projects_pk" in self.kwargs and not self.project:
             raise Http404("Project not found")
-        context = super(ProjectMessagesViewSetMixin, self).get_serializer_context()
+        context = super().get_serializer_context()
         context["project"] = self.project
         return context
 
@@ -486,10 +486,10 @@ class SeriesSerializer(BaseMessageSerializer):
 
     def __init__(self, *args, **kwargs):
         self.detailed = kwargs.pop("detailed", False)
-        super(SeriesSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_fields(self):
-        fields = super(SeriesSerializer, self).get_fields()
+        fields = super().get_fields()
         request = self.context["request"]
         dispatch_module_hook(
             "rest_series_fields_hook",
@@ -514,7 +514,7 @@ class SeriesSerializerFull(SeriesSerializer):
     def __init__(self, *args, **kwargs):
         if "detailed" not in kwargs:
             kwargs["detailed"] = True
-        super(SeriesSerializerFull, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class PatchewSearchFilter(filters.BaseFilterBackend):
@@ -581,7 +581,7 @@ class ProjectSeriesViewSet(
         return SeriesSerializer
 
     def get_object(self):
-        series = super(ProjectSeriesViewSet, self).get_object()
+        series = super().get_object()
         series.patches = self.collect_patches(series)
         series.replies = self.collect_replies(series, [])
         if not series.is_patch:
@@ -613,7 +613,7 @@ class MessageSerializer(BaseMessageSerializer):
     mbox = CharField()
 
     def get_fields(self):
-        fields = super(MessageSerializer, self).get_fields()
+        fields = super().get_fields()
         try:
             # When called from the CoreAPI schema generator, there is no context defined?
             request = self.context["request"]
@@ -724,7 +724,7 @@ class ResultDataSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         # Don't pass the 'project' arg up to the superclass
         self.project = kwargs.pop("project", None)
-        super(ResultDataSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def create(self, data):
         return data
@@ -756,7 +756,7 @@ class ResultSerializer(serializers.ModelSerializer):
             validated_data["data"] = self.get_data_serializer().create(
                 validated_data["data"]
             )
-        return super(ResultSerializer, self).update(instance, validated_data)
+        return super().update(instance, validated_data)
 
     def validate(self, data):
         if "data" in data:
@@ -805,7 +805,7 @@ class ResultsViewSet(
         return None
 
     def get_serializer_context(self):
-        context = super(ResultsViewSet, self).get_serializer_context()
+        context = super().get_serializer_context()
         if "name" in self.kwargs:
             context["renderer"] = self.result_renderer
         context["parent"] = self

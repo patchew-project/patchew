@@ -23,26 +23,26 @@ class StringSchema(Schema):
     def __init__(
         self, name, title=None, desc=None, required=False, default="", multiline=False
     ):
-        super(StringSchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.multiline = multiline
         self.default = default
 
 
 class IntegerSchema(Schema):
     def __init__(self, name, title=None, desc=None, required=False, default=0):
-        super(IntegerSchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.default = default
 
 
 class EnumSchema(Schema):
     def __init__(self, name, title=None, desc=None, required=False, enums=lambda: []):
-        super(EnumSchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.enums = enums
 
 
 class BooleanSchema(Schema):
     def __init__(self, name, title=None, desc=None, required=False, default=0):
-        super(BooleanSchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.default = default
 
 
@@ -50,7 +50,7 @@ class MapSchema(Schema):
     """Homogeneous map from string to items"""
 
     def __init__(self, name, title=None, desc=None, required=False, item=None):
-        super(MapSchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.item = item
 
 
@@ -58,5 +58,5 @@ class ArraySchema(Schema):
     """A fixed array of items"""
 
     def __init__(self, name, title=None, desc=None, required=False, members=[]):
-        super(ArraySchema, self).__init__(name, title, desc, required)
+        super().__init__(name, title, desc, required)
         self.members = members

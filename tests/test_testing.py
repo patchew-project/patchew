@@ -165,7 +165,7 @@ class TestingTestCase(PatchewTestCase, metaclass=abc.ABCMeta):
 
 class MessageTestingTest(TestingTestCase):
     def setUp(self):
-        super(MessageTestingTest, self).setUp()
+        super().setUp()
 
         self.cli_login()
         self.cli_import("0013-foo-patch.mbox.gz")
@@ -179,7 +179,7 @@ class MessageTestingTest(TestingTestCase):
         self.msg.save()
 
     def do_testing_report(self, **report):
-        r = super(MessageTestingTest, self).do_testing_report(**report)
+        r = super().do_testing_report(**report)
         self.assertEquals(r["type"], "series")
         return r
 
@@ -197,7 +197,7 @@ class MessageTestingTest(TestingTestCase):
 
 class ProjectTestingTest(TestingTestCase):
     def setUp(self):
-        super(ProjectTestingTest, self).setUp()
+        super().setUp()
         self.p.set_property("git.head", "5678")
         self.p.set_property("testing.tested-head", "1234")
 
@@ -205,7 +205,7 @@ class ProjectTestingTest(TestingTestCase):
         self._do_testing_done(self.p, **kwargs)
 
     def do_testing_report(self, **report):
-        r = super(ProjectTestingTest, self).do_testing_report(**report)
+        r = super().do_testing_report(**report)
         self.assertEquals(r["type"], "project")
         return r
 

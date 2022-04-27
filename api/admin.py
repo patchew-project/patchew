@@ -23,7 +23,7 @@ class MessageAdmin(admin.ModelAdmin):
 
 class ModuleAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
-        fs = super(ModuleAdmin, self).get_fieldsets(request, obj)
+        fs = super().get_fieldsets(request, obj)
         if obj:
             po = get_module(obj.name)
             if po:
@@ -44,7 +44,7 @@ class ModuleAdmin(admin.ModelAdmin):
         q = Module.objects.filter(pk=object_id).first()
         if q:
             extra_context["title"] = "%s Module " % q.name.capitalize()
-        return super(ModuleAdmin, self).change_view(
+        return super().change_view(
             request, object_id, form_url, extra_context=extra_context
         )
 
