@@ -37,7 +37,7 @@ from = your@email.com
 """
 
 
-class DebugSMTP(object):
+class DebugSMTP:
     def sendmail(*args):
         print("SMPT: debug mode, not sending\n" + "\n".join([str(x) for x in args]))
 

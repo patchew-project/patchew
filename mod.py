@@ -35,7 +35,7 @@ def www_authenticated_op(func):
     return require_POST(inner)
 
 
-class PatchewModule(object):
+class PatchewModule:
     """Module base class"""
 
     name = None  # The name of the module, must be unique

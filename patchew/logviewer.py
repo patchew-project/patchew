@@ -16,7 +16,7 @@ from django.http import HttpResponse, StreamingHttpResponse, Http404
 from django.utils.safestring import mark_safe
 
 
-class ANSIProcessor(object):
+class ANSIProcessor:
     RE_STRING = "[^\b\t\n\f\r\x1B]+"
     RE_NUMS = "[0-9]+(?:;[0-9]+)*"
     RE_CSI = r"\[\??(?:" + RE_NUMS + ")?[^;0-9]"

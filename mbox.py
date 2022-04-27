@@ -60,7 +60,7 @@ def decode_payload(m):
             raise
 
 
-class MboxMessage(object):
+class MboxMessage:
     """Helper class to process mbox"""
 
     def __init__(self, m):

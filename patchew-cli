@@ -125,7 +125,7 @@ def http_get(url):
     return urllib.request.urlopen(url).read()
 
 
-class SubCommand(object):
+class SubCommand:
     """Base class of subcommand"""
 
     help = ""

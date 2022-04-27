@@ -493,7 +493,7 @@ class TestingModule(PatchewModule):
         po.set_property("testing.check_in." + tester, time.time())
 
 
-class GetTestViewMixin(object):
+class GetTestViewMixin:
     def _generate_series_test_data(self, request, s, result, test):
         gr = s.git_result
         assert gr.is_success()

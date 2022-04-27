@@ -418,7 +418,7 @@ def parse(s, the_parser=__parser(Q)):
     return result.value
 
 
-class SearchEngine(object):
+class SearchEngine:
     """
 
 The general form of search string is a list of terms separated with space:

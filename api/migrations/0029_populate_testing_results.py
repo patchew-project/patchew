@@ -20,7 +20,7 @@ import lzma
 import api.models
 
 
-class Converter(object, metaclass=abc.ABCMeta):
+class Converter(metaclass=abc.ABCMeta):
     def __init__(self, apps, schema_editor):
         # We can't import the models directly as they may be a newer
         # version than this migration expects. We use the historical version.

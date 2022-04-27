@@ -11,7 +11,7 @@
 """Data schema classes"""
 
 
-class Schema(object):
+class Schema:
     def __init__(self, name, title=None, desc=None, required=False):
         self.name = name
         self.title = title or name
