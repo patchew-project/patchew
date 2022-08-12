@@ -13,7 +13,12 @@ from mbox import addr_db_to_rest, parse_address
 from event import register_handler, emit_event, declare_event
 from api.models import Message
 from api.rest import PluginMethodField
+
+from django.urls import reverse
+from django.utils.html import format_html
+
 import rest_framework
+
 
 REV_BY_PREFIX = "Reviewed-by:"
 BASED_ON_PREFIX = "Based-on:"
@@ -189,12 +194,30 @@ series cover letter, patch mail body and their replies.
             )
 
         if message.is_obsolete:
+            latest_url = reverse(
+                "series_detail",
+                kwargs={
+                    "project": message.project.name,
+                    "message_id": message.topic.latest.message_id,
+                },
+            )
+
             message.status_tags.append(
                 {
                     "title": "Has a newer version: " + message.topic.latest.subject,
                     "type": "secondary",
                     "char": "O",
                     "row_class": "obsolete",
+                    "url": latest_url,
+                }
+            )
+            message.extra_status.append(
+                {
+                    "icon": "fa-redo-alt",  # aka rotate-right in newer versions
+                    "html": format_html(
+                        'There is a <a href="{}">newer version</a> of this series',
+                        latest_url,
+                    ),
                 }
             )
 
