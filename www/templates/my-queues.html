@@ -35,12 +35,15 @@
 </a></div>
             </div>
 	    <ul class="no-bullet card-body card-collapse collapse{% if qn != "reject" %} show" aria-expanded="true"{% else %}" aria-expanded="false"{% endif %}>
-            {% for patch in msgs %}
+            {% for patch in msgs|slice:":25" %}
                 <li><a href="/{{ pn }}/{{ patch.message_id }}/">
                   <span class="fa-lg fa fa-ellipsis-v"></span>
                   {{ patch.subject }}
                   </a></li>
             {% endfor %}
+	    {% if msgs|length > 25 %}
+	    <li><a href="{% url "maintainer_queue" project=pn name=qn %}">View all series in queue...</a></li>
+	    {% endif %}
             </ul>
 	</div>
     {% endfor %}
