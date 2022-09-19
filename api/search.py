@@ -8,7 +8,7 @@
 # This work is licensed under the MIT License.  Please see the LICENSE file or
 # http://opensource.org/licenses/MIT.
 
-from .models import Message, MessageResult, Result, QueuedSeries
+from .models import Message, MessageResult, Project, Result, QueuedSeries
 from collections import namedtuple
 from functools import reduce
 import operator
@@ -269,10 +269,10 @@ def __parser(_Q):
         return q
 
     def _make_filter_project(cond):
+        ids = Project.get_project_ids_by_name(cond)
         return SearchTerm(
             project=cond,
-            query=_Q(project__name=cond) | _Q(project__parent_project__name=cond),
-        )
+            query=_Q(project__pk__in=ids))
 
     def _make_filter_is(cond):
         if cond == "complete":

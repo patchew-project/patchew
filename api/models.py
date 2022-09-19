@@ -14,6 +14,7 @@ import re
 
 from django.core import validators
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.urls import reverse
 import jsonfield
@@ -300,6 +301,14 @@ class Project(models.Model):
     def get_subprojects(self):
         return Project.objects.filter(parent_project=self)
 
+    @classmethod
+    def get_project_ids_by_id(cls, id):
+        return cls.objects.filter(Q(id=id) | Q(parent_project__id=id)).values_list('id')
+
+    @classmethod
+    def get_project_ids_by_name(cls, name):
+        return cls.objects.filter(Q(name=name) | Q(parent_project__name=name)).values_list('id')
+
     def get_project_head(self):
         return self.get_property("git.head")
 
@@ -411,8 +420,9 @@ class MessageManager(models.Manager):
         if po is None:
             return None
 
+        ids = po.get_project_ids_by_id(po.id)
         q = self.get_queryset()
-        q = q.filter(project=po) | q.filter(project__parent_project=po)
+        q = q.filter(project__pk__in=ids)
         return q
 
     def series_heads(self, project=None):
