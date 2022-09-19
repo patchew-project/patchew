@@ -64,7 +64,7 @@ class Result(models.Model):
     data = jsonfield.JSONField(default={})
 
     project_denorm = models.ForeignKey(
-        "Project", related_name="+", on_delete=models.CASCADE, null=True
+        "Project", related_name="+", on_delete=models.CASCADE
     )
 
     class Meta:
