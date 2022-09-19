@@ -1,0 +1,7 @@
+Disallow: /api/
+
+# Do not go into the details of the series, including logs or diffs
+Disallow: /*/*/*/
+
+# Old URLs that are not valid anymore, don't bother
+Disallow: /logs/
