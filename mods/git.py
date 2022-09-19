@@ -306,40 +306,6 @@ class GitModule(PatchewModule):
         return q
 
 
-class ApplierGetView(APILoginRequiredView):
-    name = "applier-get"
-    allowed_groups = ["importers"]
-
-    def handle(self, request, target_repo=None):
-        m = _instance.pending_series(target_repo).first()
-        if not m:
-            return None
-
-        response = prepare_series(
-            request,
-            m,
-            fields=["project", "message-id", "patches", "properties", "tags"],
-        )
-
-        po = m.project
-        config = _instance.get_project_config(po)
-        for k, v in config.items():
-            response["git." + k] = v
-        base = _instance.get_base(m)
-        if base:
-            response["git.repo"] = base.data["repo"]
-            response["git.base"] = base.data["tag"]
-        response["project.git"] = po.git
-        response["mbox_uri"] = rest_framework.reverse.reverse(
-            "series-mbox",
-            kwargs={"projects_pk": m.project_id, "message_id": m.message_id},
-            request=request,
-        )
-        response["result_uri"] = reverse_detail(m.git_result, request)
-        response["git.push_options"] = m.git_result.data.get("git.push_options")
-        return response
-
-
 class UnappliedSeriesSerializer(SeriesSerializer):
     class Meta:
         model = Message
@@ -373,49 +339,3 @@ class UnappliedSeriesView(generics.ListAPIView):
     def get_queryset(self):
         target_repo = self.request.query_params.get("target_repo")
         return _instance.pending_series(target_repo)
-
-
-class ApplierReportView(APILoginRequiredView):
-    name = "applier-report"
-    allowed_groups = ["importers"]
-
-    def handle(
-        self,
-        request,
-        project,
-        message_id,
-        tag,
-        url,
-        base,
-        repo,
-        failed,
-        log,
-        maintainers=[],
-    ):
-        p = Project.objects.get(name=project)
-        r = (
-            Message.objects.series_heads()
-            .get(project=p, message_id=message_id)
-            .git_result
-        )
-        r.log = log
-        r.message.maintainers = maintainers
-        r.message.save()
-        data = {}
-        if failed:
-            r.status = Result.FAILURE
-        else:
-            data["repo"] = repo
-            data["tag"] = "refs/tags/" + tag
-            if url:
-                data["url"] = url
-            elif tag:
-                config = _instance.get_project_config(p)
-                url_template = config.get("url_template")
-                if url_template:
-                    data["url"] = url_template.replace("%t", tag)
-            if base:
-                data["base"] = base
-            r.status = Result.SUCCESS
-        r.data = data
-        r.save()
