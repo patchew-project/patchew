@@ -966,8 +966,8 @@ class Message(models.Model):
     class Meta:
         unique_together = ("project", "message_id")
         index_together = [
-            ("topic", "project", "last_reply_date"),
-            ("topic", "project", "date"),
+            ("project", "topic", "last_reply_date"),
+            ("project", "topic", "date"),
             ("topic", "last_reply_date"),
             ("topic", "date"),
         ]
