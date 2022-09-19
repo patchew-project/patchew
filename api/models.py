@@ -734,7 +734,9 @@ class Message(models.Model):
         cur, total = 1, 1
         for tag in self.prefixes:
             if "/" in tag:
-                n, m = tag.split("/")
+                # Adding the slash at the end ensures that both "3/4" and "3/4/5"
+                # are parsed correctly.
+                n, m, _ = (tag + "/").split("/", maxsplit=2)
                 try:
                     cur, total = int(n), int(m)
                     break
