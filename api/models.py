@@ -69,7 +69,7 @@ class Result(models.Model):
     )
 
     class Meta:
-        index_together = [("status", "name")]
+        index_together = [("status", "name", "project")]
 
     def is_success(self):
         return self.status == self.SUCCESS

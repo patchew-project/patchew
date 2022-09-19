@@ -283,8 +283,6 @@ class GitModule(PatchewModule):
         )
 
     def pending_series(self, target_repo):
-        q = Message.objects.filter(results__name="git", results__status="pending")
-
         # Postgres could use JSON fields instead.  Fortunately projects are
         # few so this is cheap
         def match_target_repo(config, target_repo):
@@ -302,8 +300,8 @@ class GitModule(PatchewModule):
         projects = [
             pid for pid, config in projects if match_target_repo(config, target_repo)
         ]
-        q = q.filter(project__pk__in=projects)
-        return q
+        return Message.objects.filter(results__name="git", results__status="pending",
+                                      results__project__pk__in=projects)
 
 
 class UnappliedSeriesSerializer(SeriesSerializer):
