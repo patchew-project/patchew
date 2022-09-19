@@ -63,7 +63,8 @@ class Result(models.Model):
     log_entry = models.OneToOneField(LogEntry, on_delete=models.CASCADE, null=True)
     data = jsonfield.JSONField(default={})
 
-    project_denorm = models.ForeignKey(
+    # This field is denormalized in the case of MessageResult
+    project = models.ForeignKey(
         "Project", related_name="+", on_delete=models.CASCADE
     )
 
@@ -331,14 +332,19 @@ class Project(models.Model):
         return len(updated_series)
 
     def create_result(self, **kwargs):
-        return ProjectResult(project=self, project_denorm=self, **kwargs)
+        return ProjectResult(project=self, **kwargs)
+
+    # Because Result's project field is used also for MessageResults (in which
+    # case it is a denormalized form of Message.project), it does not have
+    # a related_name; it would not make sense to return the MessageResults
+    # too.  Instead, this property returns a queryset of ProjectResults for
+    # this project.
+    @property
+    def results(self):
+        return ProjectResult.objects.filter(project=self)
 
 
 class ProjectResult(Result):
-    project = models.ForeignKey(
-        Project, related_name="results", on_delete=models.CASCADE, null=True
-    )
-
     @property
     def obj(self):
         return self.project
@@ -942,7 +948,7 @@ class Message(models.Model):
         emit_event("SeriesMerged", project=self.project, series=self)
 
     def create_result(self, **kwargs):
-        return MessageResult(message=self, project_denorm=self.project, **kwargs)
+        return MessageResult(message=self, project=self.project, **kwargs)
 
     def __str__(self):
         return self.project.name + "/" + self.subject
