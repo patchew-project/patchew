@@ -63,6 +63,10 @@ class Result(models.Model):
     log_entry = models.OneToOneField(LogEntry, on_delete=models.CASCADE, null=True)
     data = jsonfield.JSONField(default={})
 
+    project_denorm = models.ForeignKey(
+        "Project", related_name="+", on_delete=models.CASCADE, null=True
+    )
+
     class Meta:
         index_together = [("status", "name")]
 
@@ -327,12 +331,12 @@ class Project(models.Model):
         return len(updated_series)
 
     def create_result(self, **kwargs):
-        return ProjectResult(project=self, **kwargs)
+        return ProjectResult(project=self, project_denorm=self, **kwargs)
 
 
 class ProjectResult(Result):
     project = models.ForeignKey(
-        Project, related_name="results", on_delete=models.CASCADE
+        Project, related_name="results", on_delete=models.CASCADE, null=True
     )
 
     @property
@@ -938,7 +942,7 @@ class Message(models.Model):
         emit_event("SeriesMerged", project=self.project, series=self)
 
     def create_result(self, **kwargs):
-        return MessageResult(message=self, **kwargs)
+        return MessageResult(message=self, project_denorm=self.project, **kwargs)
 
     def __str__(self):
         return self.project.name + "/" + self.subject
