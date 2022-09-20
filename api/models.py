@@ -303,11 +303,18 @@ class Project(models.Model):
 
     @classmethod
     def get_project_ids_by_id(cls, id):
-        return cls.objects.filter(Q(id=id) | Q(parent_project__id=id)).values_list('id')
+        q = cls.objects.filter(Q(id=id) | Q(parent_project__id=id)).values_list('id')
+        # Force execution of the query.  PostgreSQL sometimes (but not always...)
+        # sees the subquery and does not use the (project, topic, date) index;
+        # instead it uses the (topic, date) index and filters on the project later,
+        # which is horrible for projects that have very few messages.  Since our
+        # intended plan is to first walk the small project table, do that explicitly.
+        return [x[0] for x in list(q)]
 
     @classmethod
     def get_project_ids_by_name(cls, name):
-        return cls.objects.filter(Q(name=name) | Q(parent_project__name=name)).values_list('id')
+        q = cls.objects.filter(Q(name=name) | Q(parent_project__name=name)).values_list('id')
+        return [x[0] for x in list(q)]
 
     def get_project_head(self):
         return self.get_property("git.head")
