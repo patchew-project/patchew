@@ -12,6 +12,7 @@ from collections import OrderedDict
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponseRedirect
 from django.template import loader
+from django.db.models import F
 import django.db.utils
 
 from mod import dispatch_module_hook
@@ -35,7 +36,6 @@ from rest_framework.fields import (
     EmailField,
     ListField,
 )
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -539,11 +539,37 @@ class PatchewSearchFilter(filters.BaseFilterBackend):
         return template.render(context)
 
 
+class PatchewOrderingFilter(filters.OrderingFilter):
+    def filter_queryset(self, request, queryset, view):
+        # Always use descending ordering
+        for i in self.get_ordering(request, queryset, view):
+            if i[0] == "-":
+                i = i[1:]
+            if i == "last_reply_date":
+                queryset = queryset.order_by(F("last_reply_date").desc(nulls_last=True), "-date")
+            else:
+                queryset = queryset.order_by("-" + i)
+
+        return queryset
+
+    def get_template_context(self, request, queryset, view):
+        ordering = self.get_ordering(request, queryset, view)
+        context = {
+            'request': request,
+            'current': None if not ordering else ordering[0],
+            'param': self.ordering_param,
+        }
+        context['options'] = self.get_valid_fields(queryset, view, context)
+        return context
+
+
 class SeriesViewSet(BaseMessageViewSet):
     serializer_class = SeriesSerializer
-    queryset = Message.objects.filter(topic__isnull=False).order_by("-id")
-    filter_backends = (PatchewSearchFilter,)
+    queryset = Message.objects.filter(topic__isnull=False)
+    filter_backends = (PatchewSearchFilter, PatchewOrderingFilter)
     search_fields = (SEARCH_PARAM,)
+    ordering_fields = ['date', 'id', 'last_reply_date']
+    ordering = ['id']
 
 
 class ProjectSeriesViewSet(
