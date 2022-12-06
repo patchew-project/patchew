@@ -193,7 +193,7 @@ series cover letter, patch mail body and their replies.
                 }
             )
 
-        if message.is_obsolete:
+        if message.is_obsolete and message.topic.latest:
             latest_url = reverse(
                 "series_detail",
                 kwargs={
@@ -222,7 +222,7 @@ series cover letter, patch mail body and their replies.
             )
 
     def get_obsoleted_by(self, message, request, format):
-        if message.is_obsolete:
+        if message.is_obsolete and message.topic.latest:
             obsoleted_by = message.topic.latest.message_id
             return rest_framework.reverse.reverse(
                 "series-detail",
