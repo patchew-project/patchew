@@ -4,6 +4,10 @@
       prompt: "Instance name of the webserver"
       default: patchew-server
       private: no
+    - name: db_host
+      prompt: "Host for PostgreSQL database (empty = SQLite)"
+      default: ""
+      private: no
     - name: superuser_name
       prompt: "Admin account to create (optional)"
       default: ""
@@ -16,7 +20,8 @@
     base_dir: "/data/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
-    docker_run_args: "--link {{ instance_name }}-db:patchew-db"
+    db_arg: "{{ '-e PATCHEW_DB_PORT_5432_TCP_ADDR=' if db_host != '' else '' }}{{ db_host }}"
+    docker_run_args: "--link {{ instance_name }}-db:patchew-db {{db_arg}}"
   tasks:
     - name: Create data dir
       file:
