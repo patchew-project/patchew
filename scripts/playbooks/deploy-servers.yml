@@ -31,6 +31,19 @@
       file:
         path: "{{ data_dir }}"
         state: directory
+    - name: Configuring SELinux file context
+      sefcontext:
+        setype: httpd_var_run_t
+        target: "{{ data_dir }}/nginx.sock"
+      become: true
+    - name: Check whether a preexisting socket exists
+      stat:
+        path: "{{ data_dir }}/nginx.sock"
+      register: nginx_sock
+    - name: Apply new SELinux file context to filesystem
+      command: "restorecon -v {{ data_dir }}/nginx.sock"
+      become: true
+      when: nginx_sock.stat.exists
     - name: Create podman network
       containers.podman.podman_network:
         name: patchew
