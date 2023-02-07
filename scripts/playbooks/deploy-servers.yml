@@ -4,6 +4,10 @@
       prompt: "Instance name of the webserver"
       default: patchew-server
       private: no
+    - name: container_dir
+      prompt: "The base directory for the container"
+      default: /data
+      private: no
     - name: db_host
       prompt: "Host for PostgreSQL database (empty = SQLite)"
       default: ""
@@ -17,7 +21,7 @@
       default: "adminpass"
       private: yes
   vars:
-    base_dir: "/data/{{ instance_name }}"
+    base_dir: "{{ container_dir }}/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
     db_arg: "{{ '-e PATCHEW_DB_PORT_5432_TCP_ADDR=' if db_host != '' else '' }}{{ db_host }}"

@@ -4,8 +4,12 @@
       prompt: "Instance name of the patchew postgres db"
       default: patchew-server-db
       private: no
+    - name: container_dir
+      prompt: "The base directory for the container"
+      default: /data
+      private: no
   vars:
-    base_dir: "/data/{{ instance_name }}"
+    base_dir: "{{ container_dir }}/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
   tasks:

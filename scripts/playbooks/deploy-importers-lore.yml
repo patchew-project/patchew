@@ -4,6 +4,10 @@
       prompt: "The instance name"
       default: patchew-importer-lore
       private: no
+    - name: container_dir
+      prompt: "The base directory for the container"
+      default: /data
+      private: no
     - name: "patchew_server"
       prompt: "The address of patchew server"
       default: "https://patchew.org"
@@ -20,7 +24,7 @@
       default: "https://lore.kernel.org/lkml/"
       private: no
   vars:
-    base_dir: "/data/{{ instance_name }}"
+    base_dir: "{{ container_dir }}/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
     config_file: "{{ data_dir }}/config"
