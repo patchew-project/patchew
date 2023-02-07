@@ -25,19 +25,23 @@
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
     db_arg: "{{ '-e PATCHEW_DB_PORT_5432_TCP_ADDR=' if db_host != '' else '' }}{{ db_host }}"
-    docker_run_args: "--link {{ instance_name }}-db:patchew-db {{db_arg}}"
+    podman_run_args: "--net patchew {{db_arg}}"
   tasks:
     - name: Create data dir
       file:
         path: "{{ data_dir }}"
         state: directory
-    - import_tasks: tasks/docker-deploy.yml
+    - name: Create podman network
+      containers.podman.podman_network:
+        name: patchew
+      become: true
+    - import_tasks: tasks/podman-deploy.yml
       vars:
         instance_role: server
     - name: Create superuser
       when: superuser_name != ""
       shell: |
-        docker exec -i {{ instance_name }} bash -c "
+        podman exec -i {{ instance_name }} bash -c "
         cd /opt/patchew &&
         . venv/bin/activate &&
         ./manage.py migrate &&

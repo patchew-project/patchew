@@ -1,0 +1,68 @@
+---
+- name: Install rsync
+  package:
+    name: rsync
+- name: Install pip
+  package:
+    name: python3-pip
+- name: Install podman
+  package:
+    name: podman
+- name: Stop systemd service for "{{ instance_name }}"
+  service:
+    name: "{{ instance_name }}"
+    state: stopped
+  ignore_errors: yes
+- name: Stop podman instance
+  containers.podman.podman_container:
+    name: "{{ instance_name }}"
+    state: absent
+- name: Create patchew data folder
+  file:
+    path: "{{ data_dir }}"
+    state: directory
+- name: Copy source
+  synchronize:
+    src: ../../../
+    dest: "{{ src_dir }}"
+    recursive: true
+    group: no
+    owner: no
+    delete: yes
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+      - "--exclude=*.pyo"
+      - "--exclude=*.sw*"
+      - "--exclude=/venv"
+- name: Check for existing backup image
+  containers.podman.podman_image_info:
+    name: "patchew:{{ instance_name }}-prev"
+  register: prev_image
+- name: Delete old podman image stash
+  shell: "podman untag 'patchew:{{ instance_name }}-prev'"
+  when: prev_image.images
+- name: Check for existing image
+  containers.podman.podman_image_info:
+    name: "patchew:{{ instance_name }}"
+  register: current_image
+- name: Stash podman image
+  containers.podman.podman_tag:
+    image: "patchew:{{ instance_name }}"
+    target_names: "patchew:{{ instance_name }}-prev"
+  when: current_image.images
+- name: Rebuild podman image
+  # docker_image module wants a file named Dockerfile
+  shell: "podman build -t 'patchew:{{ instance_name }}' -f '{{ src_dir }}/scripts/dockerfiles/{{ instance_role }}.docker' '{{ src_dir }}'"
+- name: Install systemd service
+  template:
+    src: "templates/podman.service.j2"
+    dest: "/etc/systemd/system/{{ instance_name }}.service"
+- name: Systemd daemon reload
+  systemd:
+    daemon_reload: yes
+- name: Start podman instance
+  service:
+    name: "{{ instance_name }}"
+    state: restarted
+    enabled: yes

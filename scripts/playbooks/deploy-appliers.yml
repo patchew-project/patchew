@@ -47,6 +47,6 @@
       template:
         src: "templates/applier-config.j2"
         dest: "{{ config_file }}"
-    - import_tasks: tasks/docker-deploy.yml
+    - import_tasks: tasks/podman-deploy.yml
       vars:
         instance_role: applier

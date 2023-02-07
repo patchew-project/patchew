@@ -1,0 +1,19 @@
+[Unit]
+Description=Patchew podman instance control service for {{ instance_name }}
+Requires=network.target
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Restart=always
+ExecStartPre=-podman stop {{ instance_name }} ; -podman rm {{ instance_name }}
+ExecStart=podman run --privileged --name {{ instance_name }} \
+    -v {{ data_dir }}:/data/patchew:rw \
+    -e PATCHEW_DATA_DIR=/data/patchew \
+    {{ podman_run_args | default() }} \
+    patchew:{{ instance_name }}
+ExecStop=podman stop -t 10 {{ instance_name }}
+RestartSec=60
+
+[Install]
+WantedBy=default.target
