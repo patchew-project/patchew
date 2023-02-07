@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM registry.fedoraproject.org/fedora:latest
 RUN dnf install -y python python3-distro offlineimap findutils wget
 ENV LC_ALL en_US.UTF-8
 COPY . /opt/patchew/

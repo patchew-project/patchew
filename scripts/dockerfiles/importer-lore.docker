@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM registry.fedoraproject.org/fedora:latest
 RUN dnf install -y python findutils git wget
 ENV LC_ALL en_US.UTF-8
 COPY . /opt/patchew/

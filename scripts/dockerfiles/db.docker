@@ -1,4 +1,4 @@
-FROM postgres:11
+FROM docker.io/postgres:11
 EXPOSE 5432
 ENV POSTGRES_USER patchew
 ENV POSTGRES_PASSWORD patchew

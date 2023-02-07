@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM registry.fedoraproject.org/fedora:latest
 RUN dnf install -y python git wget
 RUN git config --global user.email "applier@patchew.org"
 RUN git config --global user.name "Patchew Applier"
