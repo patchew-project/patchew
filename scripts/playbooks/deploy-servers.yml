@@ -8,6 +8,10 @@
       prompt: "The base directory for the container"
       default: /data
       private: no
+    - name: "podman_network"
+      prompt: "The podman network to use for the container (empty = none)"
+      default: ""
+      private: no
     - name: db_host
       prompt: "Host for PostgreSQL database (empty = SQLite)"
       default: ""
@@ -24,8 +28,7 @@
     base_dir: "{{ container_dir }}/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
-    db_arg: "{{ '-e PATCHEW_DB_PORT_5432_TCP_ADDR=' if db_host != '' else '' }}{{ db_host }}"
-    podman_run_args: "--net patchew {{db_arg}}"
+    podman_run_args: "{{ '-e PATCHEW_DB_PORT_5432_TCP_ADDR=' if db_host != '' else '' }}{{ db_host }}"
   tasks:
     - name: Create data dir
       file:
@@ -44,10 +47,6 @@
       command: "restorecon -v {{ data_dir }}/nginx.sock"
       become: true
       when: nginx_sock.stat.exists
-    - name: Create podman network
-      containers.podman.podman_network:
-        name: patchew
-      become: true
     - import_tasks: tasks/podman-deploy.yml
       vars:
         instance_role: server

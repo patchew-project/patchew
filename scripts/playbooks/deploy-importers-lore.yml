@@ -8,6 +8,10 @@
       prompt: "The base directory for the container"
       default: /data
       private: no
+    - name: "podman_network"
+      prompt: "The podman network to use for the container (empty = none)"
+      default: ""
+      private: no
     - name: "patchew_server"
       prompt: "The address of patchew server"
       default: "https://patchew.org"

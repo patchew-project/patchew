@@ -21,6 +21,11 @@
   file:
     path: "{{ data_dir }}"
     state: directory
+- name: Create podman network
+  containers.podman.podman_network:
+    name: "{{ podman_network }}"
+  become: true
+  when: podman_network != ""
 - name: Copy source
   synchronize:
     src: ../../../

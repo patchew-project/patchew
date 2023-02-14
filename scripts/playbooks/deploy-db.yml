@@ -8,20 +8,19 @@
       prompt: "The base directory for the container"
       default: /data
       private: no
+    - name: "podman_network"
+      prompt: "The podman network to use for the container (empty = none)"
+      default: ""
+      private: no
   vars:
     base_dir: "{{ container_dir }}/{{ instance_name }}"
     src_dir: "{{ base_dir }}/src"
     data_dir: "{{ base_dir }}/data"
-    podman_run_args: "--net patchew"
   tasks:
     - name: Create data dir
       file:
         path: "{{ data_dir }}"
         state: directory
-    - name: Create podman network
-      containers.podman.podman_network:
-        name: patchew
-      become: true
     - import_tasks: tasks/podman-deploy.yml
       vars:
         instance_role: db

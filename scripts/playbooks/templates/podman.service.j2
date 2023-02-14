@@ -10,7 +10,7 @@ ExecStartPre=-podman stop {{ instance_name }} ; -podman rm {{ instance_name }}
 ExecStart=podman run --privileged --name {{ instance_name }} \
     -v {{ data_dir }}:/data/patchew:rw \
     -e PATCHEW_DATA_DIR=/data/patchew \
-    {{ podman_run_args | default() }} \
+   {{ " --net " if podman_network else "" }}{{ podman_network }} {{ podman_run_args | default() }} \
     patchew:{{ instance_name }}
 ExecStop=podman stop -t 10 {{ instance_name }}
 RestartSec=60
