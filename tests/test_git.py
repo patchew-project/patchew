@@ -257,5 +257,17 @@ class GitTest(PatchewTestCase):
         out, err = self.do_apply(True)
         self.assertIn("ci.skip", out)
 
+    def test_no_update_series_on_tags(self):
+        # No need to test the opposite (default value), implicitly tested before
+        self.p.config["git"]["update_series_on_tags"] = False
+        self.p.save()
+        self.cli_import("0013-foo-patch.mbox.gz")
+        self.do_apply(True)
+
+        # Getting a new reviewed-by shouldn't trigger re-push
+        self.cli_import("0025-foo-patch-review.mbox.gz")
+        out, err = self.do_apply(True)
+        self.assertIn("No series need apply", out)
+
 if __name__ == "__main__":
     main()

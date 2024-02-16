@@ -87,6 +87,12 @@ class GitModule(PatchewModule):
                 desc="Publicly visible URL template for applied branch, where %t will be replaced by the applied tag name",
                 required=True,
             ),
+            schema.BooleanSchema(
+                "update_series_on_tags",
+                "Update series on new tags",
+                desc="Whether series are pushed (overriden) when new tags are sent on the mailing list, on by default",
+                default=True,
+            ),
         ],
     )
 
@@ -109,7 +115,10 @@ class GitModule(PatchewModule):
         r.save()
 
     def on_tags_update(self, event, series, **params):
-        if series.is_complete:
+        config = self.get_project_config(series.project)
+        update_series_on_tags = config.get("update_series_on_tags", True)
+
+        if update_series_on_tags and series.is_complete:
             self.mark_as_pending_apply(
                 series,
                 {
