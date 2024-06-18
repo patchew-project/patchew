@@ -39,6 +39,9 @@
         setype: httpd_var_run_t
         target: "{{ data_dir }}/nginx.sock"
       become: true
+    - import_tasks: tasks/podman-deploy.yml
+      vars:
+        instance_role: server
     - name: Check whether a preexisting socket exists
       stat:
         path: "{{ data_dir }}/nginx.sock"
@@ -47,9 +50,6 @@
       command: "restorecon -v {{ data_dir }}/nginx.sock"
       become: true
       when: nginx_sock.stat.exists
-    - import_tasks: tasks/podman-deploy.yml
-      vars:
-        instance_role: server
     - name: Create superuser
       when: superuser_name != ""
       shell: |
