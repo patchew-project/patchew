@@ -495,6 +495,7 @@ class ProjectCommand(SubCommand):
             cwd=clone,
         ).decode()
         msgid_trailer = 'Message-Id:'.casefold()
+        msgid_link_trailer = 'Link: https://patch.msgid.link/'.casefold()
         lore_link_trailer = 'Link: https://lore.kernel.org/r/'.casefold()
         msgids = []
         for x in output.splitlines():
@@ -502,6 +503,8 @@ class ProjectCommand(SubCommand):
             header = x.casefold()
             if header.startswith(msgid_trailer):
                 msgids.append(x[11:].strip())
+            elif header.startswith(msgid_link_trailer):
+                msgids.append('%s' % x[31:].rstrip())
             elif header.startswith(lore_link_trailer):
                 msgids.append('%s' % x[32:].rstrip())
         logging.debug("message ids: \n%s" % "\n".join(["  " + x for x in msgids]))
