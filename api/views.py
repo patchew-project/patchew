@@ -10,7 +10,7 @@
 
 from django.views.generic import View
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from .models import Project, Message
@@ -19,6 +19,10 @@ from .search import SearchEngine
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from mod import dispatch_module_hook
+from django.db import transaction
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class APIView(View):
@@ -37,16 +41,54 @@ class APIView(View):
     def check_request(self, request):
         pass
 
-    def post(self, request):
+    def _parse_params(self, request):
+        """
+        Parse params from either:
+         - JSON body (Content-Type: application/json)
+         - form POST param named 'params' (JSON encoded)
+         - empty dict otherwise
+        """
+        # Try application/json (or any body that parses as JSON)
+        try:
+            if request.body:
+                # Some clients may send form-encoded data but still put JSON in body
+                raw = request.body.decode("utf-8")
+                # If there is a body and it's JSON, parse it
+                try:
+                    parsed = json.loads(raw)
+                    # If the top-level is a dict, return it as params. If clients send {"params": {...}},
+                    # allow that too.
+                    if isinstance(parsed, dict):
+                        # If parsed contains top-level keys for this API, assume it's the params dict
+                        # Otherwise, support {"params": {...}} format
+                        if "params" in parsed and isinstance(parsed["params"], dict):
+                            return parsed["params"]
+                        return parsed
+                    # If parsed is not dict (e.g., list) return as {"_data": parsed}
+                    return {"_data": parsed}
+                except json.JSONDecodeError:
+                    # Not valid JSON in body — fall back to form POST below
+                    pass
+        except Exception:
+            # decoding issues — fall back
+            pass
+
+        # Fallback: look for form field 'params' which contains JSON string
         p = request.POST.get("params")
         if p:
-            params = json.loads(p)
-        else:
-            params = {}
+            try:
+                return json.loads(p)
+            except json.JSONDecodeError:
+                raise Http404("Malformed JSON in 'params'")
+        return {}
+
+    def post(self, request):
+        params = self._parse_params(request)
         self.check_request(request)
         r = self.handle(request, **params)
         if r is not None:
-            return HttpResponse(json.dumps(r))
+            # use JsonResponse so lists and dicts are returned correctly
+            return JsonResponse(r, safe=False, json_dumps_params={"ensure_ascii": False})
         else:
             return HttpResponse()
 
@@ -56,16 +98,25 @@ class APILoginRequiredView(APIView):
     allowed_groups = []
 
     def check_permission(self, request):
+        """
+        override in subclasses to provide custom additional permission checks
+        """
         return False
 
     def check_request(self, request):
         if not request.user.is_authenticated:
             raise PermissionDenied()
+        # superusers bypass other checks
         if request.user.is_superuser:
             return
-        for grp in request.user.groups.all():
-            if grp.name in self.allowed_groups or self.check_permission(request):
-                return
+        # explicit permission method can allow
+        if self.check_permission(request):
+            return
+        # allowed_groups membership can allow
+        user_group_names = {g.name for g in request.user.groups.all()}
+        if any(g in user_group_names for g in self.allowed_groups):
+            return
+        # otherwise deny
         raise PermissionDenied()
 
 
@@ -108,7 +159,8 @@ class AddProjectView(APILoginRequiredView):
     name = "add-project"
 
     def handle(self, request, name, mailing_list, url, git, description):
-        if Project.objects.filter(name=name):
+        # use exists() for efficient check
+        if Project.objects.filter(name=name).exists():
             raise Exception("Project already exists")
         p = Project(
             name=name,
@@ -118,6 +170,8 @@ class AddProjectView(APILoginRequiredView):
             description=description,
         )
         p.save()
+        # Return created project summary for convenience
+        return prepare_project(p)
 
 
 class UpdateProjectHeadView(APILoginRequiredView):
@@ -125,13 +179,19 @@ class UpdateProjectHeadView(APILoginRequiredView):
     allowed_groups = ["importers"]
 
     def handle(self, request, project, old_head, new_head, message_ids):
-        po = Project.objects.get(name=project)
-        old_head_0 = po.project_head
-        if old_head_0 and old_head_0 != old_head:
-            raise Exception("wrong old head")
-        ret = po.series_update(message_ids)
-        po.project_head = new_head
-        return ret
+        # Use select_for_update to avoid race conditions; wrap in transaction
+        try:
+            with transaction.atomic():
+                po = Project.objects.select_for_update().get(name=project)
+                old_head_0 = po.project_head
+                if old_head_0 and old_head_0 != old_head:
+                    raise Exception("wrong old head")
+                ret = po.series_update(message_ids)
+                po.project_head = new_head
+                po.save()
+                return ret
+        except Project.DoesNotExist:
+            raise Http404("Project not found")
 
 
 def prepare_patch(p):
@@ -197,6 +257,8 @@ class ImportView(APILoginRequiredView):
                     ]
                 )
             except Message.objects.DuplicateMessageError:
+                # keep going on duplicates
+                logger.info("Duplicate messages found while importing mbox: %s", mbox)
                 pass
         return list(projects)
 
@@ -206,13 +268,27 @@ class DeleteView(APILoginRequiredView):
 
     name = "delete"
 
-    def handle(self, request, terms=[]):
+    def handle(self, request, terms=None, confirm=False):
+        """
+        terms: list of search terms; if empty or None and confirm is True => delete all
+        confirm: boolean, must be True to allow deletion of ALL messages
+        """
         if not terms:
+            # require explicit confirmation to delete everything
+            if not confirm:
+                raise PermissionDenied(
+                    "Deleting all messages requires explicit confirm=True"
+                )
+            logger.warning("User %s requested full message delete", request.user)
             Message.objects.all().delete()
+            return {"deleted_all": True}
         else:
             se = SearchEngine(terms, request.user)
+            deleted = []
             for r in se.search_series():
                 Message.objects.delete_subthread(r)
+                deleted.append(r.message_id if hasattr(r, "message_id") else str(r))
+            return {"deleted": deleted}
 
 
 class Logout(APIView):
@@ -220,19 +296,37 @@ class Logout(APIView):
 
     def handle(self, request):
         logout(request)
+        return {"logged_out": True}
 
 
 class LoginCommand(APIView):
     name = "login"
 
+    MAX_FAILED = 10
+
     def handle(self, request, username, password):
+        """
+        Simple session-backed failed-login mitigation: increments a counter in session.
+        This is intentionally small and local — for production use a shared/central rate-limit store.
+        """
+        # initialize session counter
+        failed = request.session.get("failed_logins", 0)
+        if failed >= self.MAX_FAILED:
+            logger.warning("Too many failed login attempts for session: %s", request.session.session_key)
+            raise PermissionDenied("Too many failed login attempts")
+
         user = authenticate(username=username, password=password)
         if user is not None:
-            # the password verified for the user
+            # reset counter on success
+            request.session["failed_logins"] = 0
             if user.is_active:
                 login(request, user)
-                return
+                logger.info("User %s logged in", username)
+                return {"logged_in": True}
             else:
                 raise Exception("User is disabled")
         else:
+            # increment counter
+            request.session["failed_logins"] = failed + 1
+            logger.info("Failed login attempt for username: %s (count=%d)", username, failed + 1)
             raise PermissionDenied("Wrong user name or password")
