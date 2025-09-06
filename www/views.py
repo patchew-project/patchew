@@ -418,7 +418,7 @@ class ProjectLogViewer(LogView):
         project = kwargs["project"]
         obj = Project.objects.filter(name=project).first()
         if not obj:
-            raise Http404("Project not found: " + series)
+            raise Http404("Project not found: " + project)  # fixed bug
         return obj.results.filter(name=kwargs["name"]).first()
 
 
@@ -427,9 +427,9 @@ class SeriesLogViewer(LogView):
         project = kwargs["project"]
         po = Project.objects.filter(name=project).first()
         if not po:
-            raise Http404("Project not found: " + series)
+            raise Http404("Project not found: " + project)  # fixed bug
         series = kwargs["message_id"]
         obj = Message.objects.find_series(series, project)
         if not obj:
-            raise Http404("Message not found: " + series)
+            raise Http404("Message not found: " + series)  # fixed bug
         return obj.results.filter(name=kwargs["name"]).first()
