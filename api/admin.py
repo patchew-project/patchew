@@ -11,6 +11,7 @@
 from django.contrib import admin
 from .models import Message, Module, Project, WatchedQuery, QueuedSeries
 from mod import get_module
+from markdown import markdown  # moved import to top-level for efficiency
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -28,11 +29,10 @@ class ModuleAdmin(admin.ModelAdmin):
             po = get_module(obj.name)
             if po:
                 a, b = fs[0]
-                b["fields"].remove("name")
+                if "name" in b["fields"]:  # safe check to prevent ValueError
+                    b["fields"].remove("name")
                 doc = type(po).__doc__
                 if doc:
-                    from markdown import markdown
-
                     b["description"] = markdown(doc)
         return fs
 
@@ -43,7 +43,8 @@ class ModuleAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         q = Module.objects.filter(pk=object_id).first()
         if q:
-            extra_context["title"] = "%s Module " % q.name.capitalize()
+            # use title() for proper capitalization of multi-word names
+            extra_context["title"] = f"{q.name.title()} Module"
         return super().change_view(
             request, object_id, form_url, extra_context=extra_context
         )
