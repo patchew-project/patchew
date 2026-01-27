@@ -63,8 +63,8 @@
             </td>
             <td>
                 <span title="{{ s.sender_full_name }}">
-                    {{ s.sender_display_name }}
-                </span>
+                    {{ s.sender_display_name }}</span>
+                <a href="/search?q=from:{{ s.sender_address|urlencode }}%20project:{{ project|urlencode }}" title="All series from {{ s.sender_display_name }}">👤</a>
             </td>
             {% if order_by_reply %}
             <td><span class="timestamp" title="{{ s.get_last_reply_date }}">{{ s.get_last_reply_date|naturaltime }}</span></td>

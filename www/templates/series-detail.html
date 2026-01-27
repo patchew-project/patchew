@@ -21,8 +21,9 @@
 <h2>{{ subject }}</h2>
 <div class="series-header-info">
             <span class="message-author" title="{{ series.sender_full_name }}">
-                {{ series.sender_display_name }}
-            </span> posted <span class="patch-count">
+                {{ series.sender_display_name }}</span>
+            <a href="/search?q=from:{{ series.sender_address|urlencode }}%20project:{{ project|urlencode }}" title="All series from {{ series.sender_display_name }}">👤</a>
+            posted <span class="patch-count">
                 {{ series.total_patches }}
                 patch{{ series.total_patches|pluralize:"es" }}
             </span> <span class="message-age" title="{{ series.date }}">
@@ -132,6 +133,7 @@ function prompt_and_submit(obj) {
                         Posted by
                         <span class="message-author" title="{{ msg.sender_full_name }}">
                             {{ msg.sender_display_name }}</span>
+                        <a href="/search?q=from:{{ msg.sender_address|urlencode }}%20project:{{ project|urlencode }}" title="All series from {{ msg.sender_display_name }}">👤</a>
                         <span class="message-age" title="{{ msg.date }}">
                             {{ msg.date|naturaltime }}
                         </span>
