@@ -100,3 +100,44 @@
     }
 }
 
+/* Toggle details button */
+.toggle-details {
+    margin-left: 1em;
+    color: #007bff;
+    text-decoration: none;
+}
+.toggle-details:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+    .toggle-details {
+        color: #6ea8fe;
+    }
+    .toggle-details:hover {
+        color: #9ec5fe;
+    }
+}
+
+/* Series details collapsible section */
+.series-details {
+    margin-top: 1em;
+}
+
+/* Status summary icon */
+.status-summary {
+    margin-left: 1em;
+}
+.status-summary .text-danger {
+    color: #dc3545;
+}
+.status-summary .text-warning {
+    color: #ffc107;
+}
+.status-summary .text-info {
+    color: #17a2b8;
+}
+.status-summary .text-success {
+    color: #28a745;
+}
+

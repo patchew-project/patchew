@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-detail.css?v=5">
+<link rel="stylesheet" href="/static/css/series-detail.css?v=6">
 <link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
 <script src="/static/js/keyboard-nav.js?v=1"></script>
 <script src="/static/highlight/highlight.pack.js"></script>
@@ -37,8 +37,13 @@
     {% endfor %}
   </ul>
   {% endif %}
+  {% if is_head %}
+  <span id="status-summary" class="status-summary" title="Overall status"></span>
+  <a href="#" id="toggle-details" class="toggle-details" title="Toggle details"><span class="fa fa-chevron-down"></span></a>
+  {% endif %}
 </div>
 
+<div id="series-details" class="series-details collapse{% if not is_head %} show{% endif %}">
 {% if series.extra_ops %}
 <div id="detail-ops">
   <ul>
@@ -108,6 +113,7 @@ function prompt_and_submit(obj) {
     {% endif %}
 {% endif %}
 </div>
+</div><!-- series-details -->
 </div><!-- col -->
 </div><!-- row -->
 
@@ -186,6 +192,43 @@ function main() {
         $(".card-collapse").collapse("hide");
 	e.preventDefault();
     });
+    // Compute overall status summary
+    var statusSummary = "success";
+    $(".status-content .fa").each(function() {
+        var $icon = $(this);
+        if ($icon.hasClass("fa-exclamation-triangle")) {
+            statusSummary = "failure";
+            return false; // break - failure takes priority
+        } else if ($icon.hasClass("fa-sync") && statusSummary !== "failure") {
+            statusSummary = "running";
+        } else if ($icon.hasClass("fa-hourglass") && statusSummary === "success") {
+            statusSummary = "pending";
+        }
+    });
+    var summaryIconClass = {
+        "failure": "fa fa-exclamation-triangle text-danger",
+        "running": "fa fa-sync fa-spin text-info",
+        "pending": "fa fa-hourglass text-warning",
+        "success": "fa fa-check text-success"
+    };
+    if ($(".status-content").length > 0) {
+        $("#status-summary").html('<span class="' + summaryIconClass[statusSummary] + '"></span>');
+    }
+
+    // Toggle details section
+    $("#toggle-details").click(function (e) {
+        var $details = $("#series-details");
+        var $icon = $(this).find(".fa");
+        $details.collapse("toggle");
+        e.preventDefault();
+    });
+    $("#series-details").on("shown.bs.collapse", function() {
+        $("#toggle-details .fa").removeClass("fa-chevron-down").addClass("fa-chevron-up");
+        $("#status-summary").hide();
+    }).on("hidden.bs.collapse", function() {
+        $("#toggle-details .fa").removeClass("fa-chevron-up").addClass("fa-chevron-down");
+        $("#status-summary").show();
+    });
     $(document).ready(function() {
         $('pre code').each(function(i, block) {
             hljs.highlightBlock(block);
@@ -221,6 +264,7 @@ function main() {
     }
 
     var extraKeys = [
+        { key: "d", label: "Toggle details", handler: function() { $("#series-details").collapse("toggle"); } },
         { key: ";", label: "Expand all messages", handler: function() { $(".card-collapse").collapse("show"); } },
         { key: ":", label: "Collapse all messages", handler: function() { $(".card-collapse").collapse("hide"); } }
     ];
