@@ -32,7 +32,7 @@
   <ul id="series-links">
     {% for op in series.extra_links %}
     <li>
-      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span>
+      <span class="{% if op.icon_class %}{{ op.icon_class }}{% else %}fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}{% endif %}"></span>
         {{ op.html }}</li>
     {% endfor %}
   </ul>
@@ -274,6 +274,10 @@ function main() {
                                          $('.cboxIframe')[0].contentWindow.focus();
                                       }, 400);
                                  }});
+        $(".copy-git-fetch").click(function(e) {
+            e.preventDefault();
+            copy_text_to_clipboard($(this).data("cmd"), this);
+        });
     });
     add_fixed_scroll_events();
 

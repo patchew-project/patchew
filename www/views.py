@@ -121,6 +121,27 @@ def prepare_results(request, obj):
     return rendered_results
 
 
+def add_git_fetch_link(series, msg):
+    """Add git fetch copy button to extra_links if git result has repo and tag."""
+    git_result = msg.results.filter(name="git").first()
+    if git_result and git_result.data:
+        git_repo = git_result.data.get("repo")
+        git_tag = git_result.data.get("tag")
+        if git_repo and git_tag:
+            if git_tag.startswith("refs/tags/"):
+                git_tag = git_tag[5:]
+            git_cmd = "git fetch {} {}".format(git_repo, git_tag)
+            series.extra_links.append(
+                {
+                    "html": format_html(
+                        '<a href="#" class="copy-git-fetch" data-cmd="{}" title="Copy git fetch command">Copy git fetch</a>',
+                        git_cmd
+                    ),
+                    "icon_class": "fab fa-git-alt",
+                }
+            )
+
+
 def prepare_series_list(request, sl):
     return [prepare_message(request, s.project, s, False) for s in sl]
 
@@ -350,6 +371,7 @@ def view_series_detail(request, project, message_id):
                 "icon": "download",
             }
         )
+    add_git_fetch_link(series, s)
     return render_page(
         request,
         "series-detail.html",
@@ -393,6 +415,7 @@ def view_series_message(request, project, thread_id, message_id):
             "icon": "download",
         }
     )
+    add_git_fetch_link(series, s)
     return render_page(
         request,
         "series-detail.html",
