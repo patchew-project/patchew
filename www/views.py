@@ -382,7 +382,6 @@ def view_series_message(request, project, thread_id, message_id):
     nav_path = prepare_navigate_list(
         "View patch",
         ("series_list", {"project": project}, project),
-        ("series_detail", {"project": project, "message_id": thread_id}, s.subject),
     )
     search = "id:" + thread_id
     series = prepare_message(request, s.project, s, True)

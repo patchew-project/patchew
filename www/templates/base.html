@@ -27,7 +27,7 @@ crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
 <link rel="stylesheet" href="/static/highlight/default.css">
-<link rel="stylesheet" href="/static/css/base.css?v=4">
+<link rel="stylesheet" href="/static/css/base.css?v=7">
 
 <script src="/static/js/patchew.js"></script>
 
@@ -38,12 +38,17 @@ crossorigin="anonymous"></script>
 <body>
 <div class="wrapper">
 <nav class="navbar navbar-light navbar-expand-lg ml-3 mr-3">
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-brand">
+    <!-- Brand and breadcrumb combined -->
+    <div class="navbar-brand-nav">
       <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-controls="#navbar-collapse-1" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <a class="navbar-brand" href="/"><span class="smiley">:p</span>atchew</a>
+      {% if navigate_links|length > 1 %}
+      <span class="navbar-breadcrumb">
+        {% for n in navigate_links %}{% if not forloop.first %}<span class="breadcrumb-sep">/</span><a href="{{ n.url }}" class="breadcrumb-link {{ n.class }}">{{ n.title }}</a>{% endif %}{% endfor %}
+      </span>
+      {% endif %}
     </div>
 
     <!-- Collect the nav links, forms, and other content for toggling -->
@@ -84,14 +89,6 @@ crossorigin="anonymous"></script>
     </div><!-- /.navbar-collapse -->
 </nav>
 <div class="col-xl-12 container-fluid">
-
-    {% if navigate_links %}
-        <ol class="breadcrumb navigate">
-        {% for n in navigate_links %}
-            <li class="breadcrumb-item {{ n.class }}"><a href="{{ n.url }}">{{ n.title }}</a></li>
-        {% endfor %}
-        </ol>
-    {% endif %}
 
     {% block content %}
     {% endblock %}
