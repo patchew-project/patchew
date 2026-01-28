@@ -128,6 +128,36 @@
 .status-summary {
     margin-left: 1em;
 }
+
+/* Diff stat summary */
+.diffstat-summary {
+    margin-left: 1em;
+    font-size: 0.9em;
+}
+.diffstat-add {
+    color: #28a745;
+}
+.diffstat-del {
+    color: #dc3545;
+}
+.diffstat-bar {
+    display: inline-flex;
+    margin-left: 0.5em;
+    gap: 2px;
+    vertical-align: middle;
+}
+.diffstat-block {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 1px;
+}
+.diffstat-block-add {
+    background-color: #28a745;
+}
+.diffstat-block-del {
+    background-color: #dc3545;
+}
 .status-summary .text-danger {
     color: #dc3545;
 }

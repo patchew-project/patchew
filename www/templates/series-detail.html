@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-detail.css?v=6">
+<link rel="stylesheet" href="/static/css/series-detail.css?v=7">
 <link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
 <script src="/static/js/keyboard-nav.js?v=1"></script>
 <script src="/static/highlight/highlight.pack.js"></script>
@@ -39,6 +39,7 @@
   {% endif %}
   {% if is_head %}
   <span id="status-summary" class="status-summary" title="Overall status"></span>
+  <span id="diffstat-summary" class="diffstat-summary"></span>
   <a href="#" id="toggle-details" class="toggle-details" title="Toggle details"><span class="fa fa-chevron-down"></span></a>
   {% endif %}
 </div>
@@ -215,6 +216,36 @@ function main() {
         $("#status-summary").html('<span class="' + summaryIconClass[statusSummary] + '"></span>');
     }
 
+    // Parse and display diff stat summary
+    var diffStatText = $(".status .body-full").text();
+    var diffStatMatch = diffStatText.match(/(\d+)\s+insertion[s]?\(\+\)(?:,\s*(\d+)\s+deletion[s]?\(-\))?/);
+    if (!diffStatMatch) {
+        diffStatMatch = diffStatText.match(/(\d+)\s+deletion[s]?\(-\)/);
+        if (diffStatMatch) {
+            diffStatMatch = [null, "0", diffStatMatch[1]];
+        }
+    }
+    if (diffStatMatch) {
+        var insertions = parseInt(diffStatMatch[1]) || 0;
+        var deletions = parseInt(diffStatMatch[2]) || 0;
+        var total = insertions + deletions;
+        var addBlocks = total > 0 ? Math.round((insertions / total) * 5) : 0;
+        var delBlocks = 5 - addBlocks;
+        var bars = '<span class="diffstat-bar">';
+        for (var i = 0; i < addBlocks; i++) {
+            bars += '<span class="diffstat-block diffstat-block-add"></span>';
+        }
+        for (var i = 0; i < delBlocks; i++) {
+            bars += '<span class="diffstat-block diffstat-block-del"></span>';
+        }
+        bars += '</span>';
+        $("#diffstat-summary").html(
+            '<span class="diffstat-add">+' + insertions.toLocaleString() + '</span> ' +
+            '<span class="diffstat-del">−' + deletions.toLocaleString() + '</span> ' +
+            bars
+        );
+    }
+
     // Toggle details section
     $("#toggle-details").click(function (e) {
         var $details = $("#series-details");
@@ -224,9 +255,10 @@ function main() {
     });
     $("#series-details").on("shown.bs.collapse", function() {
         $("#toggle-details .fa").removeClass("fa-chevron-down").addClass("fa-chevron-up");
-        $("#status-summary").hide();
+        $("#status-summary, #diffstat-summary").hide();
     }).on("hidden.bs.collapse", function() {
         $("#toggle-details .fa").removeClass("fa-chevron-up").addClass("fa-chevron-down");
+        $("#status-summary, #diffstat-summary").show();
         $("#status-summary").show();
     });
     $(document).ready(function() {
