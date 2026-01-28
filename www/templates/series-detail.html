@@ -161,7 +161,7 @@ function prompt_and_submit(obj) {
     <ul class="card no-bullet" id="patches">
     {% for patch in patches %}
     <li><a href="{{ patch.message_id }}/">
-      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+      <span class="fa-lg {% if patch.has_reviewed_by %}fa fa-certificate{% elif patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}</a></li>
     {% endfor %}
     </ul>
@@ -170,7 +170,7 @@ function prompt_and_submit(obj) {
     <ul class="card no-bullet" id="patches">
     {% for patch in patches %}
     <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
-      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+      <span class="fa-lg {% if patch.has_reviewed_by %}fa fa-certificate{% elif patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}
       {% if patch.message_id != message_id %}</a>{% endif %}</li>
     {% endfor %}

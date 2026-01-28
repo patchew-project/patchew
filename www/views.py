@@ -87,7 +87,14 @@ def prepare_patches(request, m, max_depth=None):
     )
     replies = replies.annotate(has_replies=Exists(commit_replies))
     project = m.project
-    return [prepare_message(request, project, x, True) for x in replies]
+    patches = []
+    for x in replies:
+        patch = prepare_message(request, project, x, True)
+        patch.has_reviewed_by = any(
+            tag.startswith("Reviewed-by:") for tag in (x.tags or [])
+        )
+        patches.append(patch)
+    return patches
 
 
 def prepare_series(request, s, skip_patches=False):
