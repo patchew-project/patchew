@@ -171,3 +171,25 @@
     color: #28a745;
 }
 
+/* Quoted lines in email replies */
+.quoted-line {
+    color: #6a737d;
+}
+.quote-depth-2 {
+    color: #8a8a8a;
+}
+.quote-depth-3 {
+    color: #a0a0a0;
+}
+@media (prefers-color-scheme: dark) {
+    .quoted-line {
+        color: #8b949e;
+    }
+    .quote-depth-2 {
+        color: #6e7681;
+    }
+    .quote-depth-3 {
+        color: #565c64;
+    }
+}
+

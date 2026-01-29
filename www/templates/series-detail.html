@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-detail.css?v=7">
+<link rel="stylesheet" href="/static/css/series-detail.css?v=8">
 <link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
 <script src="/static/js/keyboard-nav.js?v=1"></script>
 <script src="/static/highlight/highlight.pack.js"></script>
@@ -264,6 +264,21 @@ function main() {
     $(document).ready(function() {
         $('pre code').each(function(i, block) {
             hljs.highlightBlock(block);
+        });
+        // Style quoted lines in non-patch emails
+        $('pre.body-full').not(':has(code.diff)').each(function(i, block) {
+            var html = $(block).html();
+            var lines = html.split('\n');
+            var processed = lines.map(function(line) {
+                var leadingQuotes = line.match(/^((&gt;\s*)+)/);
+                if (leadingQuotes) {
+                    var depth = (leadingQuotes[1].match(/&gt;/g) || []).length;
+                    var depthClass = 'quote-depth-' + Math.min(depth, 3);
+                    return '<span class="quoted-line ' + depthClass + '">' + line + '</span>';
+                }
+                return line;
+            }).join('\n');
+            $(block).html(processed);
         });
         $(".cbox-log").colorbox({width:"90%", height: "80%", iframe: true,
                                  href: function() {
