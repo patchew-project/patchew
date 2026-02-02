@@ -5,6 +5,7 @@
  *   KeyboardNav.init({
  *       items: $("selector"),           // jQuery collection of navigable items
  *       onActivate: function(item) {},  // Called when Enter/o is pressed
+ *       activateLabel: "Open item",     // Label for the help dialog
  *       extraKeys: [                    // Optional extra key bindings
  *           { key: "n", label: "Next item", handler: function() {} }
  *       ]
@@ -51,6 +52,47 @@ var KeyboardNav = (function($) {
         onActivate(items.eq(selectedIndex), selectedIndex);
     }
 
+    function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showHelp(activateLabel, extraKeys) {
+        var modal = $("#keyboard-help-modal");
+        if (modal.length === 0) {
+            var extraRows = "";
+            if (extraKeys) {
+                for (var i = 0; i < extraKeys.length; i++) {
+                    extraRows += '<tr><td><kbd>' + escapeHtml(extraKeys[i].key) + '</kbd></td><td>' + escapeHtml(extraKeys[i].label) + '</td></tr>';
+                }
+            }
+            modal = $('<div id="keyboard-help-modal" class="keyboard-help-overlay">' +
+                '<div class="keyboard-help-dialog">' +
+                '<h3>Keyboard Shortcuts</h3>' +
+                '<table>' +
+                '<tr><td><kbd>j</kbd></td><td>Move to next item</td></tr>' +
+                '<tr><td><kbd>k</kbd></td><td>Move to previous item</td></tr>' +
+                '<tr><td><kbd>o</kbd> / <kbd>Enter</kbd></td><td>' + escapeHtml(activateLabel) + '</td></tr>' +
+                extraRows +
+                '<tr><td><kbd>/</kbd></td><td>Focus search box</td></tr>' +
+                '<tr><td><kbd>g</kbd> <kbd>h</kbd></td><td>Go to home page</td></tr>' +
+                '<tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Go to project</td></tr>' +
+                '<tr><td><kbd>g</kbd> <kbd>c</kbd></td><td>Go to cover letter</td></tr>' +
+                '<tr><td><kbd>?</kbd></td><td>Show this help</td></tr>' +
+                '<tr><td><kbd>Esc</kbd></td><td>Close this help</td></tr>' +
+                '</table>' +
+                '<button class="btn btn-secondary" onclick="$(\'#keyboard-help-modal\').removeClass(\'visible\')">Close</button>' +
+                '</div></div>');
+            $("body").append(modal);
+        }
+        modal.addClass("visible");
+    }
+
+    function hideHelp() {
+        $("#keyboard-help-modal").removeClass("visible");
+    }
+
     function init(options) {
         // Clean up previous handlers to prevent memory leaks on re-init
         if (boundFocusIn) {
@@ -62,6 +104,7 @@ var KeyboardNav = (function($) {
 
         items = options.items || $();
         onActivate = options.onActivate || null;
+        var activateLabel = options.activateLabel || "Open selected item";
         var extraKeys = options.extraKeys || [];
         selectedIndex = -1;
         savedIndex = -1;
@@ -72,7 +115,7 @@ var KeyboardNav = (function($) {
                 // Save selection when focusing our search input, discard otherwise
                 if ($(e.target).is("#q")) {
                     clearSelection();
-                } else {
+                } else if (!$(e.target).closest(".keyboard-help-dialog").length) {
                     items.removeClass("selected").attr("aria-selected", "false");
                     selectedIndex = -1;
                     savedIndex = -1;
@@ -87,6 +130,23 @@ var KeyboardNav = (function($) {
                 if (e.key === "Escape") {
                     $(e.target).blur();
                     restoreSelection();
+                    e.preventDefault();
+                }
+                return;
+            }
+            // Handle Escape to close help dialog
+            if (e.key === "Escape") {
+                if ($("#keyboard-help-modal").hasClass("visible")) {
+                    hideHelp();
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // Ignore if help dialog is open
+            if ($("#keyboard-help-modal").hasClass("visible")) {
+                if (e.key === "?" || e.key === "Escape") {
+                    hideHelp();
                     e.preventDefault();
                 }
                 return;
@@ -165,6 +225,10 @@ var KeyboardNav = (function($) {
                         searchBox.focus().select();
                         e.preventDefault();
                     }
+                    break;
+                case "?":
+                    showHelp(activateLabel, extraKeys);
+                    e.preventDefault();
                     break;
                 default:
                     // Check extra keys
