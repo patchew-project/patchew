@@ -15,6 +15,8 @@ var KeyboardNav = (function($) {
     var savedIndex = -1;
     var items = $();
     var onActivate = null;
+    var pendingPrefix = null;
+    var prefixTimeout = null;
     var boundFocusIn = null;
     var boundKeyDown = null;
 
@@ -90,7 +92,58 @@ var KeyboardNav = (function($) {
                 return;
             }
 
+            // Handle "g" prefix sequences
+            if (pendingPrefix === "g") {
+                clearTimeout(prefixTimeout);
+                pendingPrefix = null;
+                var path = window.location.pathname;
+                var parts = path.split("/").filter(function(p) { return p; });
+                switch (e.key) {
+                    case "h":
+                        window.location.href = "/";
+                        e.preventDefault();
+                        return;
+                    case "p":
+                        // Go to project
+                        var project = null;
+                        if (path === "/search") {
+                            // Extract project from search query
+                            var params = new URLSearchParams(window.location.search);
+                            var q = params.get("q") || "";
+                            var match = q.match(/project:(\S+)/);
+                            if (match) {
+                                project = match[1];
+                            }
+                        } else {
+                            if (parts.length >= 1) {
+                                project = parts[0];
+                            }
+                        }
+                        if (project) {
+                            window.location.href = "/" + project + "/";
+                        }
+                        e.preventDefault();
+                        return;
+                    case "c":
+                        // Go to cover letter (when viewing a patch)
+                        // URL structure: /project/thread_id/message_id/ (3 parts = patch view)
+                        if (parts.length >= 3) {
+                            window.location.href = "/" + parts[0] + "/" + parts[1] + "/";
+                        }
+                        e.preventDefault();
+                        return;
+                }
+                return;
+            }
+
             switch (e.key) {
+                case "g":
+                    pendingPrefix = "g";
+                    prefixTimeout = setTimeout(function() {
+                        pendingPrefix = null;
+                    }, 1000);
+                    e.preventDefault();
+                    break;
                 case "j":
                     selectItem(selectedIndex + 1);
                     e.preventDefault();
