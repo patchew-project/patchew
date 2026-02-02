@@ -291,7 +291,10 @@ function main() {
                                  }});
         $(".copy-git-fetch").click(function(e) {
             e.preventDefault();
-            copy_text_to_clipboard($(this).data("cmd"), this);
+            var el = this;
+            copy_text_to_clipboard($(this).data("cmd"), function() {
+                show_copied_feedback(el);
+            });
         });
     });
     add_fixed_scroll_events();

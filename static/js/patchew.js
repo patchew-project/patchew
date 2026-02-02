@@ -20,47 +20,31 @@ function copy_to_clipboard(input) {
     if (input.value == '') {
         return;
     }
-
-    var origSelectionStart = input.selectionStart;
-    var origSelectionEnd = input.selectionEnd;
-    var origFocus = typeof document.activeElement.focus === "function" ? document.activeElement : null;
-
-    // copy the selection.  Note that the old selection is not restored unless
-    // an error happens, to give the user feedback that the copy has happened.
-    input.focus();
-    input.setSelectionRange(0, input.value.length);
-    try {
-       document.execCommand("copy");
-    } catch(e) {
-        input.setSelectionRange(origSelectionStart, origSelectionEnd);
-        if (origFocus) {
-            origFocus.focus();
-        }
-    }
+    copy_text_to_clipboard(input.value, function() {
+        input.focus();
+        input.setSelectionRange(0, input.value.length);
+    });
 }
 
-function copy_text_to_clipboard(text, element) {
-    var originalText = element ? element.textContent : null;
+function show_copied_feedback(element) {
+    var originalText = element.textContent;
+    element.textContent = "Copied!";
+    setTimeout(function() {
+        element.textContent = originalText;
+    }, 1000);
+}
 
-    function showCopied() {
-        if (element && originalText) {
-            element.textContent = "Copied!";
-            setTimeout(function() {
-                element.textContent = originalText;
-            }, 1000);
-        }
-    }
-
+function copy_text_to_clipboard(text, onSuccess) {
     // Try modern clipboard API first
     if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function() {
-            showCopied();
+            if (onSuccess) onSuccess();
         }, function(err) {
             console.error("Clipboard API failed, trying fallback:", err);
-            execCommandCopy(text, showCopied);
+            execCommandCopy(text, onSuccess);
         });
     } else {
-        execCommandCopy(text, showCopied);
+        execCommandCopy(text, onSuccess);
     }
 }
 
