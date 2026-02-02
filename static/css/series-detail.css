@@ -21,11 +21,18 @@
 #patches {
     border: none;
     margin: 1.5em 0;
-    padding: 0em 0em 0em 2em;
+    padding: 0;
+    list-style: none;
 }
 
 #patches li {
     margin: 0.5em;
+    margin-left: 2em;
+    padding-left: 0.5em;
+}
+
+#patches li > a {
+    display: block;
 }
 
 .message-info {
@@ -92,3 +99,4 @@
         outline-color: #6ea8fe;
     }
 }
+

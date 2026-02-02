@@ -2,7 +2,9 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-detail.css?v=4">
+<link rel="stylesheet" href="/static/css/series-detail.css?v=5">
+<link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
+<script src="/static/js/keyboard-nav.js?v=1"></script>
 <script src="/static/highlight/highlight.pack.js"></script>
 <link rel="stylesheet" href="/static/css/colorbox.css">
 <script src="/static/js/jquery.colorbox-min.js"></script>
@@ -197,6 +199,59 @@ function main() {
                                  }});
     });
     add_fixed_scroll_events();
+
+    // Keyboard navigation: j/k to navigate messages and patches, o/Enter to toggle/open
+    var messages = $("#thread .card.message");
+    var patches = $("#patches li");
+
+    // Find current patch index for n/p navigation
+    var patchItems = $("#patches li");
+    var currentPatchIndex = patchItems.index($("#patches li.active"));
+
+    function goToPatch(index) {
+        if (patchItems.length === 0) return;
+        if (index < 0 || index >= patchItems.length) return;
+        var target = patchItems.eq(index);
+        var link = target.find("a");
+        if (link.length && link.attr("href")) {
+            window.location.href = link.attr("href");
+        }
+    }
+
+    var extraKeys = [
+        { key: ";", label: "Expand all messages", handler: function() { $(".card-collapse").collapse("show"); } },
+        { key: ":", label: "Collapse all messages", handler: function() { $(".card-collapse").collapse("hide"); } }
+    ];
+    if (patchItems.length > 1) {
+        extraKeys.push(
+            { key: "n", label: "Next patch", handler: function() {
+                // If no active patch, go to first; otherwise go to next
+                goToPatch(currentPatchIndex < 0 ? 0 : currentPatchIndex + 1);
+            } },
+            { key: "p", label: "Previous patch", handler: function() {
+                // Only navigate if we have an active patch
+                if (currentPatchIndex > 0) goToPatch(currentPatchIndex - 1);
+            } }
+        );
+    }
+
+    KeyboardNav.init({
+        items: messages.add(patches),
+        activateLabel: "Toggle message / open patch",
+        extraKeys: extraKeys,
+        onActivate: function(item, index) {
+            if (index < messages.length) {
+                // Toggle message collapse
+                item.find(".card-collapse").collapse("toggle");
+            } else {
+                // Open patch link
+                var link = item.find("a");
+                if (link.length && link.attr("href")) {
+                    window.location.href = link.attr("href");
+                }
+            }
+        }
+    });
 }
 
 $(main);
