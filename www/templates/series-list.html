@@ -2,7 +2,9 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-list.css?v=4">
+<link rel="stylesheet" href="/static/css/series-list.css?v=5">
+<link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
+<script src="/static/js/keyboard-nav.js?v=1"></script>
 {% endblock %}
 
 {% block content %}
@@ -109,7 +111,21 @@ function main() {
         $(this).html($(this).html().replace(/{{ kw }}/g,
             "<span class=\"keyword-highlight\">$&</span>"));
         {% endfor %}
-    })
+    });
+
+    // Keyboard navigation: j/k to navigate, o/Enter to open
+    var rows = $("table.table tbody tr, table.table tr").not(":has(th)");
+
+    KeyboardNav.init({
+        items: rows,
+        activateLabel: "Open selected item",
+        onActivate: function(item) {
+            var link = item.find("a.series-subject");
+            if (link.length) {
+                window.location.href = link.attr("href");
+            }
+        }
+    });
 }
 
 $(main);
