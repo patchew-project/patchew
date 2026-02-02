@@ -106,6 +106,13 @@ var KeyboardNav = (function($) {
                         e.preventDefault();
                     }
                     break;
+                case "/":
+                    var searchBox = $("#q");
+                    if (searchBox.length) {
+                        searchBox.focus().select();
+                        e.preventDefault();
+                    }
+                    break;
                 default:
                     // Check extra keys
                     for (var i = 0; i < extraKeys.length; i++) {
