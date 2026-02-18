@@ -7,3 +7,13 @@
 .project-logo {
     padding-top: 10px;
 }
+
+.project .thumbnail.selected {
+    outline: 2px solid #007bff;
+    outline-offset: -2px;
+}
+@media (prefers-color-scheme: dark) {
+    .project .thumbnail.selected {
+        outline-color: #6ea8fe;
+    }
+}

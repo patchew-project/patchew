@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/project-list.css?v=4">
+<link rel="stylesheet" href="/static/css/project-list.css?v=5">
+<link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
+<script src="/static/js/keyboard-nav.js?v=1"></script>
 {% endblock %}
 
 {% block title %}Projects{% endblock %}
@@ -36,5 +38,21 @@
         </div>
     </div></div>
 </div>
+
+<script type="text/javascript">
+$(function() {
+    var projects = $(".project .thumbnail");
+    KeyboardNav.init({
+        items: projects,
+        activateLabel: "Open project",
+        onActivate: function(item) {
+            var link = item.find("h3 a");
+            if (link.length) {
+                window.location.href = link.attr("href");
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}

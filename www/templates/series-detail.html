@@ -2,7 +2,9 @@
 {% load humanize %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/series-detail.css?v=4">
+<link rel="stylesheet" href="/static/css/series-detail.css?v=8">
+<link rel="stylesheet" href="/static/css/keyboard-help.css?v=1">
+<script src="/static/js/keyboard-nav.js?v=1"></script>
 <script src="/static/highlight/highlight.pack.js"></script>
 <link rel="stylesheet" href="/static/css/colorbox.css">
 <script src="/static/js/jquery.colorbox-min.js"></script>
@@ -19,8 +21,9 @@
 <h2>{{ subject }}</h2>
 <div class="series-header-info">
             <span class="message-author" title="{{ series.sender_full_name }}">
-                {{ series.sender_display_name }}
-            </span> posted <span class="patch-count">
+                {{ series.sender_display_name }}</span>
+            <a href="/search?q=from:{{ series.sender_address|urlencode }}%20project:{{ project|urlencode }}" title="All series from {{ series.sender_display_name }}">👤</a>
+            posted <span class="patch-count">
                 {{ series.total_patches }}
                 patch{{ series.total_patches|pluralize:"es" }}
             </span> <span class="message-age" title="{{ series.date }}">
@@ -29,13 +32,19 @@
   <ul id="series-links">
     {% for op in series.extra_links %}
     <li>
-      <span class="fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}"></span>
+      <span class="{% if op.icon_class %}{{ op.icon_class }}{% else %}fa fa-{% if op.icon %}{{ op.icon }}{% else %}question{% endif %}{% endif %}"></span>
         {{ op.html }}</li>
     {% endfor %}
   </ul>
   {% endif %}
+  {% if is_head %}
+  <span id="status-summary" class="status-summary" title="Overall status"></span>
+  <span id="diffstat-summary" class="diffstat-summary"></span>
+  <a href="#" id="toggle-details" class="toggle-details" title="Toggle details"><span class="fa fa-chevron-down"></span></a>
+  {% endif %}
 </div>
 
+<div id="series-details" class="series-details collapse{% if not is_head %} show{% endif %}">
 {% if series.extra_ops %}
 <div id="detail-ops">
   <ul>
@@ -105,6 +114,7 @@ function prompt_and_submit(obj) {
     {% endif %}
 {% endif %}
 </div>
+</div><!-- series-details -->
 </div><!-- col -->
 </div><!-- row -->
 
@@ -130,6 +140,7 @@ function prompt_and_submit(obj) {
                         Posted by
                         <span class="message-author" title="{{ msg.sender_full_name }}">
                             {{ msg.sender_display_name }}</span>
+                        <a href="/search?q=from:{{ msg.sender_address|urlencode }}%20project:{{ project|urlencode }}" title="All series from {{ msg.sender_display_name }}">👤</a>
                         <span class="message-age" title="{{ msg.date }}">
                             {{ msg.date|naturaltime }}
                         </span>
@@ -150,7 +161,7 @@ function prompt_and_submit(obj) {
     <ul class="card no-bullet" id="patches">
     {% for patch in patches %}
     <li><a href="{{ patch.message_id }}/">
-      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+      <span class="fa-lg {% if patch.has_reviewed_by %}fa fa-certificate{% elif patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}</a></li>
     {% endfor %}
     </ul>
@@ -159,7 +170,7 @@ function prompt_and_submit(obj) {
     <ul class="card no-bullet" id="patches">
     {% for patch in patches %}
     <li {% if patch.message_id == message_id %}class="active"{% else %}><a href="../{{ patch.message_id }}/"{%endif%}>
-      <span class="fa-lg {% if patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
+      <span class="fa-lg {% if patch.has_reviewed_by %}fa fa-certificate{% elif patch.has_replies %}far fa-comment{% else %}fa fa-ellipsis-v{% endif %}"></span>
       {{ patch.subject }}
       {% if patch.message_id != message_id %}</a>{% endif %}</li>
     {% endfor %}
@@ -182,9 +193,92 @@ function main() {
         $(".card-collapse").collapse("hide");
 	e.preventDefault();
     });
+    // Compute overall status summary
+    var statusSummary = "success";
+    $(".status-content .fa").each(function() {
+        var $icon = $(this);
+        if ($icon.hasClass("fa-exclamation-triangle")) {
+            statusSummary = "failure";
+            return false; // break - failure takes priority
+        } else if ($icon.hasClass("fa-sync") && statusSummary !== "failure") {
+            statusSummary = "running";
+        } else if ($icon.hasClass("fa-hourglass") && statusSummary === "success") {
+            statusSummary = "pending";
+        }
+    });
+    var summaryIconClass = {
+        "failure": "fa fa-exclamation-triangle text-danger",
+        "running": "fa fa-sync fa-spin text-info",
+        "pending": "fa fa-hourglass text-warning",
+        "success": "fa fa-check text-success"
+    };
+    if ($(".status-content").length > 0) {
+        $("#status-summary").html('<span class="' + summaryIconClass[statusSummary] + '"></span>');
+    }
+
+    // Parse and display diff stat summary
+    var diffStatText = $(".status .body-full").text();
+    var diffStatMatch = diffStatText.match(/(\d+)\s+insertion[s]?\(\+\)(?:,\s*(\d+)\s+deletion[s]?\(-\))?/);
+    if (!diffStatMatch) {
+        diffStatMatch = diffStatText.match(/(\d+)\s+deletion[s]?\(-\)/);
+        if (diffStatMatch) {
+            diffStatMatch = [null, "0", diffStatMatch[1]];
+        }
+    }
+    if (diffStatMatch) {
+        var insertions = parseInt(diffStatMatch[1]) || 0;
+        var deletions = parseInt(diffStatMatch[2]) || 0;
+        var total = insertions + deletions;
+        var addBlocks = total > 0 ? Math.round((insertions / total) * 5) : 0;
+        var delBlocks = 5 - addBlocks;
+        var bars = '<span class="diffstat-bar">';
+        for (var i = 0; i < addBlocks; i++) {
+            bars += '<span class="diffstat-block diffstat-block-add"></span>';
+        }
+        for (var i = 0; i < delBlocks; i++) {
+            bars += '<span class="diffstat-block diffstat-block-del"></span>';
+        }
+        bars += '</span>';
+        $("#diffstat-summary").html(
+            '<span class="diffstat-add">+' + insertions.toLocaleString() + '</span> ' +
+            '<span class="diffstat-del">−' + deletions.toLocaleString() + '</span> ' +
+            bars
+        );
+    }
+
+    // Toggle details section
+    $("#toggle-details").click(function (e) {
+        var $details = $("#series-details");
+        var $icon = $(this).find(".fa");
+        $details.collapse("toggle");
+        e.preventDefault();
+    });
+    $("#series-details").on("shown.bs.collapse", function() {
+        $("#toggle-details .fa").removeClass("fa-chevron-down").addClass("fa-chevron-up");
+        $("#status-summary, #diffstat-summary").hide();
+    }).on("hidden.bs.collapse", function() {
+        $("#toggle-details .fa").removeClass("fa-chevron-up").addClass("fa-chevron-down");
+        $("#status-summary, #diffstat-summary").show();
+        $("#status-summary").show();
+    });
     $(document).ready(function() {
         $('pre code').each(function(i, block) {
             hljs.highlightBlock(block);
+        });
+        // Style quoted lines in non-patch emails
+        $('pre.body-full').not(':has(code.diff)').each(function(i, block) {
+            var html = $(block).html();
+            var lines = html.split('\n');
+            var processed = lines.map(function(line) {
+                var leadingQuotes = line.match(/^((&gt;\s*)+)/);
+                if (leadingQuotes) {
+                    var depth = (leadingQuotes[1].match(/&gt;/g) || []).length;
+                    var depthClass = 'quote-depth-' + Math.min(depth, 3);
+                    return '<span class="quoted-line ' + depthClass + '">' + line + '</span>';
+                }
+                return line;
+            }).join('\n');
+            $(block).html(processed);
         });
         $(".cbox-log").colorbox({width:"90%", height: "80%", iframe: true,
                                  href: function() {
@@ -195,8 +289,69 @@ function main() {
                                          $('.cboxIframe')[0].contentWindow.focus();
                                       }, 400);
                                  }});
+        $(".copy-git-fetch").click(function(e) {
+            e.preventDefault();
+            var el = this;
+            copy_text_to_clipboard($(this).data("cmd"), function() {
+                show_copied_feedback(el);
+            });
+        });
     });
     add_fixed_scroll_events();
+
+    // Keyboard navigation: j/k to navigate messages and patches, o/Enter to toggle/open
+    var messages = $("#thread .card.message");
+    var patches = $("#patches li");
+
+    // Find current patch index for n/p navigation
+    var patchItems = $("#patches li");
+    var currentPatchIndex = patchItems.index($("#patches li.active"));
+
+    function goToPatch(index) {
+        if (patchItems.length === 0) return;
+        if (index < 0 || index >= patchItems.length) return;
+        var target = patchItems.eq(index);
+        var link = target.find("a");
+        if (link.length && link.attr("href")) {
+            window.location.href = link.attr("href");
+        }
+    }
+
+    var extraKeys = [
+        { key: "d", label: "Toggle details", handler: function() { $("#series-details").collapse("toggle"); } },
+        { key: ";", label: "Expand all messages", handler: function() { $(".card-collapse").collapse("show"); } },
+        { key: ":", label: "Collapse all messages", handler: function() { $(".card-collapse").collapse("hide"); } }
+    ];
+    if (patchItems.length > 1) {
+        extraKeys.push(
+            { key: "n", label: "Next patch", handler: function() {
+                // If no active patch, go to first; otherwise go to next
+                goToPatch(currentPatchIndex < 0 ? 0 : currentPatchIndex + 1);
+            } },
+            { key: "p", label: "Previous patch", handler: function() {
+                // Only navigate if we have an active patch
+                if (currentPatchIndex > 0) goToPatch(currentPatchIndex - 1);
+            } }
+        );
+    }
+
+    KeyboardNav.init({
+        items: messages.add(patches),
+        activateLabel: "Toggle message / open patch",
+        extraKeys: extraKeys,
+        onActivate: function(item, index) {
+            if (index < messages.length) {
+                // Toggle message collapse
+                item.find(".card-collapse").collapse("toggle");
+            } else {
+                // Open patch link
+                var link = item.find("a");
+                if (link.length && link.attr("href")) {
+                    window.location.href = link.attr("href");
+                }
+            }
+        }
+    });
 }
 
 $(main);

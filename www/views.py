@@ -44,6 +44,7 @@ def prepare_message(request, project, m, for_message_view):
     name, addr = m.sender
     m.sender_full_name = "%s <%s>" % (name, addr)
     m.sender_display_name = name or addr
+    m.sender_address = addr
     m.url = reverse(
         "series_detail", kwargs={"project": project.name, "message_id": m.message_id}
     )
@@ -86,7 +87,14 @@ def prepare_patches(request, m, max_depth=None):
     )
     replies = replies.annotate(has_replies=Exists(commit_replies))
     project = m.project
-    return [prepare_message(request, project, x, True) for x in replies]
+    patches = []
+    for x in replies:
+        patch = prepare_message(request, project, x, True)
+        patch.has_reviewed_by = any(
+            tag.startswith("Reviewed-by:") for tag in (x.tags or [])
+        )
+        patches.append(patch)
+    return patches
 
 
 def prepare_series(request, s, skip_patches=False):
@@ -118,6 +126,27 @@ def prepare_results(request, obj):
         result.html = html
         rendered_results.append(result)
     return rendered_results
+
+
+def add_git_fetch_link(series, msg):
+    """Add git fetch copy button to extra_links if git result has repo and tag."""
+    git_result = msg.results.filter(name="git").first()
+    if git_result and git_result.data:
+        git_repo = git_result.data.get("repo")
+        git_tag = git_result.data.get("tag")
+        if git_repo and git_tag:
+            if git_tag.startswith("refs/tags/"):
+                git_tag = git_tag[5:]
+            git_cmd = "git fetch {} {}".format(git_repo, git_tag)
+            series.extra_links.append(
+                {
+                    "html": format_html(
+                        '<a href="#" class="copy-git-fetch" data-cmd="{}" title="Copy git fetch command">Copy git fetch</a>',
+                        git_cmd
+                    ),
+                    "icon_class": "fab fa-git-alt",
+                }
+            )
 
 
 def prepare_series_list(request, sl):
@@ -349,6 +378,7 @@ def view_series_detail(request, project, message_id):
                 "icon": "download",
             }
         )
+    add_git_fetch_link(series, s)
     return render_page(
         request,
         "series-detail.html",
@@ -381,7 +411,6 @@ def view_series_message(request, project, thread_id, message_id):
     nav_path = prepare_navigate_list(
         "View patch",
         ("series_list", {"project": project}, project),
-        ("series_detail", {"project": project, "message_id": thread_id}, s.subject),
     )
     search = "id:" + thread_id
     series = prepare_message(request, s.project, s, True)
@@ -393,6 +422,7 @@ def view_series_message(request, project, thread_id, message_id):
             "icon": "download",
         }
     )
+    add_git_fetch_link(series, s)
     return render_page(
         request,
         "series-detail.html",

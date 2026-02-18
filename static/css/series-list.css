@@ -21,3 +21,14 @@
 tr.obsolete > td, tr.obsolete > td a {
     color: #999999;
 }
+
+tr.selected {
+    outline: 2px solid #007bff;
+    outline-offset: -2px;
+}
+@media (prefers-color-scheme: dark) {
+    tr.selected {
+        outline-color: #6ea8fe;
+    }
+}
+

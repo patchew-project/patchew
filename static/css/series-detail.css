@@ -21,11 +21,18 @@
 #patches {
     border: none;
     margin: 1.5em 0;
-    padding: 0em 0em 0em 2em;
+    padding: 0;
+    list-style: none;
 }
 
 #patches li {
     margin: 0.5em;
+    margin-left: 2em;
+    padding-left: 0.5em;
+}
+
+#patches li > a {
+    display: block;
 }
 
 .message-info {
@@ -77,3 +84,112 @@
     display: inline-block;
     padding-right: 3px;
 }
+
+#thread .card.selected {
+    outline: 2px solid #007bff;
+    outline-offset: -2px;
+}
+#patches li.selected {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+@media (prefers-color-scheme: dark) {
+    #thread .card.selected,
+    #patches li.selected {
+        outline-color: #6ea8fe;
+    }
+}
+
+/* Toggle details button */
+.toggle-details {
+    margin-left: 1em;
+    color: #007bff;
+    text-decoration: none;
+}
+.toggle-details:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+    .toggle-details {
+        color: #6ea8fe;
+    }
+    .toggle-details:hover {
+        color: #9ec5fe;
+    }
+}
+
+/* Series details collapsible section */
+.series-details {
+    margin-top: 1em;
+}
+
+/* Status summary icon */
+.status-summary {
+    margin-left: 1em;
+}
+
+/* Diff stat summary */
+.diffstat-summary {
+    margin-left: 1em;
+    font-size: 0.9em;
+}
+.diffstat-add {
+    color: #28a745;
+}
+.diffstat-del {
+    color: #dc3545;
+}
+.diffstat-bar {
+    display: inline-flex;
+    margin-left: 0.5em;
+    gap: 2px;
+    vertical-align: middle;
+}
+.diffstat-block {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 1px;
+}
+.diffstat-block-add {
+    background-color: #28a745;
+}
+.diffstat-block-del {
+    background-color: #dc3545;
+}
+.status-summary .text-danger {
+    color: #dc3545;
+}
+.status-summary .text-warning {
+    color: #ffc107;
+}
+.status-summary .text-info {
+    color: #17a2b8;
+}
+.status-summary .text-success {
+    color: #28a745;
+}
+
+/* Quoted lines in email replies */
+.quoted-line {
+    color: #6a737d;
+}
+.quote-depth-2 {
+    color: #8a8a8a;
+}
+.quote-depth-3 {
+    color: #a0a0a0;
+}
+@media (prefers-color-scheme: dark) {
+    .quoted-line {
+        color: #8b949e;
+    }
+    .quote-depth-2 {
+        color: #6e7681;
+    }
+    .quote-depth-3 {
+        color: #565c64;
+    }
+}
+

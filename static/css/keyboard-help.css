@@ -1,0 +1,58 @@
+/* Keyboard help modal - shared styles */
+.keyboard-help-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.keyboard-help-overlay.visible {
+    display: flex;
+}
+.keyboard-help-dialog {
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+}
+.keyboard-help-dialog h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+.keyboard-help-dialog table {
+    width: 100%;
+    margin-bottom: 15px;
+}
+.keyboard-help-dialog td {
+    padding: 5px 10px 5px 0;
+}
+.keyboard-help-dialog td:first-child {
+    text-align: right;
+    white-space: nowrap;
+}
+.keyboard-help-dialog kbd {
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #333;
+}
+@media (prefers-color-scheme: dark) {
+    .keyboard-help-dialog {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+    .keyboard-help-dialog kbd {
+        background: #444;
+        border-color: #666;
+        color: #e0e0e0;
+    }
+}
