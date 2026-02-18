@@ -14,6 +14,6 @@ cd /opt/patchew
 
 gunicorn -b unix:/data/patchew/gunicorn.sock -D wsgi \
     --error-logfile $logdir/gunicorn-error.log \
-    --access-logfile $logdir/gunicorn-access.log
+    --access-logfile /dev/null
 rm -f /data/patchew/nginx.sock
 nginx -c $(readlink -e scripts/patchew-server.nginx.conf)
